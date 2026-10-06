@@ -651,6 +651,8 @@ button:focus-visible, select:focus-visible, input:focus-visible {
   -webkit-line-clamp: 1;
 }
 .card.win { animation: winpulse 1s ease-in-out infinite; }
+/* Под открытым окном пульс не виден, а перерисовка двадцати теней тормозит — ставим на паузу. */
+body:has(.modal:not([hidden])) .card.win { animation-play-state: paused; }
 @keyframes winpulse {
   50% { box-shadow: 0 0 0 2px var(--c), 0 0 26px var(--c); }
 }
@@ -1222,6 +1224,18 @@ button:focus-visible, select:focus-visible, input:focus-visible {
   color: #2a1600;
   border-color: var(--accent);
 }
+/* Жёлтые кнопки при наведении только светлеют: текст не должен сливаться с фоном. */
+.btn[aria-pressed="true"]:hover:not(:disabled) {
+  color: #2a1600;
+  filter: brightness(1.1);
+}
+/* Переключатель: обе подписи лежат в одной клетке, кнопка всегда шириной с длинную. */
+.tgl {
+  display: inline-grid;
+  justify-items: center;
+}
+.tgl > span { grid-area: 1 / 1; }
+.tgl[aria-pressed="true"] > .off, .tgl[aria-pressed="false"] > .on { visibility: hidden; }
 .invlayout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 320px;
@@ -1604,6 +1618,22 @@ button:focus-visible, select:focus-visible, input:focus-visible {
 }
 .pick .inv-item { font-size: 10px; }
 .pick .inv-item .ic { font-size: 26px; }
+
+/* На широком экране верстак и книга рецептов одной высоты:
+   список «Что положить» растягивается до низа книги, а обе колонки скроллятся внутри. */
+@media (min-width:861px) {
+  .craft { align-items: stretch; }
+  .book {
+    display: flex;
+    flex-direction: column;
+  }
+  .book .recipes { flex: 1 1 auto; }
+  .bench .pick {
+    flex: 1 1 0;
+    min-height: 340px;
+    max-height: none;
+  }
+}
 .recipes {
   display: grid;
   grid-template-columns: 1fr;
@@ -2194,8 +2224,8 @@ body:has(.bulk:not([hidden])) .toast {
   display: grid;
   place-items: center;
   padding: 16px;
-  background: rgba(5, 8, 12, .8);
-  backdrop-filter: blur(6px);
+  /* Без backdrop-filter: размытие пересчитывалось каждый кадр и тормозило вместе с конфетти. */
+  background: rgba(5, 8, 12, .88);
   overflow-y: auto;
 }
 .modal[hidden] { display: none !important; }
@@ -2528,7 +2558,7 @@ body:has(.bulk:not([hidden])) .toast {
       <span class="bal" id="bal">Баланс: <b>100,00 ₽</b></span>
       <button class="btn" id="loan" type="button">Занять у бабушки +50 ₽</button>
       <button class="btn" id="repay" type="button">Вернуть долг</button>
-      <button class="btn" id="soundBtn" type="button" aria-pressed="false">Звук: выкл</button>
+      <button class="btn tgl" id="soundBtn" type="button" aria-pressed="false"><span class="off">Звук: выкл</span><span class="on">Звук: вкл</span></button>
     </div>
   </header>
 
@@ -2587,7 +2617,7 @@ body:has(.bulk:not([hidden])) .toast {
         <input type="search" id="ivQ" placeholder="Поиск: носок, гусь, шаурма…" aria-label="Поиск по инвентарю">
         <select id="ivCase" aria-label="Фильтр по кейсу"></select>
         <select id="ivSort" aria-label="Сортировка"><option value="new">Сначала новые</option><option value="old">Сначала старые</option><option value="pd">Сначала дорогие</option><option value="pa">Сначала дешёвые</option><option value="rar">По редкости</option><option value="name">По названию</option></select>
-        <button class="btn" id="ivMulti" type="button" aria-pressed="false">Выбрать несколько</button>
+        <button class="btn tgl" id="ivMulti" type="button" aria-pressed="false"><span class="off">Выбрать несколько</span><span class="on">Выбор: вкл</span></button>
       </div>
       <div class="chips" id="ivChips" role="group" aria-label="Фильтр по редкости"></div>
       <div class="quick-sel">
@@ -2658,7 +2688,7 @@ body:has(.bulk:not([hidden])) .toast {
           <h2 style="margin-top:6px">Что положить <small id="bPickN"></small></h2>
           <div class="pick inv" id="bPick"></div>
         </div>
-        <div class="panel">
+        <div class="panel book">
           <h2>Книга рецептов <small id="rcpN"></small></h2>
           <p class="lead" style="margin:0 0 10px">Рецепты открываются, когда соберёшь их впервые. Подсказки помогут угадать. Если рецепта нет, предметы вернутся.</p>
           <div class="recipes" id="recipes"></div>
@@ -3476,13 +3506,12 @@ let busy = false; // идёт анимация с деньгами или пре
 let audio = null;
 let soundOn = false;
 
-$('soundBtn').onclick = (e) => {
+$('soundBtn').onclick = () => {
   soundOn = !soundOn;
-  e.target.textContent = 'Звук: ' + (soundOn ? 'вкл' : 'выкл');
-  e.target.setAttribute('aria-pressed', soundOn);
   if (soundOn && !audio) {
     try { audio = new (window.AudioContext || window.webkitAudioContext)(); } catch (_) { soundOn = false; }
   }
+  $('soundBtn').setAttribute('aria-pressed', soundOn);
   if (audio && audio.state === 'suspended') audio.resume();
   tone(880, 0.06);
 };
@@ -3531,8 +3560,11 @@ function sizeFx() {
 sizeFx();
 addEventListener('resize', sizeFx);
 
+const FX_MAX_PARTICLES = 500; // больше одновременно не рисуем: лишние только тормозят
+
 function burst(x, y, colors, n) {
   if (reducedMotion) n = Math.min(n, 20);
+  n = Math.min(n, FX_MAX_PARTICLES - particles.length);
   for (let i = 0; i < n; i++) {
     const a = Math.random() * Math.PI * 2;
     const v = 3 + Math.random() * 10;
@@ -3542,9 +3574,17 @@ function burst(x, y, colors, n) {
       color: colors[i % colors.length], rot: Math.random() * 6, vr: (Math.random() - 0.5) * 0.4,
     });
   }
+  if (n > 0 && !fxRunning) {
+    fxRunning = true;
+    requestAnimationFrame(fxLoop);
+  }
 }
 
-(function fxLoop() {
+// Цикл крутится, только пока есть конфетти; в простое канвас не трогаем.
+let fxRunning = false;
+function fxLoop() {
+  const dpr = fxCanvas.width / fxW || 1;
+  fx.setTransform(dpr, 0, 0, dpr, 0, 0);
   fx.clearRect(0, 0, fxW, fxH);
   for (const p of particles) {
     p.vy += 0.2;
@@ -3553,18 +3593,23 @@ function burst(x, y, colors, n) {
     p.y += p.vy;
     p.life -= p.decay;
     p.rot += p.vr;
+    const cos = Math.cos(p.rot) * dpr;
+    const sin = Math.sin(p.rot) * dpr;
+    fx.setTransform(cos, sin, -sin, cos, p.x * dpr, p.y * dpr);
     fx.globalAlpha = Math.max(p.life, 0);
     fx.fillStyle = p.color;
-    fx.save();
-    fx.translate(p.x, p.y);
-    fx.rotate(p.rot);
     fx.fillRect(-p.size, -p.size / 3, p.size * 2, p.size * 0.66);
-    fx.restore();
   }
   fx.globalAlpha = 1;
   particles = particles.filter((p) => p.life > 0 && p.y < fxH + 40);
-  requestAnimationFrame(fxLoop);
-})();
+  if (particles.length) {
+    requestAnimationFrame(fxLoop);
+  } else {
+    fx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    fx.clearRect(0, 0, fxW, fxH);
+    fxRunning = false;
+  }
+}
 
 function shake() {
   if (!reducedMotion) replay($('wrap'), 'shake');
@@ -4397,7 +4442,6 @@ function renderInvView() {
     renderInvView();
   }));
   $('ivMulti').setAttribute('aria-pressed', invUi.multi);
-  $('ivMulti').textContent = invUi.multi ? 'Выбор: вкл' : 'Выбрать несколько';
 
   // Сетка.
   const list = filteredInventory();
