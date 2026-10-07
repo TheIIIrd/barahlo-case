@@ -1,0 +1,39 @@
+/* Стопка уведомлений: важное сверху, обычное под ним. */
+#toasts {
+  position: fixed;
+  left: 50%;
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: 80;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: max-content;
+  max-width: calc(100% - 32px);
+  pointer-events: none;
+}
+.toast {
+  background: var(--panel2);
+  border: 1px solid var(--line);
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  animation: slidein .3s;
+  max-width: 100%;
+  pointer-events: none; /* уведомление не перехватывает нажатия на кнопки под ним */
+}
+.toast.out {
+  opacity: 0;
+  transform: translateY(6px) scale(.96);
+  transition: opacity .25s ease, transform .3s ease, margin-top .3s ease;
+}
+.toast.imp {
+  border-color: var(--accent);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, .45);
+}
+/* Пока открыто окно, уведомления уезжают наверх, чтобы не закрывать его кнопки. */
+body:has(.modal:not([hidden])) #toasts {
+  top: calc(12px + env(safe-area-inset-top, 0px));
+  bottom: auto;
+}

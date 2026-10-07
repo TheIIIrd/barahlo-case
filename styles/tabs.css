@@ -1,0 +1,41 @@
+/* Вкладки */
+.tabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 3px 3px 5px; /* запас под контрастную рамку, см. .feed */
+  margin: -3px;
+  scrollbar-width: none;
+}
+.tab {
+  flex: 1 1 0;
+  position: relative;
+  /* Подпись и счётчик — по центру по вертикали: вкладки со счётчиком не выше остальных. */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+  text-align: center;
+  font-family: var(--f-display);
+  font-size: 14px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--muted);
+  cursor: pointer;
+  transition: .15s;
+}
+.tab:hover { color: var(--fg); }
+.tab[aria-selected="true"] {
+  color: #2a1600;
+  background: linear-gradient(180deg, #ffd16a, var(--accent));
+  border-color: var(--accent);
+}
+.view {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.view[hidden] { display: none !important; }

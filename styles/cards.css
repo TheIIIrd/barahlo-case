@@ -1,0 +1,484 @@
+/* Карты: лицо карты, Кузня, альбом коллекции */
+.subnav.cards-nav { grid-template-columns: repeat(2, 1fr); } /* .subnav из inventory.css подключается позже */
+
+/* Карта. --sc — цвет масти, --rc — цвет достоинства (как у редкостей предметов). */
+.pcard {
+  position: relative;
+  box-sizing: border-box;
+  width: 124px;
+  aspect-ratio: 5 / 7;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2px;
+  padding: 22px 8px 8px;
+  border-radius: 12px;
+  border: 2px solid var(--rc);
+  background:
+    radial-gradient(120% 80% at 50% 0%, color-mix(in srgb, var(--sc) 22%, transparent), transparent 70%),
+    var(--bg2);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .35), inset 0 0 0 1px rgba(255, 255, 255, .04);
+  text-align: center;
+  color: var(--fg);
+  user-select: none;
+}
+.pcard .pc-corner {
+  position: absolute;
+  top: 5px;
+  left: 7px;
+  font-family: var(--f-display);
+  font-size: 14px;
+  line-height: 1;
+  color: var(--sc);
+}
+.pcard .pc-corner i {
+  display: block;
+  font-style: normal;
+  font-size: 12px;
+}
+.pcard .pc-n {
+  position: absolute;
+  top: 5px;
+  right: 6px;
+  font-family: var(--f-mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+}
+.pcard .pc-ic { font-size: 34px; line-height: 1.1; }
+.pcard .pc-nm {
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.15;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+.pcard .pc-stats {
+  display: flex;
+  gap: 4px;
+  font-family: var(--f-mono);
+  font-size: 10px;
+}
+.pcard .pc-stats b { font-weight: 400; white-space: nowrap; }
+.pcard .pc-sig {
+  font-size: 9.5px;
+  font-weight: 800;
+  color: var(--sc);
+  text-transform: uppercase;
+  letter-spacing: .03em;
+}
+/* Рубашка: карты ещё нет. */
+.pcard.back {
+  border-color: var(--line);
+  border-style: dashed;
+  background:
+    repeating-linear-gradient(45deg, color-mix(in srgb, var(--sc) 10%, transparent) 0 6px, transparent 6px 12px),
+    var(--bg2);
+  justify-content: center;
+}
+.pcard.back .pc-ic {
+  font-family: var(--f-display);
+  font-size: 30px;
+  color: var(--muted);
+}
+.pcard.gone { opacity: .45; } /* была, но все копии потрачены */
+.pcard.xs {
+  width: 52px;
+  padding: 14px 3px 3px;
+  border-radius: 7px;
+  border-width: 1.5px;
+  justify-content: center;
+}
+.pcard.xs .pc-corner { top: 3px; left: 4px; font-size: 10px; }
+.pcard.xs .pc-corner i { font-size: 9px; }
+.pcard.xs .pc-ic { font-size: 22px; }
+.pcard.xs :is(.pc-nm, .pc-stats, .pc-sig, .pc-n) { display: none; }
+.pcard.back.xs .pc-ic { font-size: 18px; }
+
+/* Кузня */
+.forge {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+.anvil h2 small { font-family: var(--f-body); font-size: 12px; color: var(--muted); }
+.anvil-top {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.anvil-top .wheel { width: 170px; height: 170px; }
+/* Кольца мультикрафта: по кольцу на попытку, снаружи внутрь. Толщина кольца — --t. */
+@property --ch { syntax: "<percentage>"; inherits: true; initial-value: 0%; }
+#fWheel.multi { background: none; --t: 14px; }
+#fWheel.multi.thin { --t: 10px; }
+#fWheel.multi::before { inset: calc(var(--rings) * var(--t) + 2px); z-index: 1; }
+#fWheel.multi > .needle { display: none; }
+#fWheel .pct { z-index: 2; }
+.fring {
+  position: absolute;
+  inset: calc(var(--k) * var(--t));
+  border-radius: 50%;
+  background: conic-gradient(var(--good) 0 var(--ch), var(--bad) var(--ch) 100%);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - var(--t) + 1.5px), #000 calc(100% - var(--t) + 2px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - var(--t) + 1.5px), #000 calc(100% - var(--t) + 2px));
+  transition: --ch .45s ease, opacity .3s;
+}
+.fring.lost { opacity: .45; }
+.fring.won { filter: brightness(1.15); }
+.fneedle {
+  position: absolute;
+  inset: calc(var(--k) * var(--t));
+  pointer-events: none;
+  z-index: 3;
+  transition: transform 3s cubic-bezier(.12, .75, .2, 1);
+  filter: drop-shadow(0 0 1px #0d1117) drop-shadow(0 0 1px #0d1117); /* стрелка видна и на зелёном, и на красном */
+}
+.fneedle::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -2px;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top: calc(var(--t) + 2px) solid var(--nc);
+}
+/* Итог серии */
+.fr-ic { display: flex; justify-content: center; margin: 2px 0 8px; }
+.fr-list { list-style: none; padding: 0; margin: 4px 0 14px; display: flex; flex-direction: column; gap: 6px; text-align: left; }
+.fr-list li { display: grid; grid-template-columns: 12px auto; column-gap: 8px; align-items: baseline; font-size: 13px; padding: 8px 10px; border-radius: 10px; background: var(--bg2); }
+.fr-list li i { width: 10px; height: 10px; border-radius: 50%; background: var(--nc); }
+.fr-list li span { grid-column: 2; color: var(--muted); font-size: 12px; }
+.fcard .pcard { width: 140px; }
+.fcard.forged .pcard { animation: forged .9s cubic-bezier(.2, 1.5, .4, 1); }
+@keyframes forged {
+  0% { transform: rotateY(90deg) scale(.7); filter: brightness(2.4); }
+  60% { filter: brightness(1.6); }
+}
+.fslots {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 14px 10px 10px; /* сверху — место под «карточки» стопок */
+  margin-bottom: 12px;
+  border-radius: 12px;
+  background: var(--bg2);
+}
+.fslot {
+  all: unset;
+  box-sizing: border-box;
+  position: relative;
+  width: 70px; /* одна ширина у всех стопок: сумма — коротко («131 тыс», «1,4 млрд») */
+  padding: 0 3px;
+  min-height: 74px; /* min-, а не height: при крупном тексте сумма не обрезается */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  border-radius: 9px;
+  background: linear-gradient(180deg, var(--panel2), var(--bg2));
+  border-bottom: 3px solid var(--c);
+  font-size: 9.5px;
+  text-align: center;
+  cursor: pointer;
+}
+button.fslot:hover { filter: brightness(1.15); }
+button.fslot:focus-visible { outline: 2px solid var(--accent); }
+.fslot .ic { font-size: 26px; line-height: 1; }
+.fslot .p {
+  font-family: var(--f-mono);
+  color: var(--good);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 3px;
+}
+.fslot .p.neg, .fpick-grid .p.neg { color: var(--bad); }
+.fslot .pin { position: absolute; top: 2px; right: 3px; font-size: 10px; }
+.fslot .n {
+  font-family: var(--f-mono);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--fg);
+}
+.fslot.short .n { color: var(--bad); }
+.fslot.cur { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* Стопка: требование из нескольких предметов — две «карточки» выглядывают сзади справа сверху.
+   Тенями, а не псевдоэлементами: тени не занимают места, поэтому все слоты ряда стоят ровно. */
+.fslot.stack { box-shadow: 3px -3px 0 -1px #263244, 6px -6px 0 -2px #1d2734; }
+.fslot.empty {
+  background: color-mix(in srgb, var(--bg2) 70%, transparent);
+  border: 2px dashed var(--c);
+}
+.fslot.empty .ic { font-size: 22px; font-family: var(--f-display); color: var(--c); }
+/* Карта-ингредиент и будущая карта: счётчик — плашкой поверх низа карты, чтобы высота была как у слотов. */
+.fslot.card, .fslot.out { background: none; border: 0; height: auto; width: auto; padding: 0; box-shadow: none; }
+.fslot.out { cursor: default; }
+.fslot.card .n, .fslot.out .n {
+  position: absolute;
+  left: 50%;
+  bottom: 5px;
+  transform: translateX(-50%);
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: rgba(13, 17, 23, .88);
+  white-space: nowrap;
+}
+.fslot.card.short .pcard { opacity: .4; }
+.fslot.card.short .n { color: var(--bad); }
+.fop { font-family: var(--f-display); color: var(--muted); font-size: 16px; }
+.fpick { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
+.fpick h3 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 0 4px;
+  font-family: var(--f-display);
+  font-weight: 400;
+  font-size: 15px;
+}
+.fpick-help { margin: 0 0 10px; font-size: 12px; color: var(--muted); }
+.fpick .chips { margin-bottom: 10px; }
+.inv-item .st.nm { background: var(--panel2); }
+/* «Где взять» под вкладкой требования. */
+.fwhere {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0 0 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--bg2);
+  font-size: 12.5px;
+}
+.fwhere > .btn { align-self: flex-start; }
+.fw-row { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.fw-ic {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  font-size: 16px;
+  background: color-mix(in srgb, var(--cc) 35%, var(--panel2));
+}
+.fw-t { flex: 1; min-width: 0; font-weight: 800; }
+.fw-t small { display: block; font-weight: 400; color: var(--muted); font-family: var(--f-mono); font-size: 11px; }
+.fw-row .btn { flex: none; }
+/* Мультикрафт: ×1 … ×5. */
+.fmult { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 8px; }
+.fmult .lbl { font-size: 12px; color: var(--muted); }
+.fmult { flex-wrap: wrap; }
+.fmult .seg button.short:not([aria-pressed="true"]) { color: var(--bad); }
+.fpick-grid { max-height: 300px; }
+.fpick .hint { min-height: 0; margin: 8px 0 0; }
+.fadd {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.fadd .btn { flex: 1 1 auto; font-size: 13px; }
+.fadd .btn small { display: block; font-family: var(--f-mono); font-size: 10px; opacity: .8; }
+.anvil .hint {
+  min-height: 2.8em;
+  margin: 8px 0 12px;
+  font-size: 12px;
+  color: var(--muted);
+  text-align: center;
+}
+/* Из чего сложился шанс — значками, как «🍀 удача» у кнопки открытия кейса. */
+.fchance {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 14px;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--fg);
+}
+.fchance .up { color: var(--good); }
+.fchance .pay { color: var(--accent); }
+.fchance .cap { color: var(--muted); }
+.fburn { display: block; margin-top: 6px; }
+.fsuits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.fsuits .sym { color: var(--c); font-size: 14px; }
+.flist {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.frec {
+  all: unset;
+  box-sizing: border-box;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px 6px 6px;
+  border-radius: 10px;
+  background: var(--bg2);
+  border: 1px solid transparent;
+  min-width: 0;
+}
+.frec:hover { border-color: var(--line); }
+.frec:focus-visible { outline: 2px solid var(--accent); }
+.frec.sel { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--bg2)); }
+.frec .fr-t { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.frec .fr-t b { font-size: 13px; }
+.frec .fr-t small { font-size: 11.5px; color: var(--muted); }
+.frec.ok .fr-t small { color: var(--good); }
+.frec.lock { opacity: .82; }
+.frec .fr-p { font-family: var(--f-mono); font-size: 13px; color: var(--accent); }
+
+/* Альбом */
+/* Альбом и карточка карты: как инвентарь — справа липкая панель, на телефоне шторка снизу. */
+.albumlayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 290px;
+  gap: 14px;
+  align-items: start;
+}
+.cdetail {
+  position: sticky;
+  top: calc(12px + env(safe-area-inset-top, 0px));
+  max-height: calc(100vh - 24px - env(safe-area-inset-top, 0px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px;
+  border-radius: 14px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  text-align: center;
+}
+.cdetail .close { display: none; }
+.cdetail .emptyd { color: var(--muted); font-size: 13px; padding: 24px 6px; }
+.cdetail .emptyd .ic { display: block; font-size: 36px; margin-bottom: 8px; }
+.cdetail .pcard { width: 160px; }
+.cdetail .pcard .pc-ic { font-size: 52px; }
+.cdetail .pcard .pc-nm { font-size: 13px; }
+.cdetail h3 { margin: 4px 0 0; font-family: var(--f-display); font-weight: 400; font-size: 18px; line-height: 1.2; }
+.cdetail p { margin: 0; font-size: 13px; }
+.cdetail .lore { font-style: italic; color: var(--muted); }
+.cdetail .muted { color: var(--muted); font-size: 12px; }
+.cdetail .crecipe { font-size: 12px; color: var(--muted); }
+.cdetail .crecipe b { color: var(--fg); }
+.cdetail .btn.primary { width: 100%; margin-top: 4px; }
+.cstats { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+.cstats span { font-size: 12px; padding: 3px 10px; border-radius: 99px; background: var(--panel2); }
+.arow .pcard.picked { outline: 2px solid var(--accent); outline-offset: 2px; }
+.album { display: flex; flex-direction: column; gap: 14px; }
+.asuit {
+  padding: 12px;
+  border-radius: 14px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+}
+.asuit.done { border-color: var(--sc); }
+.asuit h3 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0 0 10px;
+  font-family: var(--f-display);
+  font-weight: 400;
+  font-size: 16px;
+}
+.asuit h3 i { font-style: normal; color: var(--sc); }
+.asuit h3 small { font-family: var(--f-body); font-size: 12px; color: var(--muted); }
+.asuit h3 .cnt { margin-left: auto; font-family: var(--f-mono); font-size: 12px; color: var(--muted); }
+.arow {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 8px;
+}
+.arow .pcard { width: 100%; cursor: pointer; }
+.arow .pcard:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.arow .pcard .pc-ic { font-size: 28px; }
+
+/* На широком экране масть — ровно одна строка из 13 карт-миниатюр; подробности — в панели справа. */
+@media (min-width: 1100px) {
+  .arow { grid-template-columns: repeat(13, minmax(0, 1fr)); gap: 5px; }
+  .arow .pcard { padding: 16px 2px 4px; border-radius: 8px; justify-content: center; }
+  .arow .pcard .pc-corner { font-size: 11px; top: 3px; left: 4px; }
+  .arow .pcard .pc-corner i { font-size: 10px; }
+  .arow .pcard .pc-n { font-size: 9.5px; top: 3px; right: 3px; }
+  .arow .pcard .pc-ic { font-size: 24px; }
+  .arow .pcard :is(.pc-nm, .pc-stats, .pc-sig) { display: none; }
+}
+@media (max-width: 860px) {
+  .forge { grid-template-columns: 1fr; }
+  .albumlayout { grid-template-columns: 1fr; }
+  /* Карточка карты — шторкой снизу, по нажатию на карту. */
+  .cdetail {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: auto;
+    z-index: 58;
+    max-height: 82vh;
+    border-radius: 18px 18px 0 0;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    transform: translateY(105%);
+    visibility: hidden;
+    transition: transform .28s ease, visibility .28s;
+    box-shadow: 0 -10px 40px rgba(0, 0, 0, .6);
+  }
+  .cdetail.show { transform: none; visibility: visible; }
+  .cdetail .close { display: block; position: absolute; top: 10px; right: 10px; }
+  .cdetail .emptyd { display: none; }
+  .cdetail .pcard { width: 130px; }
+  .cdetail .pcard .pc-ic { font-size: 42px; }
+}
+/* На телефоне масть — несколько рядов миниатюр (листаем вниз), подробности — в шторке. */
+@media (max-width: 560px) {
+  .subnav.cards-nav button { flex-direction: row; }
+  .arow { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+  .arow .pcard { padding: 16px 2px 4px; border-radius: 8px; justify-content: center; }
+  .arow .pcard .pc-corner { font-size: 11px; top: 3px; left: 4px; }
+  .arow .pcard .pc-corner i { font-size: 10px; }
+  .arow .pcard .pc-n { font-size: 9.5px; top: 3px; right: 3px; }
+  .arow .pcard .pc-ic { font-size: 24px; }
+  .arow .pcard :is(.pc-nm, .pc-stats, .pc-sig) { display: none; }
+  .anvil-top { gap: 16px; }
+  /* Будущая карта и так видна крупно сверху — в ряду слотов на телефоне её не повторяем. */
+  .fslots .fop:last-of-type, .fslots .fslot.out { display: none; }
+  /* Четыре стопки рецепта короля должны влезать в один ряд на 360px. */
+  .fslots { gap: 4px; padding: 12px 6px 8px; }
+  .fop { font-size: 13px; }
+  .fslot { width: 58px; padding: 0 2px; min-height: 64px; font-size: 9px; }
+  .fslot .ic { font-size: 21px; }
+  .fslot .n { font-size: 10px; }
+  .fslot .p { letter-spacing: -.04em; padding: 0 1px; } /* «-84,3 млрд» влезает целиком */
+  .fslot.stack { box-shadow: 2px -2px 0 -1px #263244, 4px -4px 0 -2px #1d2734; }
+  .fslot .pcard.xs { width: 46px; }
+  .anvil-top .wheel { width: 140px; height: 140px; }
+  #fWheel.multi { --t: 10px; }
+  #fWheel.multi.thin { --t: 7px; }
+  #fWheel.multi .pct { font-size: 24px; }
+  .fcard .pcard { width: 120px; }
+}

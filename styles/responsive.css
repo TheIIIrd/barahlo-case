@@ -1,0 +1,189 @@
+/* Планшет: шапка — ровная сетка (3 колонки, а уже́ 760px — 2), без «осиротевших» кнопок. */
+@media (max-width:1180px) and (min-width:561px) {
+  .wallet {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+  }
+  .wallet>* {
+    min-width: 0;
+    justify-content: center;
+    white-space: nowrap;
+  }
+  .wallet .lvl>div:last-child { overflow: hidden; }
+}
+@media (max-width:760px) and (min-width:561px) {
+  .wallet { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width:860px) {
+  .crash { grid-template-columns: 1fr; }
+  .upg { grid-template-columns: 1fr 1fr; }
+  .upg .wheel {
+    grid-column: 1/-1;
+    grid-row: 1;
+    margin: 0 auto;
+  }
+}
+
+@media (max-width:560px) {
+  /* Ряды кнопок без «сирот»: множители апгрейда и доплата Кузни — ровной сеткой. */
+  .mults { display: grid; grid-template-columns: repeat(4, 1fr); }
+  .fadd { display: grid; grid-template-columns: repeat(4, 1fr); }
+  .fadd .btn { padding-inline: 4px; }
+  /* Подпись плитки в две строки не сдвигает число ниже соседнего. */
+  .mus-head .tile .k, .tiles .tile .k { line-height: 1.3; min-height: 2.6em; }
+  .uslot .k { min-height: 2.5em; }
+  /* Панель выбора: сведения сверху, кнопки — ровным рядом во всю ширину. */
+  .bulk { display: grid; grid-template-columns: 1fr; gap: 8px; padding: 10px 12px; }
+  .bulk .acts { display: grid; grid-template-columns: auto auto 1fr; gap: 6px; }
+  .bulk .acts .btn { padding-inline: 10px; font-size: 12.5px; white-space: nowrap; }
+  .bulk .info { font-size: 13px; }
+  #bulkMega .long { display: none; }
+  /* Мегаконтракт: возможные результаты — ровными рядами по пять. */
+  .mega .outs { display: grid; grid-template-columns: repeat(5, 40px); justify-content: center; }
+  /* На телефоне уведомления сверху: внизу живут кнопки — панель продажи, карточка предмета, окна. */
+  #toasts, body:has(.bulk:not([hidden])) #toasts {
+    top: calc(10px + env(safe-area-inset-top, 0px));
+    bottom: auto;
+  }
+  /* Под палец: не меньше 34px в высоту. */
+  .chip, .btn.sm, .ex .btn, .toolbar input, #qsCheap { min-height: 34px; }
+  .check { min-height: 34px; }
+  /* Звук и контраст на телефоне — значками в строке уровня: шапка на строку короче. */
+  .wallet .btn.tgl { grid-column: span 1; padding: 6px 0; font-size: 18px; }
+  .wallet .btn.tgl i { display: inline; font-style: normal; }
+  .wallet .btn.tgl b { display: none; }
+  .wallet .lvl { grid-column: span 4 !important; }
+  .tabs { grid-template-columns: repeat(3, 1fr) !important; } /* шесть вкладок — две ровные строки по три */
+  /* Узкие карточки и плитки: подписи в две строки, а не «Найдено на …». */
+  .icard .w, .tile .s {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-height: 1.2;
+  }
+  .inv2 { grid-template-columns: repeat(3, 1fr); }
+  .tile .v { font-size: 18px; }
+  .cases {
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+  .case {
+    padding: 10px;
+    gap: 6px;
+  }
+  .case .ico {
+    --e: 17px;
+    width: 46px;
+    height: 38px;
+  }
+  .case .ico-box .stk {
+    --e: 15px;
+    width: 30px;
+    height: 30px;
+  }
+  .case .nm { font-size: 12px; }
+  .case .tag {
+    top: 8px;
+    right: 8px;
+  }
+  .wallet {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    grid-auto-flow: dense;
+    width: 100%;
+  }
+  .wallet .lvl {
+    grid-column: span 6;
+    min-width: 0;
+  }
+  .wallet .bal {
+    grid-column: span 6;
+    justify-content: center;
+    order: -1;
+  }
+  .wallet .btn {
+    grid-column: span 3;
+    justify-content: center;
+    text-align: center;
+    font-size: 12px;
+    padding: 6px 8px;
+    line-height: 1.2;
+  }
+  .tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .tab {
+    font-size: 13px;
+    padding: 9px 8px;
+  }
+  .mini { flex-basis: calc((100% - 16px)/3); }
+  .multi-grid { grid-template-columns: repeat(4, 1fr); }
+  .multi-grid div { min-height: 76px; }
+  .multi-grid .nm { -webkit-line-clamp: 2; }
+  .seg button { padding: 9px 9px; }
+  /* Кнопка открытия: режимы — строкой сверху, под ними кнопка и «Быстро». Места постоянные,
+     сколько бы ни стоило открытие, — палец не надо переносить. */
+  .controls {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    width: 100%;
+  }
+  .controls .seg {
+    grid-column: 1 / -1;
+    justify-self: center;
+  }
+  #open { width: 100%; }
+  .lvl {
+    min-width: 0;
+    flex: 1;
+  }
+  .uslot { min-height: 150px; }
+  .uslot .ic { font-size: 44px; }
+  .slot { font-size: 22px; }
+  .slots { gap: 5px; }
+}
+
+@media (max-width:480px) {
+  .card {
+    width: 96px;
+    height: 112px;
+  }
+  .card .ic { font-size: 40px; }
+  .reel-wrap { height: 132px; }
+  .reels.compact .card {
+    width: 64px;
+    height: 70px;
+  }
+  .reels.compact .card .ic { font-size: 26px; }
+  .reels.compact .reel-wrap { height: 82px; }
+  .mbox .big { font-size: 84px; }
+  .cbox { height: 260px; }
+}
+
+@media (prefers-reduced-motion:reduce) {
+  *, *::before, *::after {
+    animation-delay: 0s !important;
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+  }
+}
+
+/* Сенсорные экраны любой ширины (планшеты тоже): кнопки и фильтры — не меньше 34px под палец. */
+@media (pointer: coarse) {
+  .chip, .btn.sm, .ex .btn, .toolbar input, #qsCheap, .check, .seg button, #cTarget, .fmult .seg button { min-height: 36px; }
+}
+
+@media (max-width:400px) {
+  .fadd { grid-template-columns: repeat(2, 1fr); }
+}
+/* Самые узкие телефоны: четыре стопки рецептов дамы и короля — всё ещё в один ряд. */
+@media (max-width:380px) {
+  .fslots { gap: 3px; }
+  .fslot { width: 53px; }
+  #loan { white-space: nowrap; font-size: 12px; }
+}
