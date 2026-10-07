@@ -1,0 +1,180 @@
+/* Шапка: логотип, кошелёк, уровень */
+header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.brand .logo {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  font-size: 24px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  box-shadow: 0 0 24px rgba(255, 140, 30, .45);
+  animation: wob 3s ease-in-out infinite;
+}
+@keyframes wob {
+  50% { transform: rotate(-8deg) scale(1.05); }
+}
+.brand h1 {
+  font-family: var(--f-display);
+  font-weight: 400;
+  font-size: clamp(18px, 3vw, 26px);
+  margin: 0;
+  letter-spacing: .02em;
+  line-height: 1.1;
+}
+.brand small {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+}
+.wallet {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: stretch;
+}
+.wallet > * {
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+}
+.bal {
+  font-family: var(--f-mono);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 8px 14px;
+  border-radius: 10px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  font-variant-numeric: tabular-nums;
+}
+.bal b { color: var(--good); }
+.bump { animation: bump .4s; }
+@keyframes bump {
+  40% { transform: scale(1.12); }
+}
+/* Баланс на телефоне во всю ширину: сильный «пульс» вылезал бы за экран и дёргал страницу. */
+.bal.bump { animation-name: balbump; }
+@keyframes balbump {
+  40% { transform: scale(1.04); }
+}
+.lvl {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  border-radius: 10px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  min-width: 190px;
+}
+.lvl > div:last-child { min-width: 0; }
+.lvl .t {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.lvl .n {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-family: var(--f-display);
+  font-size: 14px;
+  color: #2a1600;
+  background: conic-gradient(var(--accent) var(--p, 0%), var(--panel2) 0);
+  position: relative;
+}
+.lvl .n span {
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  background: var(--panel);
+  display: grid;
+  place-items: center;
+  color: var(--accent);
+}
+.lvl .t {
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+.lvl .x {
+  font-family: var(--f-mono);
+  font-size: 10px;
+  color: var(--muted);
+}
+.btn {
+  font-family: var(--f-body);
+  font-weight: 800;
+  font-size: 13px;
+  border: 1px solid var(--line);
+  background: var(--panel2);
+  color: var(--fg);
+  padding: 8px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: .15s;
+}
+/* «Вернуть долг»: подпись и невидимая распорка с самой длинной суммой в одной клетке —
+   ширина кнопки не зависит от суммы. Бабушка у двери — значком в углу, тоже без сдвигов. */
+#repay {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+}
+#repay > span:not(.gdoor) { grid-area: 1 / 1; }
+#repay .sizer { visibility: hidden; }
+.gdoor {
+  position: absolute;
+  top: -8px;
+  right: 6px;
+  font-size: 16px;
+  line-height: 1;
+  pointer-events: none;
+  animation: knock .9s ease-in-out infinite;
+}
+@keyframes knock {
+  0%, 100% { transform: rotate(-12deg); }
+  50% { transform: rotate(12deg) translateY(-2px); }
+}
+/* Долг упёрся в потолок: кнопка остаётся нажимаемой — бабушка объяснит, почему не даёт. */
+#loan.capped { opacity: .5; }
+.btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.btn:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+.btn.primary {
+  background: var(--accent);
+  color: #2a1600;
+  border-color: var(--accent);
+}
+.btn.primary:hover:not(:disabled) {
+  color: #2a1600;
+  filter: brightness(1.1);
+}
+button:focus-visible, select:focus-visible, input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

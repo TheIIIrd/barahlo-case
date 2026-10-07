@@ -1,0 +1,78 @@
+/* ==========================================================================
+   Кейсы с Барахлом — токены и база
+   Стили разложены по файлам в порядке подключения (см. index.html): база → шапка →
+   лента → вкладки → кейсы и рулетка → контракт, апгрейд, курс огурцов → инвентарь,
+   мастерская, музей, реставрация → выбор предметов → уведомления и окна →
+   контрастный режим → адаптив. Порядок важен: поздние правила перекрывают ранние.
+   Тема одна, тёмная. Цвета редкостей: --r0 (хлам) … --r6 (★).
+   ========================================================================== */
+:root {
+  color-scheme: dark;
+  --bg: #0d1117;
+  --bg2: #151c26;
+  --panel: #18212d;
+  --panel2: #1f2a39;
+  --line: #2a3647;
+  --fg: #e8edf4;
+  --muted: #8a97a8;
+  --accent: #ffb02e;
+  --accent2: #ff7a1a;
+  --good: #5fe08a;
+  --bad: #ff5468;
+  --r0: #b0bac5;
+  --r1: #5eb3ff;
+  --r2: #4b69ff;
+  --r3: #8847ff;
+  --r4: #d32ce6;
+  --r5: #eb4b4b;
+  --r6: #ffd23f;
+  --f-display: "Russo One", "Arial Black", system-ui, sans-serif;
+  --f-body: "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+* { box-sizing: border-box; }
+/* overflow-x: тряска и «пульсы» не должны давать горизонтальную прокрутку;
+   scrollbar-gutter: полоса прокрутки не двигает страницу вбок. */
+html { background: var(--bg); overflow-x: clip; scrollbar-gutter: stable; }
+body {
+  min-height: 100vh;
+  background-color: var(--bg);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  color: var(--fg);
+  font-family: var(--f-body);
+  font-size: 15px;
+  line-height: 1.5;
+  /* clip, а не hidden: hidden делает body прокручиваемым контейнером, и «липкие» панели (продажа,
+     карточка предмета) переставали липнуть. hidden — запасной вариант для старых браузеров. */
+  overflow-x: hidden;
+  overflow-x: clip;
+  background-image: radial-gradient(1200px 500px at 50% -10%, rgba(255, 176, 46, .12), transparent 70%), radial-gradient(800px 400px at 100% 100%, rgba(136, 71, 255, .10), transparent 70%);
+}
+#fx {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 70;
+  pointer-events: none;
+}
+.wrap {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding-inline: 16px;
+  padding-block: 16px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.shake { animation: shake .5s cubic-bezier(.36, .07, .19, .97); }
+@keyframes shake {
+  20%,80% { transform: translate(3px, -2px); }
+  40%,60% { transform: translate(-5px, 3px); }
+}
+.neg { color: var(--bad) !important; }
+.pos { color: var(--good); }
+
+/* Пока не загрузились все скрипты, клики гасим: обработчики ещё не готовы. */
+:root:not(.ready) body { pointer-events: none; }

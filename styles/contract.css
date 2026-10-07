@@ -1,0 +1,193 @@
+/* Контракт */
+.slots {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+}
+.slot {
+  aspect-ratio: 1;
+  max-width: 100%;
+  border-radius: 10px;
+  border: 2px dashed var(--line);
+  display: grid;
+  place-items: center;
+  font-size: 30px;
+  background: var(--bg2);
+  position: relative;
+  transition: .2s;
+}
+.slot.f {
+  border-style: solid;
+  border-color: var(--c);
+  background: radial-gradient(circle, color-mix(in srgb, var(--c) 25%, transparent), var(--bg2) 70%);
+  animation: pop .3s cubic-bezier(.2, 1.6, .4, 1);
+}
+.slot.suck { animation: suck .7s cubic-bezier(.6, 0, .8, .4) forwards; }
+@keyframes suck {
+  to { transform: scale(0) rotate(540deg); opacity: 0; }
+}
+.contract-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 22px;
+  justify-content: center;
+  font-size: 13px;
+  margin: 14px 0;
+}
+.contract-info b { font-family: var(--f-mono); }
+.cfill {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  align-items: center;
+  margin-top: 12px;
+}
+.cfill .lbl {
+  font-size: 12px;
+  color: var(--muted);
+}
+.cfill .chip i {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  background: var(--c);
+}
+.cfill .chip b {
+  font-family: var(--f-mono);
+  font-weight: 400;
+}
+.cfill .chip:disabled {
+  opacity: .4;
+  cursor: not-allowed;
+}
+.outs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  margin-bottom: 14px;
+}
+.outs span {
+  font-size: 22px;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--bg2);
+  border-bottom: 2px solid var(--c);
+}
+.row-c {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+
+/* ===== Рубильник и мегаконтракт ===== */
+.chead {
+  display: flex;
+  align-items: center;
+  margin-top: 2px;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.chead { margin-bottom: 12px; }
+.chead h2 { flex: 1 1 260px; justify-content: flex-start; margin: 0; }
+/* Рубильник: слева шарнир, нож поднят (обычный контракт) или опущен в клемму справа (мега). */
+.knife {
+  all: unset;
+  box-sizing: border-box;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  border-radius: 10px;
+  font-family: var(--f-display);
+  font-size: 12px;
+  user-select: none;
+}
+.knife:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.kn-l { color: var(--muted); transition: color .2s, text-shadow .2s; }
+.knife[aria-checked="false"] .kn-l.off { color: var(--fg); }
+.knife[aria-checked="true"] .kn-l.on { color: var(--r6); text-shadow: 0 0 10px color-mix(in srgb, var(--r6) 70%, transparent); }
+.kn-plate {
+  position: relative;
+  width: 84px;
+  height: 40px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #2b3646, #1b2430);
+  border: 1px solid var(--line);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, .45);
+}
+.kn-hinge, .kn-clip, .kn-blade { position: absolute; display: block; }
+.kn-hinge {
+  left: 10px;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  margin-top: -6px;
+  border-radius: 50%;
+  background: #8a97a8;
+  box-shadow: 0 0 0 2px #45505e;
+  z-index: 2;
+}
+.kn-clip {
+  right: 8px;
+  top: 50%;
+  width: 10px;
+  height: 16px;
+  margin-top: -8px;
+  border-radius: 3px;
+  border: 2px solid #8a97a8;
+  border-left-color: transparent;
+}
+.kn-blade {
+  left: 16px;
+  top: 50%;
+  width: 60px;
+  height: 6px;
+  margin-top: -3px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #e8edf4, #9aa6b5);
+  transform-origin: 0 50%;
+  transform: rotate(-32deg);
+  transition: transform .28s cubic-bezier(.3, 1.6, .5, 1);
+  z-index: 1;
+}
+/* Ручка ножа — на его конце */
+.kn-blade::after {
+  content: "";
+  position: absolute;
+  right: -4px;
+  top: -5px;
+  width: 10px;
+  height: 16px;
+  border-radius: 4px;
+  background: #d0574a;
+}
+.knife[aria-checked="true"] .kn-blade { transform: rotate(0deg); }
+.knife[aria-checked="true"] .kn-plate { box-shadow: inset 0 2px 6px rgba(0, 0, 0, .45), 0 0 14px color-mix(in srgb, var(--r6) 35%, transparent); }
+.knife:hover .kn-blade { filter: brightness(1.12); }
+
+/* Сетка мегаконтракта: до 100 мелких слотов. */
+.mega .slots {
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  gap: 4px;
+  max-width: 560px;
+}
+.mega .slot { font-size: clamp(13px, 3.2vw, 20px); border-radius: 6px; border-width: 1.5px; }
+.mega .slot.f { animation: none; }
+.mega .slot.f.suck { animation: suck .7s cubic-bezier(.6, 0, .8, .4) forwards; }
+.slot.more { color: var(--muted); font-size: 16px; }
+.mega .contract-info { align-items: center; }
+.mg-t { display: inline-flex; align-items: center; gap: 6px; }
+.mg-t select { max-width: 260px; }
+.mg-why { margin: 0; font-size: 13px; color: var(--muted); padding: 10px 0; text-align: center; }
+.outs .more { font-size: 12px; font-family: var(--f-mono); color: var(--muted); border-bottom-color: var(--line); }

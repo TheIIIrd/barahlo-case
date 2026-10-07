@@ -1,0 +1,83 @@
+/* Курс огурцов */
+.crash {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 16px;
+  align-items: start;
+}
+.crash-ctl {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.field label {
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.field input {
+  width: 100%;
+  font-family: var(--f-mono);
+  font-size: 15px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--bg2);
+  color: var(--fg);
+}
+.quick {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+.quick button { flex: 1; }
+.cbox {
+  position: relative;
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--bg2);
+  border: 1px solid var(--line);
+  height: 320px;
+  min-width: 0;
+}
+#crashCv {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.cmult {
+  position: absolute;
+  left: 50%;
+  top: 38%;
+  transform: translate(-50%, -50%);
+  font-family: var(--f-display);
+  font-size: clamp(36px, 8vw, 64px);
+  pointer-events: none;
+  text-align: center;
+  line-height: 1.1;
+  text-shadow: 0 0 30px rgba(0, 0, 0, .6);
+}
+.cmult small {
+  display: block;
+  font-family: var(--f-body);
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 600;
+}
+.chist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+.chist span {
+  font-family: var(--f-mono);
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: var(--bg2);
+}

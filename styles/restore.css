@@ -1,0 +1,62 @@
+/* Реставрация */
+.resto {
+  margin: 4px 0 12px;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--bg2);
+  border: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.resto .rh {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+.resto .rh b { font-size: 13px; }
+.resto .rh span {
+  font-family: var(--f-mono);
+  font-size: 11px;
+  color: var(--muted);
+}
+.resto .rrow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  font-size: 12px;
+}
+.resto .rrow div { min-width: 0; }
+.resto .rrow .k {
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+.resto .rrow .v {
+  font-family: var(--f-mono);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.resto .btn { width: 100%; }
+.detail.resting .hero .ic { animation: resto .8s ease-in-out infinite; }
+@keyframes resto {
+  0%,100% { transform: rotate(-8deg) scale(1); }
+  50% { transform: rotate(8deg) scale(1.08); filter: brightness(1.6) drop-shadow(0 0 20px #fff); }
+}
+
+@media (max-width:1060px) {
+  .rooms { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (max-width:860px) {
+  .mus-head { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width:560px) {
+  .rooms { grid-template-columns: 1fr 1fr; }
+  .exhibits { grid-template-columns: repeat(2, 1fr); }
+  .ex .ic { font-size: 38px; }
+}

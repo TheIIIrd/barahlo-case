@@ -1,0 +1,170 @@
+/* Сетка кейсов */
+.cases {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+}
+.case {
+  all: unset;
+  box-sizing: border-box;
+  cursor: pointer;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+  transition: .2s;
+  position: relative;
+  overflow: hidden;
+  min-width: 0;
+}
+.case:hover {
+  transform: translateY(-2px);
+  border-color: var(--muted);
+}
+.case:focus-visible { outline: 2px solid var(--accent); }
+.case[aria-pressed="true"] {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent), 0 8px 30px rgba(255, 140, 30, .18);
+}
+/* Иконка кейса — картонная коробка со скотчем и наклейкой.
+   Цвет наклейки берётся из --cc, эмодзи всегда поверх деталей. */
+.case .ico {
+  --e: 22px;
+  flex: none;
+  position: relative;
+  width: 56px;
+  height: 46px;
+}
+.case .ico .e {
+  position: relative;
+  z-index: 2;
+  font-size: var(--e);
+  line-height: 1;
+  /* Только text-shadow: CSS-фильтры Firefox растрирует в низком качестве при анимации и скролле. */
+  text-shadow: 0 2px 2px rgba(0, 0, 0, .45);
+}
+.case[aria-pressed="true"] .ico { animation: hov 2s ease-in-out infinite; }
+
+/* Картонная коробка: крафт, скотч посередине, цветная наклейка с эмодзи. */
+.case .ico-box {
+  display: grid;
+  place-items: center;
+  border-radius: 5px;
+  background: linear-gradient(180deg, #d9a866, #b98544);
+  box-shadow: inset 0 -5px 0 rgba(0, 0, 0, .18), 0 3px 8px rgba(0, 0, 0, .35);
+}
+.case .ico-box::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 22%;
+  transform: translateX(-50%);
+  background: rgba(255, 255, 255, .2);
+}
+.case .ico-box::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 18%;
+  border-radius: 5px 5px 0 0;
+  background: rgba(0, 0, 0, .12);
+}
+.case .ico-box .stk {
+  --e: 18px;
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 37px;
+  height: 37px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--cc) 70%, #fff), var(--cc));
+  border: 2px solid rgba(255, 255, 255, .8);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, .25);
+}
+
+/* Свечение элитных кейсов — тенью корпуса, без filter. */
+.case .ico-box.elite { box-shadow: inset 0 -5px 0 rgba(0, 0, 0, .18), 0 0 12px color-mix(in srgb, var(--cc) 65%, #fff); }
+
+@keyframes hov {
+  50% { transform: translateY(-4px) rotate(-3deg); }
+}
+.case .nm {
+  font-family: var(--f-display);
+  font-size: 13px;
+  line-height: 1.25;
+  height: 2.5em;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.case > div:nth-child(2) {
+  width: 100%;
+  min-width: 0;
+}
+.case .pr {
+  font-family: var(--f-mono);
+  font-size: 11px;
+  color: var(--accent);
+}
+.case .tag {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-family: var(--f-mono);
+  font-size: 9.5px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--good);
+  color: #06210f;
+  font-weight: 600;
+}
+/* Бафф: таймер в углу плитки и тёплая рамка (без анимаций — плиток много). */
+.case.buffed {
+  border-color: var(--accent2);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent2) 14%, var(--panel)), var(--panel));
+}
+.case.buffed .pr { padding-right: 44px; }
+.case .bf {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  font-family: var(--f-mono);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--accent2);
+  font-variant-numeric: tabular-nums;
+}
+.case .tag.lux {
+  background: var(--r6);
+  color: #2a2000;
+}
+.case .tag.elite {
+  background: linear-gradient(90deg, #8847ff, #d32ce6);
+  color: #fff;
+}
+.case .tag.done {
+  background: var(--accent);
+  color: #2a1600;
+}
+.case .pr s {
+  color: var(--muted);
+  margin-right: 4px;
+}
+.case.tier {
+  border-color: color-mix(in srgb, var(--cc) 55%, var(--line));
+  background: linear-gradient(160deg, color-mix(in srgb, var(--cc) 18%, var(--panel)), var(--panel) 70%);
+}
+.case .tag.gift {
+  background: var(--r4);
+  color: #fff;
+}

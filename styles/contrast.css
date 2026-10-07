@@ -1,0 +1,25 @@
+/* Контрастный режим: светлее линии и приглушённый текст, а рамки толще.
+   Утолщение рисуется обводкой (outline) снаружи элемента: она не занимает места,
+   поэтому при переключении ничего не сдвигается ни на пиксель. В обычном режиме обводка
+   уже есть, но прозрачная: при переключении плавно меняется только цвет. */
+:is(.btn, .case, .chip, .room, .tab, .arena, .cbox, .lvl, .panel, .seg, .tile, .subnav, .bal,
+  .detail, .batch, .rcp, input, select, .mbox) { outline: 1px solid transparent; }
+:is(.icard, .inv-item, .card, .mini, .feed-item, .multi-grid div, .bx, .ex) { outline: 2px solid transparent; }
+:root.hc :is(.btn, .case, .chip, .room, .tab, .arena, .cbox, .lvl, .panel, .seg, .tile, .subnav, .bal,
+  .detail, .batch, .rcp, input, select, .mbox, .icard, .inv-item, .card, .mini, .feed-item,
+  .multi-grid div, .bx, .ex) { outline-color: var(--line); }
+/* На время переключения всё плавно перетекает в новые цвета. */
+:root.hc-fade :is(.btn, .case, .chip, .room, .tab, .arena, .cbox, .lvl, .panel, .seg, .tile, .subnav, .bal,
+  .detail, .batch, .rcp, input, select, .mbox, .icard, .inv-item, .card, .mini, .feed-item, .multi-grid div, .bx, .ex) {
+  transition: outline-color .35s, border-color .35s, color .35s, background-color .35s !important;
+}
+:root.hc .case[aria-pressed="true"], :root.hc .room[aria-pressed="true"] { outline-color: var(--accent); }
+:root.hc .reel-wrap { box-shadow: inset 0 1px var(--line), inset 0 -1px var(--line); }
+:root.hc :is(button, select, input):focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (max-width:900px) {
+  .cases { grid-template-columns: repeat(3, 1fr); }
+}

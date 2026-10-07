@@ -1,0 +1,30 @@
+/* Общая панель */
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px;
+  min-width: 0;
+}
+.panel h2 {
+  font-family: var(--f-display);
+  font-weight: 400;
+  font-size: 16px;
+  margin: 0 0 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.panel h2 small {
+  font-family: var(--f-body);
+  font-size: 12px;
+  color: var(--muted);
+}
+.lead {
+  font-size: 13px;
+  color: var(--muted);
+  margin: -4px 0 14px;
+  max-width: 70ch;
+}

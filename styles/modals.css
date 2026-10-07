@@ -1,0 +1,266 @@
+/* Модальные окна */
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  /* Без backdrop-filter: размытие пересчитывалось каждый кадр и тормозило вместе с конфетти. */
+  background: rgba(5, 8, 12, .88);
+  overflow-x: hidden; /* окно уже экрана; вбок «вылет» окна прокрутку не включает */
+  overflow-y: auto;
+}
+.modal[hidden] { display: none !important; }
+#elsewhere { z-index: 70; } /* поверх любых других окон */
+.mbox {
+  position: relative;
+  width: min(440px, 100%);
+  border-radius: 18px;
+  background: var(--panel);
+  border: 1px solid var(--c, var(--line));
+  box-shadow: 0 0 60px color-mix(in srgb, var(--c, #000) 45%, transparent);
+  padding: 24px 20px 20px;
+  text-align: center;
+  overflow: hidden;
+  animation: dropin .55s cubic-bezier(.2, 1.5, .4, 1);
+}
+.mbox.wide { width: min(640px, 100%); }
+@keyframes dropin {
+  from { transform: scale(.4) rotate(-6deg); opacity: 0; }
+}
+.rays {
+  position: absolute;
+  left: 50%;
+  top: 118px;
+  width: 620px;
+  height: 620px;
+  margin: -310px 0 0 -310px;
+  background: repeating-conic-gradient(color-mix(in srgb, var(--c) 30%, transparent) 0 10deg, transparent 10deg 20deg);
+  border-radius: 50%;
+  mask-image: radial-gradient(circle, #000 10%, transparent 60%);
+  -webkit-mask-image: radial-gradient(circle, #000 10%, transparent 60%);
+  animation: rot 14s linear infinite;
+  pointer-events: none;
+}
+@keyframes rot {
+  to { transform: rotate(360deg); }
+}
+.mbox > * { position: relative; }
+.mbox > .rays { position: absolute; }
+.mbox .ctx {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 2px;
+}
+.mbox .rar {
+  font-family: var(--f-mono);
+  font-size: 11px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--c);
+}
+.mbox .big {
+  font-size: 110px;
+  line-height: 1.1;
+  margin: 8px 0;
+  animation: float 3s ease-in-out infinite;
+  filter: drop-shadow(0 10px 20px rgba(0, 0, 0, .6));
+}
+@keyframes float {
+  50% { transform: translateY(-8px) rotate(4deg); }
+}
+.mbox h3 {
+  font-family: var(--f-display);
+  font-weight: 400;
+  font-size: 22px;
+  margin: 0;
+  line-height: 1.2;
+  text-wrap: balance;
+}
+.mbox .lore {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 6px auto 12px;
+  max-width: 38ch;
+}
+.stat-badge {
+  display: inline-block;
+  font-family: var(--f-mono);
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--accent2);
+  color: #2a1600;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+.specs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-bottom: 14px;
+  text-align: left;
+}
+.specs > div {
+  background: var(--bg2);
+  border-radius: 8px;
+  padding: 6px 10px;
+  min-width: 0;
+}
+.specs .k {
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+.specs .v {
+  font-family: var(--f-mono);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width:480px) {
+  .specs .v {
+    white-space: normal;
+    font-size: 12px;
+    line-height: 1.3;
+  }
+}
+.floatbar {
+  position: relative;
+  height: 6px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #3ad16f, #9be03a, #e0c83a, #e0873a, #e0473a);
+  margin-top: 4px;
+}
+.floatbar i {
+  position: absolute;
+  top: -4px;
+  width: 3px;
+  height: 14px;
+  background: var(--fg);
+  border-radius: 2px;
+  transform: translateX(-50%);
+}
+.mbtns {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.mbtns .btn {
+  padding: 10px 16px;
+  flex: 1 1 170px;
+}
+.granny .mbtns .btn { flex: 0 0 auto; }
+.multi-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  margin: 12px 0;
+}
+.multi-grid div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 92px;
+  border-radius: 8px;
+  background: var(--bg2);
+  border-bottom: 3px solid var(--c);
+  padding: 6px 3px;
+  font-size: 9.5px;
+  line-height: 1.15;
+  min-width: 0;
+  animation: pop .4s cubic-bezier(.2, 1.6, .4, 1) backwards;
+}
+.multi-grid .ic {
+  display: block;
+  font-size: 28px;
+}
+.multi-grid .p {
+  display: block;
+  font-family: var(--f-mono);
+  color: var(--good);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.multi-grid .nm {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+
+/* Окно улова: шапка и кнопки всегда на экране, прокручивается только сетка.
+   100dvh учитывает панели Safari на iPhone, safe-area — «чёлку» и полоску «домой». */
+#multi { padding-bottom: max(16px, env(safe-area-inset-bottom)); }
+#multibox {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 32px - env(safe-area-inset-bottom) - env(safe-area-inset-top));
+}
+#multibox .multi-grid {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 2px;
+}
+#multibox .mbtns { flex: none; }
+/* Вбок сетка не прокручивается никогда. Пока окно и карточки «вылетают», прячем и прокрутку
+   по вертикали — там, где всё и так помещается (класс calm ставит calmScroll). */
+#multibox .multi-grid { overflow-x: hidden; }
+#multibox .multi-grid.calm, .modal.calm { overflow-y: hidden; }
+.multi-grid div { position: relative; }
+.multi-grid .cnt {
+  position: absolute;
+  top: 3px;
+  right: 4px;
+  font-family: var(--f-mono);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--accent);
+}
+.mbuff {
+  display: block;
+  margin-top: 6px;
+  font-weight: 800;
+  color: var(--accent2);
+}
+.mcount {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 12px;
+  margin-top: 6px;
+  font-family: var(--f-mono);
+  font-size: 11px;
+}
+.mcount span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.mcount i {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  background: var(--c);
+}
+.granny .big { animation: granny 1.2s ease-in-out infinite; }
+@keyframes granny {
+  0%,100% { transform: rotate(-6deg); }
+  50% { transform: rotate(6deg) translateY(-6px); }
+}
+
+:root.hc {
+  --line: #71839c;
+  --muted: #b6c1cf;
+}
