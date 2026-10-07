@@ -48,7 +48,7 @@
   --f-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
 }
 * { box-sizing: border-box; }
-html { background: var(--bg); }
+html { background: var(--bg); overflow-x: clip; } /* тряска и «пульсы» не должны давать горизонтальную прокрутку */
 body {
   min-height: 100vh;
   background-color: var(--bg);
@@ -142,6 +142,9 @@ header {
 .bal {
   font-family: var(--f-mono);
   font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   padding: 8px 14px;
   border-radius: 10px;
   background: var(--panel);
@@ -152,6 +155,11 @@ header {
 .bump { animation: bump .4s; }
 @keyframes bump {
   40% { transform: scale(1.12); }
+}
+/* Баланс на телефоне во всю ширину: сильный «пульс» вылезал бы за экран и дёргал страницу. */
+.bal.bump { animation-name: balbump; }
+@keyframes balbump {
+  40% { transform: scale(1.04); }
 }
 .lvl {
   display: flex;
@@ -245,6 +253,10 @@ button:focus-visible, select:focus-visible, input:focus-visible {
   display: flex;
   gap: 8px;
   overflow: hidden;
+  /* Запас в 3px внутри обрезки (и столько же назад полем снаружи): контрастная рамка
+     элементов не обрезается краем, а раскладка остаётся прежней. */
+  padding: 3px;
+  margin: -3px;
   mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent);
   -webkit-mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent);
 }
@@ -289,7 +301,8 @@ button:focus-visible, select:focus-visible, input:focus-visible {
   display: flex;
   gap: 6px;
   overflow-x: auto;
-  padding-bottom: 2px;
+  padding: 3px 3px 5px; /* запас под контрастную рамку, см. .feed */
+  margin: -3px;
   scrollbar-width: none;
 }
 .tab {
@@ -450,6 +463,22 @@ button:focus-visible, select:focus-visible, input:focus-visible {
   color: #06210f;
   font-weight: 600;
 }
+/* Бафф: таймер в углу плитки и тёплая рамка (без анимаций — плиток много). */
+.case.buffed {
+  border-color: var(--accent2);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent2) 14%, var(--panel)), var(--panel));
+}
+.case.buffed .pr { padding-right: 44px; }
+.case .bf {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  font-family: var(--f-mono);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--accent2);
+  font-variant-numeric: tabular-nums;
+}
 .case .tag.lux {
   background: var(--r6);
   color: #2a2000;
@@ -503,6 +532,62 @@ button:focus-visible, select:focus-visible, input:focus-visible {
   margin-top: -10px;
   padding-inline: 16px;
   text-align: center;
+}
+.buffnote {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--accent2);
+  text-align: center;
+  padding-inline: 16px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ×100: сетка 10×10 картонных коробок. Крышка — ::after, при вскрытии улетает вверх. */
+.reels.boxgrid {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 4px;
+  width: min(560px, calc(100% - 32px));
+  margin-inline: auto;
+}
+.bx {
+  position: relative;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  background: var(--bg2);
+  border-bottom: 3px solid var(--c, transparent);
+  overflow: hidden;
+}
+.bx::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, transparent 44%, rgba(255, 240, 200, .55) 44% 56%, transparent 56%),
+    linear-gradient(180deg, #c99a5b, #a8783f);
+  transition: transform .3s ease-in var(--d, 0ms), opacity .3s ease-in var(--d, 0ms);
+}
+.bx .ic {
+  font-size: clamp(14px, 3.4vw, 28px);
+  line-height: 1;
+  opacity: 0;
+  transform: scale(.4);
+  transition: opacity .2s var(--d, 0ms), transform .35s cubic-bezier(.2, 1.6, .4, 1) var(--d, 0ms);
+}
+.boxgrid.opening .bx::after {
+  transform: translateY(-110%) rotate(-8deg);
+  opacity: 0;
+}
+.boxgrid.opening .bx .ic {
+  opacity: 1;
+  transform: none;
+}
+.boxgrid.opening .bx.hot { animation: bxflash .7s ease-out var(--d, 0ms) backwards; }
+@keyframes bxflash {
+  0% { box-shadow: 0 0 0 0 var(--c); }
+  40% { box-shadow: 0 0 0 3px var(--c), 0 0 22px var(--c); }
 }
 .reels {
   width: 100%;
@@ -798,6 +883,10 @@ body:has(.modal:not([hidden])) .card.win { animation-play-state: paused; }
   border-radius: 2px;
   background: var(--c);
 }
+.legend .luck {
+  color: var(--good);
+  font-weight: 800;
+}
 
 /* Общая панель */
 .panel {
@@ -870,6 +959,32 @@ body:has(.modal:not([hidden])) .card.win { animation-play-state: paused; }
   margin: 14px 0;
 }
 .contract-info b { font-family: var(--f-mono); }
+.cfill {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  align-items: center;
+  margin-top: 12px;
+}
+.cfill .lbl {
+  font-size: 12px;
+  color: var(--muted);
+}
+.cfill .chip i {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  background: var(--c);
+}
+.cfill .chip b {
+  font-family: var(--f-mono);
+  font-weight: 400;
+}
+.cfill .chip:disabled {
+  opacity: .4;
+  cursor: not-allowed;
+}
 .outs {
   display: flex;
   flex-wrap: wrap;
@@ -996,6 +1111,23 @@ body:has(.modal:not([hidden])) .card.win { animation-play-state: paused; }
   gap: 6px;
   justify-content: center;
   margin-top: 16px;
+}
+.uadd {
+  width: min(520px, 100%);
+  margin: 14px auto 0;
+}
+.uadd label small {
+  text-transform: none;
+  letter-spacing: 0;
+}
+.uadd .quick { flex-wrap: wrap; }
+.uadd .quick button { flex: 1 1 auto; }
+.uadd .hint {
+  min-height: 1.4em;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--muted);
+  text-align: center;
 }
 
 /* Курс огурцов */
@@ -1235,6 +1367,8 @@ body:has(.modal:not([hidden])) .card.win { animation-play-state: paused; }
   justify-items: center;
 }
 .tgl > span { grid-area: 1 / 1; }
+.tgl i { display: none; }
+.tgl b { font-weight: inherit; }
 .tgl[aria-pressed="true"] > .off, .tgl[aria-pressed="false"] > .on { visibility: hidden; }
 .invlayout {
   display: grid;
@@ -1468,7 +1602,8 @@ body:has(.modal:not([hidden])) .card.win { animation-play-state: paused; }
   display: flex;
   gap: 8px;
   overflow-x: auto;
-  padding-bottom: 4px;
+  padding: 3px 3px 7px; /* запас под контрастную рамку, см. .feed */
+  margin: -3px;
 }
 .recent .icard { flex: 0 0 96px; }
 .floaty {
@@ -1633,6 +1768,28 @@ body:has(.modal:not([hidden])) .card.win { animation-play-state: paused; }
     min-height: 340px;
     max-height: none;
   }
+}
+.batch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  padding: 10px;
+  border-radius: 12px;
+  background: var(--bg2);
+  border: 1px solid var(--line);
+}
+.batch .chip i {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  background: var(--c);
+}
+.batch .chip b {
+  font-family: var(--f-mono);
+  font-weight: 400;
 }
 .recipes {
   display: grid;
@@ -1917,7 +2074,7 @@ body:has(.modal:not([hidden])) .card.win { animation-play-state: paused; }
   font-size: 10px;
   letter-spacing: .08em;
   text-transform: uppercase;
-  color: var(--c);
+  color: color-mix(in srgb, var(--c) 70%, #fff); /* мелкий текст: синий и фиолетовый светлее, чтобы читались */
 }
 .ex .btn {
   width: 100%;
@@ -2198,22 +2355,42 @@ footer {
   font-size: 11px;
   color: var(--muted);
 }
-body:has(.bulk:not([hidden])) .toast {
+body:has(.bulk:not([hidden])) #toasts {
   bottom: calc(96px + env(safe-area-inset-bottom, 0px));
 }
-.toast {
+/* Стопка уведомлений: важное сверху, обычное под ним. */
+#toasts {
   position: fixed;
   left: 50%;
   bottom: calc(20px + env(safe-area-inset-bottom, 0px));
   transform: translateX(-50%);
   z-index: 80;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: max-content;
+  max-width: calc(100% - 32px);
+  pointer-events: none;
+}
+.toast {
   background: var(--panel2);
   border: 1px solid var(--line);
   padding: 10px 16px;
   border-radius: 10px;
   font-size: 13px;
   animation: slidein .3s;
-  max-width: calc(100% - 32px);
+  max-width: 100%;
+  pointer-events: none; /* уведомление не перехватывает нажатия на кнопки под ним */
+}
+.toast.imp {
+  border-color: var(--accent);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, .45);
+}
+/* Пока открыто окно, уведомления уезжают наверх, чтобы не закрывать его кнопки. */
+body:has(.modal:not([hidden])) #toasts {
+  top: calc(12px + env(safe-area-inset-top, 0px));
+  bottom: auto;
 }
 
 /* Модальные окна */
@@ -2229,6 +2406,7 @@ body:has(.bulk:not([hidden])) .toast {
   overflow-y: auto;
 }
 .modal[hidden] { display: none !important; }
+#elsewhere { z-index: 70; } /* поверх любых других окон */
 .mbox {
   position: relative;
   width: min(440px, 100%);
@@ -2405,6 +2583,66 @@ body:has(.bulk:not([hidden])) .toast {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 100%;
+}
+.multi-grid .nm {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+
+/* Окно улова: шапка и кнопки всегда на экране, прокручивается только сетка.
+   100dvh учитывает панели Safari на iPhone, safe-area — «чёлку» и полоску «домой». */
+#multi { padding-bottom: max(16px, env(safe-area-inset-bottom)); }
+#multibox {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 32px - env(safe-area-inset-bottom) - env(safe-area-inset-top));
+}
+#multibox .multi-grid {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 2px;
+}
+#multibox .mbtns { flex: none; }
+.multi-grid div { position: relative; }
+.multi-grid .cnt {
+  position: absolute;
+  top: 3px;
+  right: 4px;
+  font-family: var(--f-mono);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--accent);
+}
+.mbuff {
+  display: block;
+  margin-top: 6px;
+  font-weight: 800;
+  color: var(--accent2);
+}
+.mcount {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 12px;
+  margin-top: 6px;
+  font-family: var(--f-mono);
+  font-size: 11px;
+}
+.mcount span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.mcount i {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  background: var(--c);
 }
 .granny .big { animation: granny 1.2s ease-in-out infinite; }
 @keyframes granny {
@@ -2412,25 +2650,52 @@ body:has(.bulk:not([hidden])) .toast {
   50% { transform: rotate(6deg) translateY(-6px); }
 }
 
+:root.hc {
+  --line: #71839c;
+  --muted: #b6c1cf;
+}
+/* Контрастный режим: светлее линии и приглушённый текст, а рамки толще.
+   Утолщение рисуется обводкой (outline) снаружи элемента: она не занимает места,
+   поэтому при переключении ничего не сдвигается ни на пиксель. В обычном режиме обводка
+   уже есть, но прозрачная: при переключении плавно меняется только цвет. */
+:is(.btn, .case, .chip, .room, .tab, .arena, .cbox, .lvl, .panel, .seg, .tile, .subnav, .bal,
+  .detail, .batch, .rcp, input, select, .mbox) { outline: 1px solid transparent; }
+:is(.icard, .inv-item, .card, .mini, .feed-item, .multi-grid div, .bx, .ex) { outline: 2px solid transparent; }
+:root.hc :is(.btn, .case, .chip, .room, .tab, .arena, .cbox, .lvl, .panel, .seg, .tile, .subnav, .bal,
+  .detail, .batch, .rcp, input, select, .mbox, .icard, .inv-item, .card, .mini, .feed-item,
+  .multi-grid div, .bx, .ex) { outline-color: var(--line); }
+/* На время переключения всё плавно перетекает в новые цвета. */
+:root.hc-fade :is(.btn, .case, .chip, .room, .tab, .arena, .cbox, .lvl, .panel, .seg, .tile, .subnav, .bal,
+  .detail, .batch, .rcp, input, select, .mbox, .icard, .inv-item, .card, .mini, .feed-item, .multi-grid div, .bx, .ex) {
+  transition: outline-color .35s, border-color .35s, color .35s, background-color .35s !important;
+}
+:root.hc .case[aria-pressed="true"], :root.hc .room[aria-pressed="true"] { outline-color: var(--accent); }
+:root.hc .reel-wrap { box-shadow: inset 0 1px var(--line), inset 0 -1px var(--line); }
+:root.hc :is(button, select, input):focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
 @media (max-width:900px) {
   .cases { grid-template-columns: repeat(3, 1fr); }
 }
 
+/* Планшет: шапка — ровная сетка (3 колонки, а уже́ 760px — 2), без «осиротевших» кнопок. */
 @media (max-width:1180px) and (min-width:561px) {
   .wallet {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     width: 100%;
-    flex-wrap: nowrap;
   }
   .wallet>* {
-    flex: 1 1 auto;
+    min-width: 0;
     justify-content: center;
     white-space: nowrap;
   }
-  .wallet .lvl {
-    flex: 1 1 150px;
-    min-width: 0;
-  }
   .wallet .lvl>div:last-child { overflow: hidden; }
+}
+@media (max-width:760px) and (min-width:561px) {
+  .wallet { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width:860px) {
@@ -2444,6 +2709,19 @@ body:has(.bulk:not([hidden])) .toast {
 }
 
 @media (max-width:560px) {
+  /* На телефоне уведомления сверху: внизу живут кнопки — панель продажи, карточка предмета, окна. */
+  #toasts, body:has(.bulk:not([hidden])) #toasts {
+    top: calc(10px + env(safe-area-inset-top, 0px));
+    bottom: auto;
+  }
+  /* Под палец: не меньше 34px в высоту. */
+  .chip, .btn.sm, .ex .btn, .toolbar input, #qsCheap { min-height: 34px; }
+  .check { min-height: 34px; }
+  /* Звук и контраст на телефоне — значками в строке уровня: шапка на строку короче. */
+  .wallet .btn.tgl { grid-column: span 1; padding: 6px 0; font-size: 18px; }
+  .wallet .btn.tgl i { display: inline; font-style: normal; }
+  .wallet .btn.tgl b { display: none; }
+  .wallet .lvl { grid-column: span 4 !important; }
   .tabs { grid-template-columns: repeat(6, 1fr) !important; }
   .tab { grid-column: span 2; }
   .tab:nth-child(n+4) { grid-column: span 3; }
@@ -2475,6 +2753,7 @@ body:has(.bulk:not([hidden])) .toast {
   .wallet {
     display: grid;
     grid-template-columns: repeat(6, 1fr);
+    grid-auto-flow: dense;
     width: 100%;
   }
   .wallet .lvl {
@@ -2487,7 +2766,7 @@ body:has(.bulk:not([hidden])) .toast {
     order: -1;
   }
   .wallet .btn {
-    grid-column: span 2;
+    grid-column: span 3;
     justify-content: center;
     text-align: center;
     font-size: 12px;
@@ -2504,6 +2783,9 @@ body:has(.bulk:not([hidden])) .toast {
   }
   .mini { flex-basis: calc((100% - 16px)/3); }
   .multi-grid { grid-template-columns: repeat(4, 1fr); }
+  .multi-grid div { min-height: 76px; }
+  .multi-grid .nm { -webkit-line-clamp: 2; }
+  .seg button { padding: 9px 9px; }
   .lvl {
     min-width: 0;
     flex: 1;
@@ -2556,9 +2838,10 @@ body:has(.bulk:not([hidden])) .toast {
         <div><div class="t" id="lvlT">Бомж</div><div class="x" id="lvlX">0 / 60 XP</div></div>
       </div>
       <span class="bal" id="bal">Баланс: <b>100,00 ₽</b></span>
-      <button class="btn" id="loan" type="button">Занять у бабушки +50 ₽</button>
+      <button class="btn" id="loan" type="button">Занять у бабушки +50&nbsp;₽</button>
       <button class="btn" id="repay" type="button">Вернуть долг</button>
-      <button class="btn tgl" id="soundBtn" type="button" aria-pressed="false"><span class="off">Звук: выкл</span><span class="on">Звук: вкл</span></button>
+      <button class="btn tgl" id="soundBtn" type="button" aria-pressed="false" aria-label="Звук" title="Звук"><span class="off"><i aria-hidden="true">🔇</i><b>Звук: выкл</b></span><span class="on"><i aria-hidden="true">🔊</i><b>Звук: вкл</b></span></button>
+      <button class="btn tgl" id="hcBtn" type="button" aria-pressed="false" aria-label="Контрастный режим" title="Контрастный режим: жирные и заметные рамки"><span class="off"><i aria-hidden="true">🌓</i><b>Контраст: выкл</b></span><span class="on"><i aria-hidden="true">🌓</i><b>Контраст: вкл</b></span></button>
     </div>
   </header>
 
@@ -2578,6 +2861,7 @@ body:has(.bulk:not([hidden])) .toast {
     <div class="arena">
       <h2 id="caseTitle">Кейс</h2>
       <div class="sub" id="caseSub"></div>
+      <div class="buffnote" id="caseBuff" hidden></div>
       <div class="reels" id="reels"></div>
       <div class="controls">
         <div class="seg" role="group" aria-label="Сколько открыть">
@@ -2585,6 +2869,7 @@ body:has(.bulk:not([hidden])) .toast {
           <button type="button" data-n="5" aria-pressed="false">×5</button>
           <button type="button" data-n="10" aria-pressed="false">×10</button>
           <button type="button" data-n="20" aria-pressed="false">×20</button>
+          <button type="button" data-n="100" aria-pressed="false">×100</button>
         </div>
         <button class="open" id="open" type="button"><span id="openTxt">ОТКРЫТЬ КЕЙС</span><small id="openPrice">—</small></button>
         <label class="check"><input type="checkbox" id="fast"> Быстро</label>
@@ -2691,6 +2976,7 @@ body:has(.bulk:not([hidden])) .toast {
         <div class="panel book">
           <h2>Книга рецептов <small id="rcpN"></small></h2>
           <p class="lead" style="margin:0 0 10px">Рецепты открываются, когда соберёшь их впервые. Подсказки помогут угадать. Если рецепта нет, предметы вернутся.</p>
+          <div class="batch" id="batch" hidden></div>
           <div class="recipes" id="recipes"></div>
         </div>
       </div>
@@ -2700,7 +2986,7 @@ body:has(.bulk:not([hidden])) .toast {
   <!-- CONTRACT -->
   <section class="view panel" id="v-contract" role="tabpanel" hidden>
     <h2>Контракт обмена <small>10 предметов → 1 классом выше</small></h2>
-    <p class="lead">Выбери в инвентаре 10 предметов одной редкости. Взамен получишь один предмет следующей редкости из тех же кейсов. Износ результата равен среднему износу вложенного. Отличный способ избавиться от вещей с отрицательной ценой.</p>
+    <p class="lead">Выбери в инвентаре 10 предметов одной редкости. Взамен получишь один предмет следующей редкости из тех же кейсов. Износ результата заметно лучше среднего вложенного. Заодно отличный способ избавиться от вещей с отрицательной ценой.</p>
     <div class="slots" id="slots"></div>
     <div class="contract-info">
       <span>Редкость: <b id="cRar">—</b></span>
@@ -2713,6 +2999,7 @@ body:has(.bulk:not([hidden])) .toast {
       <button class="btn" id="cClear" type="button">Очистить</button>
       <button class="btn primary" id="cGo" type="button" disabled>Подписать контракт</button>
     </div>
+    <div class="cfill" id="cFill" aria-label="Заполнить самыми дешёвыми выбранной редкости"></div>
   </section>
 
   <!-- UPGRADE -->
@@ -2725,6 +3012,18 @@ body:has(.bulk:not([hidden])) .toast {
       <div class="uslot" id="uTarget"><span class="k">Цель</span><span class="empty">Появится после выбора ставки</span></div>
     </div>
     <div class="mults" id="mults"></div>
+    <div class="uadd field">
+      <label for="uAddIn">Доплата деньгами, ₽ <small>поднимает шанс, сгорает вместе со ставкой</small></label>
+      <input id="uAddIn" type="number" min="0" step="1" placeholder="0" inputmode="decimal">
+      <div class="quick">
+        <button class="btn" type="button" data-ua="0.25">+¼ ставки</button>
+        <button class="btn" type="button" data-ua="0.5">+½</button>
+        <button class="btn" type="button" data-ua="1">+1×</button>
+        <button class="btn" type="button" data-ua="max" id="uAddMax">До максимума</button>
+        <button class="btn" type="button" data-ua="0">Сброс</button>
+      </div>
+      <div class="hint" id="uAddHint"></div>
+    </div>
     <div class="row-c" style="margin-top:14px"><button class="btn primary" id="uGo" type="button" disabled>Апгрейд</button></div>
   </section>
 
@@ -2785,6 +3084,15 @@ body:has(.bulk:not([hidden])) .toast {
       <button class="btn primary" id="mKeep" type="button">Забрать всё</button>
       <button class="btn" id="mSell" type="button">Продать всё</button>
     </div>
+  </div>
+</div>
+
+<div class="modal" id="elsewhere" hidden role="alertdialog" aria-modal="true" aria-labelledby="eTitle">
+  <div class="mbox" style="--c:var(--accent)">
+    <div class="big">🗂️</div>
+    <h3 id="eTitle">Игра открыта в другой вкладке</h3>
+    <p class="lore">Там уже сохранился более свежий прогресс. Чтобы ничего не затереть, эта вкладка больше не сохраняет. Обнови страницу, чтобы продолжить с того же места.</p>
+    <div class="mbtns"><button class="btn primary" id="eReload" type="button">Обновить</button></div>
   </div>
 </div>
 
@@ -2863,17 +3171,17 @@ const CASES = [
     desc: 'Лежит в коридоре с 11 класса',
     ic: '🎒', color: '#d0574a', price: 20,
     items: [
-      [0, '✏️', 'Погрызенный карандаш', 'Следы зубов трёх поколений отличников.', 0.05],
-      [0, '📐', 'Сломанная линейка', 'Мерила знания. Не выдержала.', 0.1],
-      [0, '🍎', 'Огрызок яблока', 'Мама положила целое. Где-то в сентябре.', -0.5],
-      [1, '📒', 'Дневник с двойкой', 'Подпись родителей подделана. Неубедительно.', 3],
-      [1, '🧮', 'Калькулятор «Электроника»', 'Умеет только складывать. И то неохотно.', 6],
-      [2, '📚', 'Учебник 1996 года', 'Подписан шестью владельцами. Ты седьмой.', 15],
-      [2, '👟', 'Сменка в мешке', 'Пахнет так, что учитель вышел из класса.', -12],
-      [3, '📝', 'Шпаргалка на линейке', 'Мелким почерком весь курс физики.', 50],
-      [4, '🧪', 'Колба из кабинета химии', 'Внутри что-то булькает. Само.', 140],
-      [5, '📄', 'Справка от физры', 'Освобождение на всю жизнь.', 480],
-      [6, '🎖️', '★ Медаль | Золотая', 'Выдали по ошибке. Никто не стал возвращать.', 3800],
+      [0, '✏️', 'Погрызенный карандаш', 'Следы зубов трёх поколений отличников.', 0.038],
+      [0, '📐', 'Сломанная линейка', 'Мерила знания. Не выдержала.', 0.076],
+      [0, '🍎', 'Огрызок яблока', 'Мама положила целое. Где-то в сентябре.', -0.38],
+      [1, '📒', 'Дневник с двойкой', 'Подпись родителей подделана. Неубедительно.', 2.3],
+      [1, '🧮', 'Калькулятор «Электроника»', 'Умеет только складывать. И то неохотно.', 4.6],
+      [2, '📚', 'Учебник 1996 года', 'Подписан шестью владельцами. Ты седьмой.', 11],
+      [2, '👟', 'Сменка в мешке', 'Пахнет так, что учитель вышел из класса.', -9.1],
+      [3, '📝', 'Шпаргалка на линейке', 'Мелким почерком весь курс физики.', 38],
+      [4, '🧪', 'Колба из кабинета химии', 'Внутри что-то булькает. Само.', 110],
+      [5, '📄', 'Справка от физры', 'Освобождение на всю жизнь.', 370],
+      [6, '🎖️', '★ Медаль | Золотая', 'Выдали по ошибке. Никто не стал возвращать.', 2800],
     ],
   },
   {
@@ -2881,19 +3189,19 @@ const CASES = [
     desc: 'Тут хранится всё, что «ещё пригодится»',
     ic: '🧓', color: '#c0703a', price: 25,
     items: [
-      [0, '🧦', 'Носок без пары', 'Его брат ушёл в стиральную машину в 2014 году и не вернулся.', 0.05],
-      [0, '🛍️', 'Пакет с пакетами', 'Внутри ещё пакеты. Внутри них тоже пакеты.', 0.1],
-      [0, '🫙', 'Пустая банка', 'Ждёт огурцов, которые так и не придут.', 0.5],
-      [0, '🔘', 'Банка пуговиц', 'Ни одна не подходит ни к одной вещи.', 1],
-      [1, '🧶', 'Клубок без начала', 'Найти конец невозможно. Учёные пробовали.', 2],
-      [1, '📻', 'Радио «Маяк»', 'Ловит только тишину и прогноз погоды на 1987 год.', 7],
-      [2, '🥒', 'Огурцы 2009 года', 'Выдержка как у хорошего вина. Открывать опасно.', 14],
-      [2, '🎿', 'Лыжи 1985 года', 'Деревянные, тяжёлые, бессмертные.', 22],
-      [3, '🪞', 'Трельяж', 'Три зеркала, чтобы видеть свои ошибки с трёх сторон.', 60],
-      [3, '🧥', 'Шуба из «натурального» кота', 'Кот был не против. Наверное.', 45],
-      [4, '🖼️', 'Ковёр со стены', 'Узор гипнотизирует детей уже три поколения.', 180],
-      [5, '🍞', 'Батон за 13 копеек', 'Реликвия. Не черствеет, потому что уже окаменел.', 650],
-      [6, '🩴', '★ Тапок | Бабочка', 'Раскрывается одним движением. Бабушка тренировалась 40 лет.', 4200],
+      [0, '🧦', 'Носок без пары', 'Его брат ушёл в стиральную машину в 2014 году и не вернулся.', 0.037],
+      [0, '🛍️', 'Пакет с пакетами', 'Внутри ещё пакеты. Внутри них тоже пакеты.', 0.075],
+      [0, '🫙', 'Пустая банка', 'Ждёт огурцов, которые так и не придут.', 0.37],
+      [0, '🔘', 'Банка пуговиц', 'Ни одна не подходит ни к одной вещи.', 0.75],
+      [1, '🧶', 'Клубок без начала', 'Найти конец невозможно. Учёные пробовали.', 1.5],
+      [1, '📻', 'Радио «Маяк»', 'Ловит только тишину и прогноз погоды на 1987 год.', 5.3],
+      [2, '🥒', 'Огурцы 2009 года', 'Выдержка как у хорошего вина. Открывать опасно.', 11],
+      [2, '🎿', 'Лыжи 1985 года', 'Деревянные, тяжёлые, бессмертные.', 16],
+      [3, '🪞', 'Трельяж', 'Три зеркала, чтобы видеть свои ошибки с трёх сторон.', 45],
+      [3, '🧥', 'Шуба из «натурального» кота', 'Кот был не против. Наверное.', 34],
+      [4, '🖼️', 'Ковёр со стены', 'Узор гипнотизирует детей уже три поколения.', 140],
+      [5, '🍞', 'Батон за 13 копеек', 'Реликвия. Не черствеет, потому что уже окаменел.', 490],
+      [6, '🩴', '★ Тапок | Бабочка', 'Раскрывается одним движением. Бабушка тренировалась 40 лет.', 3200],
     ],
   },
   {
@@ -2995,17 +3303,17 @@ const CASES = [
     desc: 'Вход только по пропуску и с разрешения',
     ic: '🔧', color: '#7d6a4a', price: 100,
     items: [
-      [0, '🔩', 'Ржавый болт', 'Отец говорит, это от «Жигулей». Каких, не уточняет.', 0.3],
-      [0, '🥫', 'Банка саморезов', 'Двести штук, все разного размера.', 2],
-      [0, '🧤', 'Перчатки в мазуте', 'Стоят в углу самостоятельно.', 1],
-      [1, '🟦', 'Синяя изолента', 'Чинит всё. Включая отношения.', 15],
-      [1, '🪣', 'Ведро с неизвестной жидкостью', 'Пахнет бензином и приключениями.', -20],
-      [2, '🛞', 'Колесо от «Жигулей»', 'Запаска для машины, которой нет с 1998 года.', 55],
-      [2, '📻', 'Магнитола с кассетой', 'Внутри зажёвана «Ласковый май».', 70],
-      [3, '🧰', 'Ящик «всякое разное»', 'Внутри ещё один ящик. С винтиками.', 160],
-      [4, '🍖', 'Шашлык с мужиками', 'Обещали на часик. Вернулись через два дня.', 420],
-      [5, '🚗', '«Копейка» на ходу', 'Заводится с толкача и с молитвой.', 2600],
-      [6, '🔧', '★ Ключ на 10 | Легенда', 'Его никто никогда не находил. До сегодняшнего дня.', 14_000],
+      [0, '🔩', 'Ржавый болт', 'Отец говорит, это от «Жигулей». Каких, не уточняет.', 0.25],
+      [0, '🥫', 'Банка саморезов', 'Двести штук, все разного размера.', 1.7],
+      [0, '🧤', 'Перчатки в мазуте', 'Стоят в углу самостоятельно.', 0.83],
+      [1, '🟦', 'Синяя изолента', 'Чинит всё. Включая отношения.', 12],
+      [1, '🪣', 'Ведро с неизвестной жидкостью', 'Пахнет бензином и приключениями.', -17],
+      [2, '🛞', 'Колесо от «Жигулей»', 'Запаска для машины, которой нет с 1998 года.', 45],
+      [2, '📻', 'Магнитола с кассетой', 'Внутри зажёвана «Ласковый май».', 58],
+      [3, '🧰', 'Ящик «всякое разное»', 'Внутри ещё один ящик. С винтиками.', 130],
+      [4, '🍖', 'Шашлык с мужиками', 'Обещали на часик. Вернулись через два дня.', 350],
+      [5, '🚗', '«Копейка» на ходу', 'Заводится с толкача и с молитвой.', 2100],
+      [6, '🔧', '★ Ключ на 10 | Легенда', 'Его никто никогда не находил. До сегодняшнего дня.', 12_000],
     ],
   },
   {
@@ -3071,17 +3379,17 @@ const CASES = [
     desc: 'Роскошь, которая тоже никому не нужна',
     ic: '💰', color: '#c9a227', price: 1500,
     items: [
-      [0, '🧾', 'Чек на 0,5 ₽ из бутика', 'Купил воду. Бутилированную. За 30 тысяч.', 0.5],
-      [0, '🖋️', 'Перо золотое (сломанное)', 'Писать нельзя, продать стыдно.', 150],
-      [0, '📄', 'Офшорная справка', 'Компания зарегистрирована на кота.', -300],
-      [1, '⌚', 'Часы, которые спешат', 'Дорогие, но всё равно опаздываешь.', 600],
-      [1, '🧴', 'Духи «Запах денег»', 'Пахнут бумагой и тревогой.', 800],
-      [2, '🛥️', 'Яхта (надувная)', 'Помещается в багажник. Тонет в ванной.', 1600],
-      [2, '🖼️', '«Чёрный квадрат» (копия копии)', 'Нарисован вчера охранником.', 2100],
-      [3, '🏝️', 'Остров в Ладоге', 'Площадь 2 кв. м. Зато свой.', 5200],
-      [4, '🚁', 'Вертолёт на пульте', 'Летает 8 минут, падает навсегда.', 12_000],
-      [5, '🏰', 'Замок в Подмосковье', 'Недостроен с 2008. Охраняется собакой.', 38_000],
-      [6, '🪥', '★ Ёршик | Сусальное золото', 'Самый дорогой предмет в мире, которым никто не пользуется.', 150_000],
+      [0, '🧾', 'Чек на 0,5 ₽ из бутика', 'Купил воду. Бутилированную. За 30 тысяч.', 0.4],
+      [0, '🖋️', 'Перо золотое (сломанное)', 'Писать нельзя, продать стыдно.', 110],
+      [0, '📄', 'Офшорная справка', 'Компания зарегистрирована на кота.', -240],
+      [1, '⌚', 'Часы, которые спешат', 'Дорогие, но всё равно опаздываешь.', 480],
+      [1, '🧴', 'Духи «Запах денег»', 'Пахнут бумагой и тревогой.', 640],
+      [2, '🛥️', 'Яхта (надувная)', 'Помещается в багажник. Тонет в ванной.', 1200],
+      [2, '🖼️', '«Чёрный квадрат» (копия копии)', 'Нарисован вчера охранником.', 1600],
+      [3, '🏝️', 'Остров в Ладоге', 'Площадь 2 кв. м. Зато свой.', 4100],
+      [4, '🚁', 'Вертолёт на пульте', 'Летает 8 минут, падает навсегда.', 9600],
+      [5, '🏰', 'Замок в Подмосковье', 'Недостроен с 2008. Охраняется собакой.', 31_000],
+      [6, '🪥', '★ Ёршик | Сусальное золото', 'Самый дорогой предмет в мире, которым никто не пользуется.', 110_000],
     ],
   },
   {
@@ -3089,18 +3397,18 @@ const CASES = [
     desc: 'Стратегический запас на случай, если барахло закончится',
     ic: '🏭', color: '#6f7d3c', price: 100_000, tier: 1,
     items: [
-      [0, '🥫', 'Тушёнка 1961 года', 'Банка вздулась, но держится. Как и вся страна.', 850],
-      [0, '🧂', 'Мешок соли', 'Хватит засолить все огурцы мира. Дважды.', 1400],
-      [0, '🕯️', 'Ящик свечей', 'На случай отключения света в 2087 году.', 2300],
-      [0, '📋', 'Акт о списании', 'Списано всё, кроме самого акта.', -5700],
-      [1, '🥾', 'Валенки стратегические', 'Размер 52. Один на всех.', 8500],
-      [1, '🧥', 'Ватник ГОСТ', 'Тёплый, как бабушкины объятия. И такой же тяжёлый.', 13_000],
-      [2, '🌾', 'Гречка на 40 лет', 'На складе шепчутся, что её всё-таки можно съесть.', 40_000],
-      [2, '🔦', 'Фонарик на динамо', 'Жмёшь ручку, он светит. Жмёшь сильнее, он светит так же.', 31_000],
-      [3, '🚐', '«Буханка» в смазке', 'Ни разу не заводилась. Готова ко всему.', 140_000],
-      [4, '🧊', 'Сгущёнка, вечная мерзлота', 'Обнаружена в леднике. Вкус не изменился.', 450_000],
-      [5, '🗝️', 'Ключ от склада', 'Им можно открыть склад. Ты уже внутри.', 1_500_000],
-      [6, '🥫', '★ Тушёнка | Вечная', 'Срок годности: «до востребования».', 10_000_000],
+      [0, '🥫', 'Тушёнка 1961 года', 'Банка вздулась, но держится. Как и вся страна.', 990],
+      [0, '🧂', 'Мешок соли', 'Хватит засолить все огурцы мира. Дважды.', 1600],
+      [0, '🕯️', 'Ящик свечей', 'На случай отключения света в 2087 году.', 2700],
+      [0, '📋', 'Акт о списании', 'Списано всё, кроме самого акта.', -6700],
+      [1, '🥾', 'Валенки стратегические', 'Размер 52. Один на всех.', 9900],
+      [1, '🧥', 'Ватник ГОСТ', 'Тёплый, как бабушкины объятия. И такой же тяжёлый.', 16_000],
+      [2, '🌾', 'Гречка на 40 лет', 'На складе шепчутся, что её всё-таки можно съесть.', 47_000],
+      [2, '🔦', 'Фонарик на динамо', 'Жмёшь ручку, он светит. Жмёшь сильнее, он светит так же.', 36_000],
+      [3, '🚐', '«Буханка» в смазке', 'Ни разу не заводилась. Готова ко всему.', 160_000],
+      [4, '🧊', 'Сгущёнка, вечная мерзлота', 'Обнаружена в леднике. Вкус не изменился.', 530_000],
+      [5, '🗝️', 'Ключ от склада', 'Им можно открыть склад. Ты уже внутри.', 1_800_000],
+      [6, '🥫', '★ Тушёнка | Вечная', 'Срок годности: «до востребования».', 12_000_000],
     ],
   },
   {
@@ -3108,17 +3416,17 @@ const CASES = [
     desc: 'Деньги, которые печатали, но не использовали',
     ic: '🏦', color: '#2f6f8f', price: 10_000_000, tier: 2,
     items: [
-      [0, '🪙', 'Копейка 2014 года', 'Стоит больше, чем на ней написано. Немного.', 99_000],
-      [0, '🧾', 'Неденоминированная тысяча', 'Тысяча рублей 1995 года. Сейчас это рубль.', 140_000],
-      [0, '🖋️', 'Печать «ОПЛАЧЕНО»', 'Ставишь её, и ничего не оплачивается.', 210_000],
-      [0, '📉', 'Прогноз инфляции', 'Точность как у прогноза погоды на 1987 год.', -570_000],
-      [1, '🍫', 'Слиток (шоколадный)', 'Обёртка золотая, внутри орешки.', 850_000],
-      [1, '🧮', 'Счётная машинка «Подсчёт»', 'Сбивается на миллиардах. Как и ты.', 1_300_000],
-      [2, '💵', 'Двухсотка с мостом', 'Ни разу не была в автомате. Он её всё равно не примет.', 4_000_000],
-      [2, '🚪', 'Дверь от хранилища', 'Стальная, 40 тонн. Открывается внутрь холодильника.', 3_100_000],
-      [3, '📈', 'Ключевая ставка (бумажная)', 'Её повышают и понижают. Ты держишь в руках.', 14_000_000],
-      [4, '🖨️', 'Печатный станок', 'Печатает. Медленно. Только в чёрно-белом.', 45_000_000],
-      [5, '🏛️', 'Колонна с фасада', 'Говорят, на ней держится курс рубля.', 150_000_000],
+      [0, '🪙', 'Копейка 2014 года', 'Стоит больше, чем на ней написано. Немного.', 100_000],
+      [0, '🧾', 'Неденоминированная тысяча', 'Тысяча рублей 1995 года. Сейчас это рубль.', 150_000],
+      [0, '🖋️', 'Печать «ОПЛАЧЕНО»', 'Ставишь её, и ничего не оплачивается.', 220_000],
+      [0, '📉', 'Прогноз инфляции', 'Точность как у прогноза погоды на 1987 год.', -600_000],
+      [1, '🍫', 'Слиток (шоколадный)', 'Обёртка золотая, внутри орешки.', 890_000],
+      [1, '🧮', 'Счётная машинка «Подсчёт»', 'Сбивается на миллиардах. Как и ты.', 1_400_000],
+      [2, '💵', 'Двухсотка с мостом', 'Ни разу не была в автомате. Он её всё равно не примет.', 4_200_000],
+      [2, '🚪', 'Дверь от хранилища', 'Стальная, 40 тонн. Открывается внутрь холодильника.', 3_300_000],
+      [3, '📈', 'Ключевая ставка (бумажная)', 'Её повышают и понижают. Ты держишь в руках.', 15_000_000],
+      [4, '🖨️', 'Печатный станок', 'Печатает. Медленно. Только в чёрно-белом.', 47_000_000],
+      [5, '🏛️', 'Колонна с фасада', 'Говорят, на ней держится курс рубля.', 160_000_000],
       [6, '🪙', '★ Монетка | Из автомата', 'Тот самый жетон из автомата с игрушками. Бесценен.', 1_000_000_000],
     ],
   },
@@ -3127,18 +3435,18 @@ const CASES = [
     desc: 'Сюда попадает всё, что когда-либо потерялось',
     ic: '🌌', color: '#5a3fa0', price: 1_000_000_000, tier: 3,
     items: [
-      [0, '📺', 'Пульт от телевизора', 'Искали всей семьёй. Был в диване. Диван тоже здесь.', 9_900_000],
-      [0, '🖊️', 'Колпачок от ручки', 'Все колпачки мира. Этот твой.', 14_000_000],
-      [0, '📶', 'Пароль от вайфая', 'Записан на бумажке. Бумажка потерялась сюда же.', 21_000_000],
-      [0, '🕳️', 'Потерянное время', 'Пять часов на кейсы. Вернуть нельзя.', -57_000_000],
-      [1, '💍', 'Вторая серёжка', 'Первая у бабушки в шкатулке. Ждёт.', 85_000_000],
-      [1, '🧩', 'Последний пазл', 'Из набора на 1000 деталей. Без него картинка не та.', 130_000_000],
-      [2, '☄️', 'Комета без хвоста', 'Хвост оторвался где-то у Юпитера.', 400_000_000],
-      [2, '🌙', 'Луна (б/у)', 'Следы ботинок на месте. Обратная сторона в пыли.', 310_000_000],
-      [3, '🪐', 'Кольцо Сатурна (одно)', 'Сатурну хватит и остальных.', 1_400_000_000],
-      [4, '✨', 'Звёздная пыль в банке', 'Банка из-под огурцов 2009 года. Совпадение?', 4_500_000_000],
-      [5, '🛰️', 'Спутник «Барахло-1»', 'Запущен в 1983. Передаёт только «приём».', 15_000_000_000],
-      [6, '🧦', '★ Носок | Пара', 'Тот самый второй носок. Он нашёлся. Здесь.', 100_000_000_000],
+      [0, '📺', 'Пульт от телевизора', 'Искали всей семьёй. Был в диване. Диван тоже здесь.', 12_000_000],
+      [0, '🖊️', 'Колпачок от ручки', 'Все колпачки мира. Этот твой.', 16_000_000],
+      [0, '📶', 'Пароль от вайфая', 'Записан на бумажке. Бумажка потерялась сюда же.', 25_000_000],
+      [0, '🕳️', 'Потерянное время', 'Пять часов на кейсы. Вернуть нельзя.', -67_000_000],
+      [1, '💍', 'Вторая серёжка', 'Первая у бабушки в шкатулке. Ждёт.', 99_000_000],
+      [1, '🧩', 'Последний пазл', 'Из набора на 1000 деталей. Без него картинка не та.', 160_000_000],
+      [2, '☄️', 'Комета без хвоста', 'Хвост оторвался где-то у Юпитера.', 470_000_000],
+      [2, '🌙', 'Луна (б/у)', 'Следы ботинок на месте. Обратная сторона в пыли.', 360_000_000],
+      [3, '🪐', 'Кольцо Сатурна (одно)', 'Сатурну хватит и остальных.', 1_600_000_000],
+      [4, '✨', 'Звёздная пыль в банке', 'Банка из-под огурцов 2009 года. Совпадение?', 5_300_000_000],
+      [5, '🛰️', 'Спутник «Барахло-1»', 'Запущен в 1983. Передаёт только «приём».', 18_000_000_000],
+      [6, '🧦', '★ Носок | Пара', 'Тот самый второй носок. Он нашёлся. Здесь.', 120_000_000_000],
     ],
   },
   {
@@ -3146,18 +3454,18 @@ const CASES = [
     desc: 'Внутри всё барахло, которое когда-либо существовало',
     ic: '🕳️', color: '#3a2a52', price: 1_000_000_000_000, tier: 4,
     items: [
-      [0, '🧦', 'Все носки (100 млрд шт.)', 'Без пары. Ни одного.', 9_900_000_000],
-      [0, '😴', 'Мотивация в понедельник', 'Найдена в чёрной дыре. Логично.', 14_000_000_000],
-      [0, '📨', 'Непрочитанные сообщения', 'Их 4 млрд. Все от бабушки.', 21_000_000_000],
-      [0, '🧾', 'Счёт за свет Вселенной', 'Звёзды горели всю ночь. Платишь ты.', -57_000_000_000],
-      [1, '⏳', 'Время, потраченное на кейсы', 'Всё твоё время. Целиком.', 85_000_000_000],
-      [1, '📜', 'Смысл жизни (черновик)', 'Зачёркнуто много раз. Сверху написано «42».', 130_000_000_000],
-      [2, '🌀', 'Горизонт событий', 'Тонкий, как терпение соседа с перфоратором.', 400_000_000_000],
-      [2, '🔭', 'Телескоп, который смотрел сюда', 'Он видел слишком многое.', 310_000_000_000],
-      [3, '🌌', 'Тестовая Вселенная', 'Версия 0.9. Есть баги с гравитацией.', 1_400_000_000_000],
-      [4, '🪐', 'Планета с бабушками', 'Там все тебя ждут с пирожками.', 4_500_000_000_000],
-      [5, '⭐', 'Сверхновая в коробке', 'Не открывать. Ни при каких обстоятельствах.', 15_000_000_000_000],
-      [6, '🥟', '★ Пирожок | Бесконечный', 'Бабушкин. Всегда горячий. Никогда не кончается.', 100_000_000_000_000],
+      [0, '🧦', 'Все носки (100 млрд шт.)', 'Без пары. Ни одного.', 12_000_000_000],
+      [0, '😴', 'Мотивация в понедельник', 'Найдена в чёрной дыре. Логично.', 16_000_000_000],
+      [0, '📨', 'Непрочитанные сообщения', 'Их 4 млрд. Все от бабушки.', 24_000_000_000],
+      [0, '🧾', 'Счёт за свет Вселенной', 'Звёзды горели всю ночь. Платишь ты.', -66_000_000_000],
+      [1, '⏳', 'Время, потраченное на кейсы', 'Всё твоё время. Целиком.', 99_000_000_000],
+      [1, '📜', 'Смысл жизни (черновик)', 'Зачёркнуто много раз. Сверху написано «42».', 150_000_000_000],
+      [2, '🌀', 'Горизонт событий', 'Тонкий, как терпение соседа с перфоратором.', 470_000_000_000],
+      [2, '🔭', 'Телескоп, который смотрел сюда', 'Он видел слишком многое.', 360_000_000_000],
+      [3, '🌌', 'Тестовая Вселенная', 'Версия 0.9. Есть баги с гравитацией.', 1_600_000_000_000],
+      [4, '🪐', 'Планета с бабушками', 'Там все тебя ждут с пирожками.', 5_200_000_000_000],
+      [5, '⭐', 'Сверхновая в коробке', 'Не открывать. Ни при каких обстоятельствах.', 17_000_000_000_000],
+      [6, '🥟', '★ Пирожок | Бесконечный', 'Бабушкин. Всегда горячий. Никогда не кончается.', 120_000_000_000_000],
     ],
   },
 ];
@@ -3335,6 +3643,11 @@ const TITLES = [
   'Бомж', 'Сборщик бутылок', 'Барахольщик', 'Хранитель пакетов', 'Повелитель балкона',
   'Король подъезда', 'Гаражный авторитет', 'Дачный барон', 'Офисный хищник',
   'Олигарх районного масштаба', 'Магнат барахла', 'Легенда помойки',
+  'Барон свалки', 'Граф гаражей', 'Князь кладовок', 'Император антресолей',
+  'Хан комиссионки', 'Султан секонд-хенда', 'Министр ненужных дел', 'Председатель хлама',
+  'Акционер помойки', 'Почётный старьёвщик', 'Архивариус мусора', 'Член клуба «Всё в дом»',
+  'Смотритель вечной свалки', 'Миллиардер барахла', 'Хозяин Чёрной дыры', 'Хранитель всего ненужного',
+  'Бог барахла', 'Абсолют хлама',
 ];
 
 const ELITE_LABELS = ['', 'ЭЛИТА', 'ЭЛИТА+', 'КОСМОС', '∞'];
@@ -3349,12 +3662,26 @@ const FREE_MAX = 20;
 const GRANNY_DEBT = 150;
 const GRANNY_CHECK_MS = 20_000;
 const GRANNY_CHANCE = 0.28;
-const GRANNY_DOOR_MS = 5_000;
+const GRANNY_DOOR_MS = 3_000;
 const RESTO_CHANCE = 0.75;
+const SPIN_MS = 6000;          // прокрутка ленты в обычном режиме
+const SPIN_FAST_MS = 900;      // и в режиме «Быстро»
+const BUFF_MS = 60_000;        // бафф после ×20/×100 длится 1 минуту
+const BUFF_CASES = 2;          // сколько кейсов получают бафф
+const BUFF_MULT = 2;           // во сколько раз чаще редкие в баффнутом кейсе
+const BUFF_FROM = 5;           // «редкие» — Тайное и ★
+const BUFF_CHANCE_20 = 0.05;   // шанс баффа после платного ×20
+const BUFF_CHANCE_100 = 0.1;   // и после платного ×100
+const LUCK_AT_30 = 0.1;        // удача к 30-му уровню: +10% к весу хороших редкостей
+const LUCK_CURVE = 1.45;       // до 30-го прибавка растёт плавно и на стыке выходит на LUCK_STEP за уровень
+const LUCK_STEP = 0.005;       // после 30-го — по +0,5% за уровень
+const LUCK_MAX = 0.2;          // потолок +20% (на 50-м уровне)
+const LUCK_FROM = 4;           // «хорошие» — от Засекреченного и выше
 const MULTI_CASCADE_MS = 350; // волна карточек в окне улова укладывается в это время при любом ×N
 const MUSEUM_MARKUP = [12, 10, 8, 6, 5, 4, 3]; // наценка выкупа по редкости
-const MUSEUM_DISCOUNT = [0, 0.05, 0.15];       // скидка на кейс: нет / половина зала / весь зал
-const MUSEUM_ALL_DISCOUNT = 0.15;              // весь музей: все кейсы дешевле ещё
+const MUSEUM_DISCOUNT = [0, 0.05, 0.1];        // скидка на кейс: нет / половина зала / весь зал
+const MUSEUM_ALL_DISCOUNT = 0.1;               // весь музей: все кейсы дешевле ещё
+const CONTRACT_WEAR = 0.4;      // износ результата контракта: 0,4 от среднего вложенного
 const UPGRADE_MULTS = [1.5, 2, 3, 5, 10, 25, 100];
 const CRASH_SPEED = 0.16;
 
@@ -3394,10 +3721,13 @@ function fmtShort(n) {
   const a = Math.abs(n);
   if (a < 1e6) return fmt(n);
   const units = [[1e15, 'квадрлн'], [1e12, 'трлн'], [1e9, 'млрд'], [1e6, 'млн']];
-  for (const [v, u] of units) {
+  for (let k = 0; k < units.length; k++) {
+    const [v, u] = units[k];
     if (a >= v) {
       const x = n / v;
       const rounded = Math.abs(x) >= 100 ? Math.round(x) : Math.round(x * 10) / 10;
+      // 999,96 млн округлилось бы до «1 000 млн» — тогда показываем следующей единицей: «1 млрд».
+      if (Math.abs(rounded) >= 1000 && k > 0) return (Math.round((n / units[k - 1][0]) * 10) / 10).toLocaleString('ru-RU') + ' ' + units[k - 1][1] + ' ₽';
       return rounded.toLocaleString('ru-RU') + ' ' + u + ' ₽';
     }
   }
@@ -3457,6 +3787,7 @@ const freshState = () => ({
   crashNet: 0, chist: [],
   museum: {}, museumHalf: {}, museumDone: {}, museumSpent: 0,
   restos: 0, restoSpent: 0,
+  buffs: {}, contrast: false,
   pending: [], pendingBet: 0, grannyDue: false,
 });
 
@@ -3466,15 +3797,37 @@ try {
   if (saved && typeof saved.bal === 'number') state = Object.assign(freshState(), saved);
 } catch (_) { /* битое сохранение — начинаем заново */ }
 
+/* Сохранение. Название, иконку, описание и состояние износа у обычных предметов не пишем:
+   они восстанавливаются из каталога и износа при загрузке (hydrate). Так сохранение почти вдвое
+   меньше и дольше влезает в лимит localStorage. Если сохранить всё же не вышло, один раз предупреждаем. */
+const SKIP_KEYS = new Set(['lore', 'wear', 'name', 'ic']);
+const ROOM_BY_ID = new Map(ROOMS.map((c) => [c.id, c]));
+// Пропускаем поле, только если предмет точно найдётся в каталоге при загрузке.
+function saveReplacer(key, value) {
+  if (!SKIP_KEYS.has(key) || !this || this.special || typeof this.idx !== 'number') return value;
+  const c = ROOM_BY_ID.get(this.caseId);
+  return c && this.idx >= 0 && this.idx < c.items.length ? undefined : value;
+}
+let saveWarned = false;
+let saveLocked = false; // игру сохранила другая вкладка — эта больше не пишет, чтобы не затереть
 const save = () => {
-  try { localStorage.setItem(SAVE_KEY, JSON.stringify(state)); } catch (_) { /* приватный режим */ }
+  if (saveLocked) return;
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify(state, saveReplacer));
+  } catch (_) {
+    if (!saveWarned && typeof toast === 'function') {
+      saveWarned = true;
+      toast('Не получилось сохранить прогресс: браузеру не хватает места. Продай или выброси часть инвентаря.', 6000, { important: true });
+    }
+  }
 };
 
 // Восстановление после прерванных действий и миграция старых сохранений.
 const restoreNotes = [];
 if (Array.isArray(state.pending) && state.pending.length) {
   state.inv.push(...state.pending);
-  restoreNotes.push(`Действие прервалось: ${state.pending.length} ${plural(state.pending.length, 'предмет', 'предмета', 'предметов')} сохранено в инвентарь`);
+  const n = state.pending.length;
+  restoreNotes.push(`Действие прервалось: ${n} ${plural(n, 'предмет сохранён', 'предмета сохранены', 'предметов сохранено')} в инвентарь`);
   state.pending = [];
 }
 if (state.pendingBet > 0) {
@@ -3486,7 +3839,34 @@ state.debt = r2(state.debt || 0);
 state.recipes ||= {};
 state.museum ||= {};
 state.museumHalf ||= {};
+// Баффы: { id кейса: { until — когда кончится по часам, left — сколько осталось по секундомеру } }.
+// Бафф живёт, пока не кончилось хотя бы одно из двух, поэтому перевод часов его не продлевает.
+// Здесь чистим мусор и просроченное и переводим старую запись «id: время» в новую.
+state.buffs = state.buffs && typeof state.buffs === 'object' ? state.buffs : {};
+for (const [id, b] of Object.entries(state.buffs)) {
+  const c = CASES.find((x) => x.id === id);
+  const until = typeof b === 'number' ? b : b && b.until;
+  const left = typeof b === 'number' ? until - Date.now() : b && b.left;
+  const ok = c && !c.free && Number.isFinite(until) && Number.isFinite(left);
+  const rest = ok ? Math.min(BUFF_MS, left, until - Date.now()) : 0;
+  if (rest > 0) state.buffs[id] = { until, left: rest };
+  else delete state.buffs[id];
+}
 state.museumDone ||= {};
+// Восстанавливаем то, что не пишется в сохранение: название, иконку, описание и износ.
+function hydrate(it) {
+  if (!it || typeof it !== 'object') return;
+  const c = ROOMS.find((x) => x.id === it.caseId);
+  const row = c && typeof it.idx === 'number' ? c.items[it.idx] : null;
+  if (it.name === undefined && row) it.name = (it.stat ? STAT_TRAK : '') + row[2];
+  if (it.ic === undefined && row) it.ic = row[1];
+  if (it.lore === undefined && row) it.lore = row[3];
+  if (it.wear === undefined && typeof it.float === 'number') it.wear = wearOf(it.float);
+}
+state.inv.forEach(hydrate);
+Object.values(state.museum).forEach(hydrate);
+if (Array.isArray(state.pending)) state.pending.forEach(hydrate);
+hydrate(state.best);
 state.inv.forEach((x) => {
   if (!x.uid) x.uid = state.uid++;
   if (typeof x.float !== 'number') x.float = 0.5;
@@ -3505,6 +3885,25 @@ let busy = false; // идёт анимация с деньгами или пре
 
 let audio = null;
 let soundOn = false;
+
+// Контрастный режим хранится в сохранении и включается сразу при загрузке.
+function applyContrast() {
+  document.documentElement.classList.toggle('hc', !!state.contrast);
+  $('hcBtn').setAttribute('aria-pressed', !!state.contrast);
+}
+let hcFadeTimer = 0;
+$('hcBtn').onclick = () => {
+  state.contrast = !state.contrast;
+  const root = document.documentElement;
+  // Во время анимаций (рулетка, апгрейд, ×100) без плавного перехода — чтобы их не оборвать.
+  if (!busy) root.classList.add('hc-fade');
+  clearTimeout(hcFadeTimer);
+  hcFadeTimer = setTimeout(() => root.classList.remove('hc-fade'), 400);
+  applyContrast();
+  save();
+  tone(650, 0.04);
+};
+applyContrast();
 
 $('soundBtn').onclick = () => {
   soundOn = !soundOn;
@@ -3629,15 +4028,36 @@ function floatText(el, text, color) {
   setTimeout(() => f.remove(), 1200);
 }
 
-let toastTimer;
-function toast(message, ms = 2400) {
-  $$('.toast').forEach((x) => x.remove());
+/* Уведомления. Два места: обычное и важное. Новое обычное заменяет прошлое обычное,
+   важное (уровень, музей, рецепт, бабушка у двери, сбой сохранения) — прошлое важное.
+   Друг друга они не вытесняют: важное дочитывается, даже если следом пришло «Продано за…».
+   key — уведомления с одним ключом обновляют текст на месте, без новой анимации. */
+const toastBox = document.createElement('div');
+toastBox.id = 'toasts';
+toastBox.setAttribute('aria-live', 'polite');
+document.body.appendChild(toastBox);
+const toastSlots = { normal: null, important: null };
+
+function toast(message, ms = 2400, { important = false, key = '' } = {}) {
+  const slot = important ? 'important' : 'normal';
+  const cur = toastSlots[slot];
+  if (cur && key && cur.dataset.key === key && cur.isConnected) {
+    cur.textContent = message;
+    clearTimeout(cur.timer);
+    cur.timer = setTimeout(() => cur.remove(), ms);
+    return cur;
+  }
+  if (cur) cur.remove();
   const t = document.createElement('div');
-  t.className = 'toast';
+  t.className = 'toast' + (important ? ' imp' : '');
+  t.dataset.key = key;
   t.textContent = message;
-  document.body.appendChild(t);
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.remove(), ms);
+  // Важное всегда сверху стопки, обычное — под ним.
+  if (important) toastBox.prepend(t);
+  else toastBox.append(t);
+  t.timer = setTimeout(() => t.remove(), ms);
+  toastSlots[slot] = t;
+  return t;
 }
 
 /* ==========================================================================
@@ -3645,18 +4065,47 @@ function toast(message, ms = 2400) {
    ========================================================================== */
 
 const baseName = (it) => it.name.replace(STAT_TRAK, '');
-const wearOf = (fl) => WEARS.find((w) => fl >= w[0] && fl < w[1])[2];
+function wearOf(fl) {
+  return WEARS.find((w) => fl >= w[0] && fl < w[1])[2];
+}
+
+// Удача от уровня: прибавка к весу хороших редкостей. 10-й ≈ +2%, 20-й ≈ +5%, 30-й — +10%,
+// 40-й — +15%, 50-й и выше — +20%. До 30-го кривая плавно разгоняется и на стыке идёт ровно по LUCK_STEP.
+function levelLuck() {
+  const lvl = state.lvl;
+  const luck = lvl <= 30
+    ? LUCK_AT_30 * Math.pow((lvl - 1) / 29, LUCK_CURVE)
+    : LUCK_AT_30 + (lvl - 30) * LUCK_STEP;
+  return Math.min(LUCK_MAX, Math.max(0, luck));
+}
+
+// Сколько мс осталось баффу кейса (0 — баффа нет): меньшее из «по часам» и «по секундомеру».
+function buffLeft(c) {
+  const b = state.buffs[c.id];
+  return b ? Math.max(0, Math.min(b.left, b.until - Date.now(), BUFF_MS)) : 0;
+}
+
+// Вес редкости r в кейсе c с учётом удачи и баффа.
+function rarityWeight(c, r) {
+  let w = RARITY[r].w;
+  if (r >= LUCK_FROM) w *= 1 + levelLuck();
+  if (r >= BUFF_FROM && buffLeft(c) > 0) w *= BUFF_MULT;
+  return w;
+}
 
 // Шанс выпадения предмета i из кейса c, в процентах.
 function chanceOf(c, i) {
   const r = c.items[i][0];
   const sameRarity = c.items.filter((x) => x[0] === r).length;
-  const totalWeight = sum(RARITY.filter((_, k) => c.items.some((y) => y[0] === k)), (x) => x.w);
-  return (RARITY[r].w / sameRarity / totalWeight) * 100;
+  const present = [...new Set(c.items.map((x) => x[0]))];
+  const totalWeight = sum(present, (k) => rarityWeight(c, k));
+  return (rarityWeight(c, r) / sameRarity / totalWeight) * 100;
 }
 
-function roll(c) {
-  const weights = c.items.map((_, i) => chanceOf(c, i));
+// Шансы всех предметов кейса разом: для серии бросков считаем один раз.
+const chancesOf = (c) => c.items.map((_, i) => chanceOf(c, i));
+
+function roll(c, weights = chancesOf(c)) {
   let x = rnd() * sum(weights, (w) => w);
   for (let i = 0; i < weights.length; i++) {
     x -= weights[i];
@@ -3694,7 +4143,8 @@ function idxOf(it) {
   if (it.special) return -1;
   if (typeof it.idx === 'number') return it.idx;
   const c = roomById(it.caseId);
-  return c ? c.items.findIndex((x) => x[2] === baseName(it)) : -1;
+  const name = baseName(it).replace('Чек на 0.5 ₽', 'Чек на 0,5 ₽'); // предмет переименован в 1.4.0
+  return c ? c.items.findIndex((x) => x[2] === name) : -1;
 }
 const itemKey = (it) => {
   const i = idxOf(it);
@@ -3720,7 +4170,12 @@ function removeItem(it) {
    Уровни
    ========================================================================== */
 
-const xpNeed = (lvl) => Math.round(60 * Math.pow(lvl, 1.5));
+// Опыт до следующего уровня: растёт чуть круче степени 1,65.
+const xpNeed = (lvl) => Math.round(90 * Math.pow(lvl, 1.65));
+
+// Опыт за предмет растёт с его ценой плавно (по порядку величины), без раннего потолка:
+// копеечный хлам ≈ 3, предмет за 1 000 ₽ ≈ 13, за миллион ≈ 23, дальше не больше 23.
+const itemXP = (it) => 2.5 + Math.min(20.5, 3.5 * Math.log10(1 + Math.abs(it.price)));
 const titleOf = (lvl) =>
   TITLES[Math.min(lvl - 1, TITLES.length - 1)] +
   (lvl > TITLES.length ? ' ' + '★'.repeat(Math.min(lvl - TITLES.length, 5)) : '');
@@ -3732,24 +4187,31 @@ function giftCase(lvl) {
 
 function addXP(n) {
   state.xp += Math.max(1, Math.round(n));
-  let leveled = false;
+  const from = state.lvl;
+  const gifts = [];
   while (state.xp >= xpNeed(state.lvl)) {
     state.xp -= xpNeed(state.lvl);
     state.lvl++;
-    leveled = true;
     const gift = giftCase(state.lvl);
     state.tokens[gift.id] = (state.tokens[gift.id] || 0) + 1;
+    gifts.push(gift);
+  }
+  renderLevel();
+  if (gifts.length) {
+    // Одно поздравление на все новые уровни сразу (×100 может дать несколько).
     const lvl = state.lvl;
+    const luck = Math.round(levelLuck() * 100);
+    const text = gifts.length === 1
+      ? `Уровень ${lvl}: «${titleOf(lvl)}». Подарок: кейс «${gifts[0].name}»`
+      : `Уровни ${from + 1}–${lvl}: «${titleOf(lvl)}». Подарки: ${gifts.length} ${plural(gifts.length, 'кейс', 'кейса', 'кейсов')}`;
     setTimeout(() => {
-      toast(`Уровень ${lvl}: «${titleOf(lvl)}». Подарок: кейс «${gift.name}»`, 3800);
+      toast(text + (luck ? ` · удача +${luck}%` : ''), 4500, { important: true });
       fanfare(4);
       const r = $('lvl').getBoundingClientRect();
       burst(r.left + 20, r.top + 20, ['#ffb02e', '#ffd23f', '#ffffff'], 120);
     }, 400);
-  }
-  renderLevel();
-  if (leveled) {
     renderCases();
+    renderContents();
     updateOpenButton();
   }
   save();
@@ -3760,6 +4222,9 @@ function renderLevel() {
   $('lvlT').textContent = titleOf(state.lvl);
   $('lvlX').textContent = `${state.xp} / ${xpNeed(state.lvl)} XP`;
   $('lvlRing').style.setProperty('--p', (state.xp / xpNeed(state.lvl)) * 100 + '%');
+  const luck = Math.round(levelLuck() * 100);
+  $('lvl').title = 'Уровень растёт за открытия, контракты, апгрейды и краш' +
+    (luck ? `. Удача +${luck}%: «${RARITY[LUCK_FROM].n}» и выше выпадает чаще` : '. С каждым уровнем растёт удача');
 }
 
 /* ==========================================================================
@@ -3775,9 +4240,18 @@ function setBal(delta) {
   save();
 }
 
+// Баланс полностью; если не влезает в свою плашку — коротко («1,2 трлн ₽»), полный — в подсказке.
 function renderBalance() {
-  $('bal').innerHTML = `Баланс: <b class="${state.bal < 0 ? 'neg' : ''}">${fmt(state.bal)}</b>`;
+  const el = $('bal');
+  const cls = state.bal < 0 ? 'neg' : '';
+  el.innerHTML = `Баланс: <b class="${cls}">${fmt(state.bal)}</b>`;
+  el.title = '';
+  if (el.scrollWidth > el.clientWidth + 1) {
+    el.innerHTML = `Баланс: <b class="${cls}">${fmtShort(state.bal)}</b>`;
+    el.title = fmt(state.bal);
+  }
 }
+addEventListener('resize', renderBalance);
 
 // Хватит ли денег, если сумма отрицательная (утилизация).
 const canPay = (v) => v >= 0 || state.bal + v >= -0.001;
@@ -3791,16 +4265,23 @@ function noMoney(v) {
   sad();
 }
 
+// Частые займы подряд не сыплют сообщениями: одно сообщение обновляет сумму на месте.
+let loanStreak = { n: 0, at: 0 };
 $('loan').onclick = () => {
   state.debt = r2(state.debt + 50);
   setBal(50);
   renderStats();
-  toast(pick([
-    'Бабушка дала 50 ₽ и пирожок',
-    'Бабушка: «Только на учёбу!»',
-    'Бабушка достала деньги из банки с гречкой',
-    'Бабушка: «Опять на свои коробки?»',
-  ]));
+  const now = Date.now();
+  loanStreak = now - loanStreak.at < 3000 ? { n: loanStreak.n + 1, at: now } : { n: 1, at: now };
+  const text = loanStreak.n === 1
+    ? pick([
+      'Бабушка дала 50 ₽ и пирожок',
+      'Бабушка: «Только на учёбу!»',
+      'Бабушка достала деньги из банки с гречкой',
+      'Бабушка: «Опять на свои коробки?»',
+    ])
+    : `Бабушка дала уже ${fmt(50 * loanStreak.n)} подряд и тяжело вздохнула · долг ${fmt(state.debt)}`;
+  toast(text, 2400, { key: 'loan' });
   tone(700, 0.1, 'sine', 0.06);
 };
 
@@ -3852,9 +4333,16 @@ function goTab(t) {
   if (t !== 'inventory') closeItemCard();
   if (t === 'crash') sizeCrashCanvas();
   renderInventory();
+  if (t === 'inventory') {
+    renderMuseum();
+    renderCraft();
+  }
   tone(500, 0.04);
 }
 $$('.tab').forEach((b) => (b.onclick = () => goTab(b.dataset.tab)));
+
+// Виден ли раздел инвентаря: невидимое не перерисовываем, его догонят goTab и setSub.
+const subVisible = (sub) => tab === 'inventory' && !$('sub-' + sub).hidden;
 
 function setSub(section) {
   if (busy) return;
@@ -3941,23 +4429,92 @@ function renderCases() {
     const priceHTML = c.free
       ? 'Бесплатно'
       : (discounted && !c.tier ? '<s>' + fmtShort(c.price) + '</s>' : '') + fmtShort(price);
+    const left = buffLeft(c);
     return `
-      <button class="case${c.tier ? ' tier' : ''}" type="button" data-id="${c.id}"
+      <button class="case${c.tier ? ' tier' : ''}${left ? ' buffed' : ''}" type="button" data-id="${c.id}"
         aria-pressed="${c === currentCase}" style="--cc:${c.color}"
-        title="${c.name} · ${c.free ? 'бесплатно' : fmt(price)}">
+        title="${c.name} · ${c.free ? 'бесплатно' : fmt(price)}${left ? ' · бафф: редкие ×' + BUFF_MULT : ''}">
         ${caseIconHTML(c)}
         <div><div class="nm">${c.name}</div><div class="pr">${priceHTML}</div></div>
         ${caseTagHTML(c)}
+        ${left ? `<span class="bf" data-bf="${c.id}">🔥 ${fmtLeft(left)}</span>` : ''}
       </button>`;
   }).join('');
 
   $$('.case', $('cases')).forEach((b) => (b.onclick = () => {
     if (busy) return;
     currentCase = roomById(b.dataset.id);
+    if (currentCase.free && openCount > FREE_MAX) setCount(FREE_MAX);
     renderCases();
     renderArena();
     tone(600, 0.05);
   }));
+}
+
+/* Временный бафф: после платного ×20 (шанс BUFF_CHANCE_20) или ×100 (BUFF_CHANCE_100) до BUFF_CASES
+   кейсов на BUFF_MS получают редкие ×BUFF_MULT. Кандидаты — платные кейсы дешевле открытого и один
+   следующий по цене. Повторный бафф продлевает срок, а не копится. */
+
+const fmtLeft = (ms) => {
+  const t = Math.ceil(ms / 1000);
+  return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0');
+};
+
+// Кандидаты на бафф после открытия кейса opened: все платные дешевле него и один следующий дороже.
+function buffPool(opened) {
+  const paid = CASES.filter((c) => !c.free).sort((a, b) => a.price - b.price);
+  const cheaper = paid.filter((c) => c.price < opened.price);
+  const next = paid.find((c) => c.price > opened.price);
+  return next ? [...cheaper, next] : cheaper;
+}
+
+function grantBuffs(opened) {
+  const pool = buffPool(opened);
+  const picked = [];
+  while (picked.length < BUFF_CASES && pool.length) picked.push(pool.splice(Math.floor(rnd() * pool.length), 1)[0]);
+  const until = Date.now() + BUFF_MS;
+  picked.forEach((c) => (state.buffs[c.id] = { until, left: BUFF_MS }));
+  return picked;
+}
+
+// Тик баффов: секундомер (performance.now не зависит от часов системы) уменьшает остаток,
+// истёкшие снимаются, таймеры на плитках и в арене обновляются. Сохраняем раз в 5 секунд.
+let buffClock = performance.now();
+let buffSaved = 0;
+function tickBuffs() {
+  const now = performance.now();
+  const dt = now - buffClock;
+  buffClock = now;
+  let expired = false;
+  for (const [id, b] of Object.entries(state.buffs)) {
+    b.left -= dt;
+    const c = CASES.find((x) => x.id === id);
+    if (!c || buffLeft(c) <= 0) {
+      delete state.buffs[id];
+      expired = true;
+    }
+  }
+  if (expired) {
+    if (!document.hidden) save();
+    renderCases();
+    renderContents();
+    renderMuseum();
+    return;
+  }
+  if (Object.keys(state.buffs).length && now - buffSaved > 5000 && !document.hidden) {
+    buffSaved = now;
+    save();
+  }
+  $$('[data-bf]', $('cases')).forEach((el) => {
+    el.textContent = '🔥 ' + fmtLeft(buffLeft(roomById(el.dataset.bf)));
+  });
+  renderBuffNote();
+}
+
+function renderBuffNote() {
+  const left = buffLeft(currentCase);
+  $('caseBuff').hidden = !left;
+  if (left) $('caseBuff').textContent = `🔥 Бафф: редкие выпадают в ${BUFF_MULT} раз чаще · ещё ${fmtLeft(left)}`;
 }
 
 /* ==========================================================================
@@ -3973,31 +4530,52 @@ function stub(c, i) {
   return { r: x[0], ic: x[1], name: x[2] };
 }
 
+// ×100: сетка 10×10 закрытых коробок вместо лент.
+const boxGridHTML = () => '<div class="bx"><span class="ic"></span></div>'.repeat(100);
+
 function renderIdleReels(n) {
   const box = $('reels');
-  box.classList.toggle('compact', n > 1);
+  box.classList.toggle('compact', n > 1 && n < 100);
   box.classList.toggle('x20', n === 20);
+  box.classList.toggle('boxgrid', n === 100);
+  box.classList.remove('opening');
+  if (n === 100) {
+    box.innerHTML = boxGridHTML();
+    return;
+  }
+  const weights = chancesOf(currentCase);
   let html = '';
   for (let k = 0; k < n; k++) {
-    const strip = Array.from({ length: 30 }, () => stub(currentCase, roll(currentCase)));
+    const strip = Array.from({ length: 30 }, () => stub(currentCase, roll(currentCase, weights)));
     html += `<div class="reel-wrap"><div class="marker"></div><div class="reel">${strip.map(reelCardHTML).join('')}</div></div>`;
   }
   box.innerHTML = html;
   $$('.reel', box).forEach((r) => (r.style.transform = `translateX(${-Math.floor(rnd() * 600)}px)`));
 }
 
-function renderArena() {
+// Легенда редкостей и содержимое кейса с текущими шансами (с удачей и баффом).
+function renderContents() {
   const c = currentCase;
-  $('caseTitle').textContent = 'Кейс «' + c.name + '»';
-  $('caseSub').textContent = c.desc;
-  $('legend').innerHTML = RARITY.map((r) => `<span><i style="--c:${r.c}"></i>${r.n}</span>`).join('');
+  const luck = Math.round(levelLuck() * 100);
+  $('legend').innerHTML = RARITY.map((r) => `<span><i style="--c:${r.c}"></i>${r.n}</span>`).join('') +
+    (luck ? `<span class="luck" title="Удача растёт с уровнем: «${RARITY[LUCK_FROM].n}» и выше выпадает чаще">🍀 удача +${luck}%</span>` : '');
+  const chances = chancesOf(c);
   $('contents').innerHTML = c.items.map((x, i) => `
     <div class="mini" style="--c:${RARITY[x[0]].c}">
       <span class="ic">${x[1]}</span>
       <span class="nm">${x[2]}</span>
       <span class="pp${x[4] < 0 ? ' neg' : ''}">≈ ${fmtShort(x[4])}</span>
-      <span class="ch">${chanceOf(c, i).toFixed(2)}%</span>
+      <span class="ch">${chances[i].toFixed(2)}%</span>
     </div>`).join('');
+  renderBuffNote();
+}
+
+function renderArena() {
+  const c = currentCase;
+  $('caseTitle').textContent = 'Кейс «' + c.name + '»';
+  $('caseSub').textContent = c.desc;
+  $$('.seg button').forEach((b) => (b.disabled = c.free && +b.dataset.n > FREE_MAX));
+  renderContents();
   renderIdleReels(openCount);
   updateOpenButton();
 }
@@ -4051,9 +4629,10 @@ setInterval(() => {
   freeCharges();
   if (state.freeStore !== before) {
     renderCases();
-    save();
+    if (!document.hidden) save();
   }
   if (currentCase.free && !busy && tab === 'cases') updateOpenButton();
+  tickBuffs();
 }, 500);
 
 // Прокрутка одной ленты до карточки winIndex.
@@ -4113,33 +4692,42 @@ async function openCases() {
   renderCases();
 
   const reels = $('reels');
-  reels.classList.toggle('compact', openCount > 1);
-  if (reels.children.length !== openCount) renderIdleReels(openCount);
-
   const fast = $('fast').checked;
-  const won = [];
-  const spins = $$('.reel-wrap', reels).map((wrap, k) => {
-    const it = makeItem(c, roll(c));
-    won.push(it);
-    const strip = Array.from({ length: 60 }, (_, i) => (i === 50 ? it : stub(c, roll(c))));
-    // Иногда легендарка встаёт сразу за выигрышем — «чуть-чуть не хватило».
-    if (rnd() < 0.3) {
-      const legend = c.items.findIndex((x) => x[0] === 6);
-      if (legend >= 0) strip[51] = stub(c, legend);
-    }
-    const stagger = openCount > 1 ? k * (openCount >= 20 ? 90 : 180) : 0;
-    const duration = reducedMotion ? 300 : (fast ? 2000 : 6000) + stagger;
-    return spinReel(wrap, strip, 50, duration, k === 0);
-  });
+  const weights = chancesOf(c); // шансы на момент открытия: удача и бафф уже учтены
+  const won = Array.from({ length: openCount }, () => makeItem(c, roll(c, weights)));
+  const buffChance = c.free ? 0 : openCount >= 100 ? BUFF_CHANCE_100 : openCount >= 20 ? BUFF_CHANCE_20 : 0;
+  const buffed = buffChance && rnd() < buffChance ? grantBuffs(c) : [];
+  if (buffed.length) {
+    renderCases();
+    renderContents();
+  }
 
-  // Выпавшее сохраняем до анимации: перезагрузка страницы ничего не съест.
+  // Выпавшее и бафф сохраняем до анимации: перезагрузка страницы ничего не съест.
   state.pending = won.slice();
   save();
 
-  await Promise.all(spins);
-  await sleep(450);
+  if (openCount === 100) {
+    await boxWave(won, fast);
+  } else {
+    if (reels.children.length !== openCount || reels.classList.contains('boxgrid')) renderIdleReels(openCount);
+    const spins = $$('.reel-wrap', reels).map((wrap, k) => {
+      const it = won[k];
+      const strip = Array.from({ length: 60 }, (_, i) => (i === 50 ? it : stub(c, roll(c, weights))));
+      // Иногда легендарка встаёт сразу за выигрышем — «чуть-чуть не хватило».
+      if (rnd() < 0.3) {
+        const legend = c.items.findIndex((x) => x[0] === 6);
+        if (legend >= 0) strip[51] = stub(c, legend);
+      }
+      const stagger = openCount > 1 ? k * (fast ? (openCount >= 20 ? 25 : 60) : (openCount >= 20 ? 90 : 180)) : 0;
+      const duration = reducedMotion ? 300 : (fast ? SPIN_FAST_MS : SPIN_MS) + stagger;
+      return spinReel(wrap, strip, 50, duration, k === 0);
+    });
+    await Promise.all(spins);
+  }
+
+  await sleep(fast ? 150 : 450);
   won.forEach(trackBest);
-  addXP(sum(won, (x) => 4 + Math.min(40, Math.abs(x.price) * 0.05)));
+  addXP(sum(won, itemXP));
 
   if (openCount === 1) {
     showDrop(won[0], '', () => {
@@ -4147,8 +4735,34 @@ async function openCases() {
       updateOpenButton();
     });
   } else {
-    showMulti(won, cost);
+    // Бафф объявляем в самом окне улова: тост перекрыл бы кнопки и поздравление с уровнем.
+    const mins = BUFF_MS / 60000;
+    const note = buffed.length
+      ? `<span class="mbuff">🔥 Бафф на ${mins} ${plural(mins, 'минуту', 'минуты', 'минут')}: ${buffed.map((x) => '«' + x.name + '»').join(', ')} — редкие ×${BUFF_MULT}</span>`
+      : '';
+    showMulti(won, { cost, sorted: openCount === 100, note });
+    if (buffed.length) renderMuseum();
   }
+}
+
+// ×100: коробки вскрываются диагональной волной, редкие вспыхивают своим цветом.
+async function boxWave(won, fast) {
+  const grid = $('reels');
+  grid.classList.remove('opening');
+  grid.innerHTML = boxGridHTML();
+  const step = reducedMotion ? 0 : fast ? 22 : 70;
+  $$('.bx', grid).forEach((cell, i) => {
+    const it = won[i];
+    cell.style.setProperty('--c', RARITY[it.r].c);
+    cell.style.setProperty('--d', ((Math.floor(i / 10) + (i % 10)) * step) + 'ms');
+    cell.title = `${it.name} · ${fmt(it.price)}`;
+    cell.querySelector('.ic').textContent = it.ic;
+    if (it.r >= 5) cell.classList.add('hot');
+  });
+  void grid.offsetWidth; // закрытые коробки успевают отрисоваться до старта волны
+  grid.classList.add('opening');
+  for (let d = 0; d < 19; d++) setTimeout(() => tone(500 + d * 40, 0.02, 'square', 0.03), d * step);
+  await sleep(18 * step + 420);
 }
 $('open').onclick = openCases;
 
@@ -4156,7 +4770,11 @@ $('open').onclick = openCases;
    Окна выпадения
    ========================================================================== */
 
-const anyModalOpen = () => !$('drop').hidden || !$('multi').hidden || !$('granny').hidden;
+const anyModalOpen = () => !$('drop').hidden || !$('multi').hidden || !$('granny').hidden || !$('elsewhere').hidden;
+
+// Пока открыто окно, страница под ним неактивна: ни мышью, ни Tab до неё не добраться.
+const syncInert = () => { $('wrap').inert = anyModalOpen(); };
+['drop', 'multi', 'granny', 'elsewhere'].forEach((id) => new MutationObserver(syncInert).observe($(id), { attributes: true, attributeFilter: ['hidden'] }));
 
 // Окно одного предмета. after() вызывается после «Забрать» или «Продать».
 function showDrop(it, context, after) {
@@ -4216,22 +4834,43 @@ function showDrop(it, context, after) {
   $('dKeep').focus({ preventScroll: true });
 }
 
-// Окно улова при открытии нескольких кейсов.
-function showMulti(won, cost = 0) {
+// Окно улова. cost — сколько потрачено; sorted — лучшие сверху (для ×100);
+// title/sub — свои заголовок и подпись; after() — что сделать после закрытия.
+function showMulti(won, { cost = 0, sorted = false, title = '', sub = '', note = '', after = null } = {}) {
   const best = won.reduce((a, x) => (x.r > a.r || (x.r === a.r && x.price > a.price) ? x : a), won[0]);
   const R = RARITY[best.r];
   const box = $('multibox');
   const total = sum(won, (x) => x.price);
+  const many = won.length > 20;
+  // Больше 20 предметов — одинаковые собираем в одну карточку «×N» с общей ценой, лучшие сверху.
+  let shown;
+  if (many) {
+    const groups = new Map();
+    for (const x of won) {
+      const k = `${x.caseId}|${x.idx}|${x.stat ? 1 : 0}`;
+      if (!groups.has(k)) groups.set(k, { x, n: 0, price: 0 });
+      const g = groups.get(k);
+      g.n++;
+      g.price += x.price;
+    }
+    shown = [...groups.values()].sort((a, b) => b.x.r - a.x.r || b.price - a.price);
+  } else {
+    shown = (sorted ? won.slice().sort((a, b) => b.r - a.r || b.price - a.price) : won).map((x) => ({ x, n: 1, price: x.price }));
+  }
   box.style.setProperty('--c', R.c);
 
-  $('mTitle').textContent = `Улов: ${won.length} предметов`;
-  $('mSub').innerHTML = `Лучший: <b>${best.name}</b> · всего на ${fmtShort(total)} при затратах ${fmtShort(cost)}`;
-  const step = won.length > 1 ? MULTI_CASCADE_MS / (won.length - 1) : 0;
-  $('mGrid').innerHTML = won.map((x, i) => `
-    <div style="--c:${RARITY[x.r].c};animation-delay:${Math.round(i * step)}ms">
-      <span class="ic">${x.ic}</span>${x.name}
-      <span class="p${x.price < 0 ? ' neg' : ''}">${fmtShort(x.price)}</span>
+  $('mTitle').textContent = title || `Улов: ${won.length} ${plural(won.length, 'предмет', 'предмета', 'предметов')}`;
+  const counts = RARITY.map((r, k) => [r, won.filter((x) => x.r === k).length]).filter(([, n]) => n).reverse();
+  $('mSub').innerHTML = (sub || `Лучший: <b>${best.name}</b> · всего на ${fmtShort(total)} при затратах ${fmtShort(cost)}`) +
+    (many ? '<span class="mcount">' + counts.map(([r, n]) => `<span style="--c:${r.c}"><i></i>${n}</span>`).join('') + '</span>' : '') + note;
+  const step = shown.length > 1 ? MULTI_CASCADE_MS / (shown.length - 1) : 0;
+  $('mGrid').innerHTML = shown.map(({ x, n, price }, i) => `
+    <div style="--c:${RARITY[x.r].c};animation-delay:${Math.round(i * step)}ms" title="${x.name}${n > 1 ? ' ×' + n : ''} · ${fmt(price)}">
+      ${n > 1 ? `<span class="cnt">×${n}</span>` : ''}
+      <span class="ic">${x.ic}</span><span class="nm">${x.name}</span>
+      <span class="p${price < 0 ? ' neg' : ''}">${fmtShort(price)}</span>
     </div>`).join('');
+  $('mGrid').scrollTop = 0;
   $('mSell').textContent = sellLabel(total, 'Продать всё', 'Выбросить всё');
   $('mSell').disabled = !canPay(total);
 
@@ -4260,9 +4899,11 @@ function showMulti(won, cost = 0) {
       toast('Улов продан за ' + fmt(total));
     }
     busy = false;
+    save();
     renderStats();
     renderInventory();
     updateOpenButton();
+    if (after) after();
   };
   $('mKeep').onclick = () => finish(true);
   $('mSell').onclick = () => finish(false);
@@ -4275,6 +4916,7 @@ function showMulti(won, cost = 0) {
 let contractItems = [];
 let upgradeStake = null;
 let upgradeMult = 2;
+let upgradeAdd = 0; // доплата деньгами к ставке апгрейда
 
 function pickerList() {
   const list = state.inv.slice();
@@ -4287,6 +4929,7 @@ function pickerList() {
 $('sort').onchange = () => renderPicker();
 
 function renderPicker() {
+  renderContractFill();
   const grid = $('inv');
   $('invSum').textContent = `${state.inv.length} ${plural(state.inv.length, 'предмет', 'предмета', 'предметов')} · ${fmtShort(sum(state.inv, (x) => x.price))}`;
   $('invHint').textContent = tab === 'contract'
@@ -4294,6 +4937,7 @@ function renderPicker() {
       ? `Выбрано ${contractItems.length} из 10 · только «${RARITY[contractItems[0].r].n}»`
       : 'Нажимай на предметы одной редкости (кроме ★), нужно 10 штук')
     : 'Нажми на предмет, чтобы поставить его на апгрейд';
+  if ($('picker').hidden) return; // сетку рисуем, только когда её видно (goTab перерисует при открытии)
 
   if (!state.inv.length) {
     grid.innerHTML = '<span class="empty">Пусто. Сначала открой пару кейсов.</span>';
@@ -4443,7 +5087,12 @@ function renderInvView() {
   }));
   $('ivMulti').setAttribute('aria-pressed', invUi.multi);
 
-  // Сетка.
+  // Сетка и карточка — только когда раздел «Вещи» на экране: на большом инвентаре это самое дорогое.
+  if (!subVisible('items')) {
+    renderBulkBar();
+    renderRecent();
+    return;
+  }
   const list = filteredInventory();
   const grid = $('inv2');
   if (!all.length) grid.innerHTML = '<span class="empty">Пусто. Даже носка нет. Открой кейс, чтобы это исправить.</span>';
@@ -4685,7 +5334,7 @@ function roomPerks(c) {
   if (c.craft) return ['поделки вдвое чаще выходят со СчётЧих™', 'поделки выходят вдвое менее изношенными'];
   if (c.free) return [`заряд копится за ${FREE_COOLDOWNS[1] / 1000} с вместо ${FREE_COOLDOWNS[0] / 1000}`,
     `заряд за ${FREE_COOLDOWNS[2] / 1000} с и СчётЧих™ вдвое чаще`];
-  return [`кейс дешевле на ${MUSEUM_DISCOUNT[1] * 100}%`, `кейс дешевле на ${MUSEUM_DISCOUNT[2] * 100}% и СчётЧих™ из него вдвое чаще`];
+  return [`кейс дешевле на ${Math.round(MUSEUM_DISCOUNT[1] * 100)}%`, `кейс дешевле на ${Math.round(MUSEUM_DISCOUNT[2] * 100)}% и СчётЧих™ из него вдвое чаще`];
 }
 
 // Нужен ли предмет музею: места нет или там экспонат с бо́льшим износом.
@@ -4710,7 +5359,7 @@ function checkRoom(c, silent) {
     addXP(30);
     if (!silent && roomHave(c) < c.items.length) {
       fanfare(4);
-      toast(`${title} собран наполовину! Теперь ${halfPerk}.`, 3800);
+      toast(`${title} собран наполовину! Теперь ${halfPerk}.`, 4200, { important: true });
     }
   }
 
@@ -4722,8 +5371,8 @@ function checkRoom(c, silent) {
   fanfare(6);
   burst(innerWidth / 2, innerHeight * 0.35, ['#ffd23f', '#ffffff', '#ffb02e', c.color], 260);
   toast(museumAllDone()
-    ? `Музей собран целиком! Ты Хранитель Барахла. Все кейсы дешевле ещё на ${MUSEUM_ALL_DISCOUNT * 100}%.`
-    : `${title} собран целиком! Теперь ${fullPerk}.`, 4200);
+    ? `Музей собран целиком! Ты Хранитель Барахла. Все кейсы дешевле ещё на ${Math.round(MUSEUM_ALL_DISCOUNT * 100)}%.`
+    : `${title} собран целиком! Теперь ${fullPerk}.`, 4800, { important: true });
 }
 
 function flashExhibit(key) {
@@ -4850,6 +5499,8 @@ function renderMuseum() {
     ? `залов целиком: ${fulls}, наполовину: ${halves}`
     : 'за половину и полный зал';
 
+  if (!subVisible('museum')) return;
+
   // Список залов.
   if (!museumHall || !roomById(museumHall)) museumHall = CASES[0].id;
   $('rooms').innerHTML = ROOMS.map((c) => {
@@ -4895,7 +5546,7 @@ function renderHall(c) {
 
     if (ex) {
       const better = state.inv
-        .filter((y) => y.caseId === c.id && idxOf(y) === i && y.float < ex.float)
+        .filter((y) => !y.lock && y.caseId === c.id && idxOf(y) === i && y.float < ex.float)
         .sort((a, b) => a.float - b.float)[0];
       const ribbon = ex.stat ? '<span class="rib" style="background:var(--accent2);color:#2a1600">СчётЧих™</span>'
         : ex.bought ? '<span class="rib" style="background:var(--muted)">куплен</span>' : '';
@@ -4910,7 +5561,7 @@ function renderHall(c) {
     }
 
     const own = state.inv
-      .filter((y) => y.caseId === c.id && idxOf(y) === i)
+      .filter((y) => !y.lock && y.caseId === c.id && idxOf(y) === i)
       .sort((a, b) => a.float - b.float);
     const meta = c.craft
       ? (state.recipes[RECIPES[i].id] ? 'рецепт известен' : 'рецепт не открыт')
@@ -4976,11 +5627,120 @@ function isPartialRecipe(list) {
 
 const ownedCount = (key) => state.inv.filter((x) => itemKey(x) === key).length;
 
+/* Массовая сборка: все известные рецепты выбранной редкости подряд, пока хватает
+   незакреплённых ингредиентов. Берутся самые дешёвые экземпляры. */
+const BATCH_MAX = 200;
+let craftRarity = null;
+
+// Незакреплённые предметы по ключу «кейс|индекс», от дешёвых к дорогим.
+function craftIndex() {
+  const idx = new Map();
+  for (const it of state.inv) {
+    const k = !it.lock && itemKey(it);
+    if (!k) continue;
+    if (!idx.has(k)) idx.set(k, []);
+    idx.get(k).push(it);
+  }
+  for (const list of idx.values()) list.sort((a, b) => a.price - b.price);
+  return idx;
+}
+
+// План сборки: [[рецепт, предметы], …]. Ничего не меняет, только считает.
+function planBatch(rarity, idx = craftIndex()) {
+  const taken = new Map();
+  const left = (k) => (idx.get(k)?.length || 0) - (taken.get(k) || 0);
+  const recipes = RECIPES.filter((r) => state.recipes[r.id] && r.out[0] === rarity);
+  // Сколько каждого ключа нужно рецепту целиком (на случай, если ингредиент указан дважды).
+  const need = new Map(recipes.map((r) => {
+    const m = new Map();
+    for (const x of r.keys) m.set(x.k, (m.get(x.k) || 0) + x.q);
+    return [r, m];
+  }));
+  const plan = [];
+  let progress = true;
+  while (progress && plan.length < BATCH_MAX) {
+    progress = false;
+    for (const r of recipes) {
+      if (plan.length >= BATCH_MAX || ![...need.get(r)].every(([k, q]) => left(k) >= q)) continue;
+      const use = [];
+      for (const x of r.keys) {
+        const from = taken.get(x.k) || 0;
+        use.push(...idx.get(x.k).slice(from, from + x.q));
+        taken.set(x.k, from + x.q);
+      }
+      plan.push([r, use]);
+      progress = true;
+    }
+  }
+  return plan;
+}
+
+function renderBatch() {
+  const knownRarities = [...new Set(RECIPES.filter((r) => state.recipes[r.id]).map((r) => r.out[0]))].sort((a, b) => a - b);
+  $('batch').hidden = !knownRarities.length;
+  if (!knownRarities.length) return;
+  const idx = craftIndex();
+  const counts = Object.fromEntries(knownRarities.map((r) => [r, planBatch(r, idx).length]));
+  if (!knownRarities.includes(craftRarity)) craftRarity = knownRarities.find((r) => counts[r]) ?? knownRarities[0];
+  const n = counts[craftRarity];
+  $('batch').innerHTML = `
+    <div class="chips">${knownRarities.map((r) => `
+      <button class="chip" type="button" data-br="${r}" aria-pressed="${r === craftRarity}" style="--c:${RARITY[r].c}">
+        <i></i>${RARITY[r].n}<b>${counts[r]}</b></button>`).join('')}</div>
+    <button class="btn${n ? ' primary' : ''}" type="button" id="batchGo" ${n && !busy ? '' : 'disabled'}>
+      ${n ? `Собрать всё: ${n} ${plural(n, 'поделка', 'поделки', 'поделок')}` : 'Нечего собирать'}</button>`;
+  $$('[data-br]', $('batch')).forEach((b) => (b.onclick = () => {
+    craftRarity = +b.dataset.br;
+    renderBatch();
+    tone(650, 0.03);
+  }));
+  $('batchGo').onclick = batchCraft;
+}
+
+// Поделка из набора предметов: износ — средний по набору, у полного зала мастерской вдвое меньше.
+function craftResult(recipe, list) {
+  const avgFloat = sum(list, (x) => x.float) / list.length;
+  const wearK = state.museumDone[CRAFT_ROOM.id] ? 0.5 : 1;
+  return makeItem(CRAFT_ROOM, RECIPES.indexOf(recipe), Math.min(0.9999, Math.max(1e-15, avgFloat * (0.8 + rnd() * 0.3) * wearK)));
+}
+
+async function batchCraft() {
+  if (busy || craftRarity == null) return;
+  const plan = planBatch(craftRarity);
+  if (!plan.length) { toast('Не из чего собирать: не хватает незакреплённых ингредиентов.'); return; }
+
+  busy = true;
+  const results = plan.map(([r, use]) => craftResult(r, use));
+  const used = sum(plan, ([, use]) => use.length);
+  const spentValue = sum(plan, ([, use]) => sum(use, (x) => x.price));
+  plan.forEach(([, use]) => use.forEach(removeItem));
+  bench = bench.filter((x) => state.inv.includes(x));
+  state.crafts += results.length;
+  results.forEach(trackBest);
+  state.pending = results.slice();
+  save();
+  renderCraft();
+
+  replay($('bench'), 'shake');
+  for (let i = 0; i < 4; i++) {
+    tone(300 + i * 120, 0.06, 'square', 0.05);
+    await sleep(70);
+  }
+  addXP(10 * results.length);
+  showMulti(results, {
+    sorted: results.length > 20,
+    title: `Мастерская: ${results.length} ${plural(results.length, 'поделка', 'поделки', 'поделок')}`,
+    sub: `Ушло ${used} ${plural(used, 'предмет', 'предмета', 'предметов')} на ${fmtShort(spentValue)} · получилось на ${fmtShort(sum(results, (x) => x.price))}`,
+    after: renderAll,
+  });
+}
+
 function renderCraft() {
   bench = bench.filter((x) => state.inv.includes(x));
   const known = RECIPES.filter((r) => state.recipes[r.id]).length;
   $('subCraftN').textContent = known + '/' + RECIPES.length;
   $('rcpN').textContent = `открыто ${known} из ${RECIPES.length}`;
+  if (!subVisible('craft')) return;
 
   // Верстак.
   let slots = '';
@@ -5049,13 +5809,14 @@ function renderCraft() {
       <div class="rcp unk${ready ? ' hot' : ''}" style="--c:${RARITY[rar].c}">
         <span class="out">${ic}</span>
         <div>
-          <div class="nm">??? <span style="color:var(--c);font-weight:600;font-size:11px">${RARITY[rar].n}</span></div>
+          <div class="nm">??? <span style="color:color-mix(in srgb, var(--c) 70%, #fff);font-weight:600;font-size:11px">${RARITY[rar].n}</span></div>
           <div class="hint">${r.hint}</div>
           <div class="meta">ингредиентов: ${sum(r.keys, (x) => x.q)} · у тебя есть ${typesOwned} из ${r.keys.length} ${plural(r.keys.length, 'вида', 'видов', 'видов')}${ready ? ' · 🔥 всё есть!' : ''}</div>
         </div>
       </div>`;
   }).join('');
   $$('[data-auto]', $('recipes')).forEach((b) => (b.onclick = () => autoCraft(RECIPES[+b.dataset.auto])));
+  renderBatch();
 }
 $('bClear').onclick = () => { bench = []; renderCraft(); };
 $('bGo').onclick = () => doCraft(bench.slice());
@@ -5096,9 +5857,7 @@ async function doCraft(list) {
 
   busy = true;
   const firstTime = !state.recipes[recipe.id];
-  const avgFloat = sum(list, (x) => x.float) / list.length;
-  const wearK = state.museumDone[CRAFT_ROOM.id] ? 0.5 : 1; // полный зал поделок: износ вдвое меньше
-  const result = makeItem(CRAFT_ROOM, RECIPES.indexOf(recipe), Math.min(0.9999, Math.max(1e-15, avgFloat * (0.8 + rnd() * 0.3) * wearK)));
+  const result = craftResult(recipe, list);
 
   list.forEach(removeItem);
   bench = [];
@@ -5118,7 +5877,7 @@ async function doCraft(list) {
   }
   await sleep(450);
   addXP(firstTime ? 40 : 10);
-  if (firstTime) setTimeout(() => toast(`Новый рецепт: «${recipe.out[2]}»! Он записан в книгу.`, 3400), 900);
+  if (firstTime) setTimeout(() => toast(`Новый рецепт: «${recipe.out[2]}»! Он записан в книгу.`, 4000, { important: true }), 900);
   renderAll();
   showDrop(result, firstTime ? 'Новый рецепт!' : 'Мастерская', () => {
     busy = false;
@@ -5270,22 +6029,59 @@ $('cClear').onclick = () => {
   renderInventory();
 };
 
-// Автозаполнение: самая низкая редкость, где есть 10 незакреплённых предметов, самые дешёвые из них.
+/* Автозаполнение. Берём незакреплённые предметы нужной редкости от дешёвых к дорогим.
+   Лучший экземпляр каждого предмета, которого ждёт музей, откладываем в конец очереди:
+   он пойдёт в контракт, только если без него десятки не набрать. */
+function contractCandidates(rarity) {
+  const list = state.inv.filter((x) => x.r === rarity && x.r < 6 && !x.lock);
+  const keep = new Set();
+  const bestFor = new Map();
+  for (const x of list) {
+    if (!museumWants(x)) continue;
+    const k = itemKey(x);
+    const cur = bestFor.get(k);
+    if (!cur || x.float < cur.float) bestFor.set(k, x);
+  }
+  bestFor.forEach((x) => keep.add(x));
+  const byPrice = (a, b) => a.price - b.price;
+  const list2 = [...list.filter((x) => !keep.has(x)).sort(byPrice), ...list.filter((x) => keep.has(x)).sort(byPrice)];
+  return { list: list2, keep };
+}
+
+function fillContract(rarity) {
+  if (busy) return;
+  const { list, keep } = contractCandidates(rarity);
+  if (list.length < 10) {
+    toast(`Нужно 10 незакреплённых предметов «${RARITY[rarity].n}», а есть ${list.length}.`);
+    return;
+  }
+  contractItems = list.slice(0, 10);
+  renderContract();
+  renderInventory();
+  tone(900, 0.05);
+  const taken = contractItems.filter((x) => keep.has(x)).length;
+  if (taken) toast(`Без нужного музею не обошлось: ${taken} ${plural(taken, 'предмет', 'предмета', 'предметов')} с 🏛 в контракте.`, 3200);
+}
+
+// Кнопки по редкостям: сколько незакреплённых предметов каждой редкости есть.
+function renderContractFill() {
+  const counts = [0, 0, 0, 0, 0, 0];
+  state.inv.forEach((x) => { if (x.r < 6 && !x.lock) counts[x.r]++; });
+  $('cFill').innerHTML = '<span class="lbl">Самыми дешёвыми:</span>' + counts.map((n, r) => `
+    <button class="chip" type="button" data-cf="${r}" style="--c:${RARITY[r].c}" ${n >= 10 && !busy ? '' : 'disabled'}
+      title="10 самых дешёвых «${RARITY[r].n}»"><i></i>${RARITY[r].n}<b>${n}</b></button>`).join('');
+  $$('[data-cf]', $('cFill')).forEach((b) => (b.onclick = () => fillContract(+b.dataset.cf)));
+}
+
+// «Автозаполнить дешёвым»: самая низкая редкость, где набирается десятка.
 $('cAuto').onclick = () => {
   if (busy) return;
-  const byRarity = {};
-  state.inv.forEach((x) => {
-    if (x.r < 6 && !x.lock) (byRarity[x.r] ||= []).push(x);
-  });
-  const rarity = Object.keys(byRarity).map(Number).filter((k) => byRarity[k].length >= 10).sort((a, b) => a - b)[0];
+  const rarity = [0, 1, 2, 3, 4, 5].find((r) => contractCandidates(r).list.length >= 10);
   if (rarity === undefined) {
     toast('Нужно хотя бы 10 незакреплённых предметов одной редкости. Открой ещё кейсов.');
     return;
   }
-  contractItems = byRarity[rarity].sort((a, b) => a.price - b.price).slice(0, 10);
-  renderContract();
-  renderInventory();
-  tone(900, 0.05);
+  fillContract(rarity);
 };
 
 $('cGo').onclick = async () => {
@@ -5296,7 +6092,9 @@ $('cGo').onclick = async () => {
   // Результат определяем и сохраняем до анимации.
   const outcome = pick(contractOutcomes());
   const avgFloat = sum(contractItems, (x) => x.float) / 10;
-  const result = makeItem(outcome.c, outcome.i, Math.min(0.9999, Math.max(1e-15, avgFloat + (rnd() - 0.5) * 0.02)));
+  // Результат: износ заметно лучше среднего вложенного, СчётЧих™ — как повезёт.
+  const fl = Math.min(0.9999, Math.max(1e-15, avgFloat * CONTRACT_WEAR * (0.95 + rnd() * 0.1)));
+  const result = makeItem(outcome.c, outcome.i, fl);
   contractItems.slice().forEach(removeItem);
   state.pending = [result];
   state.contracts++;
@@ -5322,6 +6120,7 @@ $('cGo').onclick = async () => {
   showDrop(result, 'Результат контракта', () => {
     busy = false;
     renderContract();
+    renderPicker();
   });
 };
 
@@ -5339,9 +6138,35 @@ function upgradeTarget() {
   return candidates.reduce((a, e) => (dist(e) < dist(a) ? e : a), candidates[0]);
 }
 
-// Шанс чуть ниже честного (0,9 от отношения цен), от 0,5% до 80%.
-const upgradeChance = (target) =>
-  target ? Math.min(0.8, Math.max(0.005, (0.9 * upgradeStake.price) / target.base)) : 0;
+// Шанс чуть ниже честного (0,9 от отношения цен), от 0,5% до UPGRADE_MAX_CHANCE. Доплата добавляется к цене ставки.
+const UPGRADE_MAX_CHANCE = 0.75;
+const upgradeChance = (target, add = 0) =>
+  target ? Math.min(UPGRADE_MAX_CHANCE, Math.max(0.005, (0.9 * (upgradeStake.price + add)) / target.base)) : 0;
+
+$('uAddMax').textContent = `До ${Math.round(UPGRADE_MAX_CHANCE * 100)}%`;
+
+// Доплата, после которой шанс упирается в потолок: больше платить бессмысленно.
+const upgradeAddCap = (target) =>
+  target ? Math.max(0, Math.ceil((UPGRADE_MAX_CHANCE * target.base) / 0.9 - upgradeStake.price)) : 0;
+
+// Доплата, которая реально пойдёт в дело: не больше баланса и не выше потолка шанса.
+const effectiveAdd = (target) => r2(Math.max(0, Math.min(upgradeAdd, state.bal, upgradeAddCap(target))));
+
+$('uAddIn').oninput = (e) => {
+  upgradeAdd = Math.max(0, parseFloat(e.target.value) || 0);
+  renderUpgrade();
+};
+$$('[data-ua]').forEach((b) => (b.onclick = () => {
+  if (busy) return;
+  const target = upgradeTarget();
+  const v = b.dataset.ua;
+  if (v === 'max') upgradeAdd = upgradeAddCap(target);
+  else upgradeAdd = upgradeStake ? r2(Math.max(0, upgradeStake.price) * +v) : 0;
+  upgradeAdd = Math.min(upgradeAdd, Math.max(0, state.bal));
+  $('uAddIn').value = upgradeAdd ? upgradeAdd : '';
+  renderUpgrade();
+  tone(700, 0.04);
+}));
 
 function renderUpgrade() {
   if (upgradeStake && !state.inv.includes(upgradeStake)) upgradeStake = null;
@@ -5358,7 +6183,9 @@ function renderUpgrade() {
   }
 
   const target = upgradeTarget();
-  const chance = upgradeChance(target);
+  const add = effectiveAdd(target);
+  const base = upgradeChance(target);
+  const chance = upgradeChance(target, add);
   if (target) {
     targetBox.className = 'uslot f';
     targetBox.style.setProperty('--c', RARITY[target.r].c);
@@ -5381,6 +6208,20 @@ function renderUpgrade() {
     tone(700, 0.04);
   }));
   $('uGo').disabled = !target || busy;
+
+  // Доплата: поле не трогаем, пока в нём печатают.
+  if (document.activeElement !== $('uAddIn')) $('uAddIn').value = upgradeAdd ? upgradeAdd : '';
+  const pct = (x) => (x * 100).toFixed(x < 0.1 ? 1 : 0) + '%';
+  let hint = '';
+  if (target && add > 0) {
+    hint = `Шанс ${pct(base)} → <b>${pct(chance)}</b> за ${fmt(add)}`;
+    if (upgradeAdd > add + 0.001) hint += add < upgradeAddCap(target) ? ' · больше нет на балансе' : ` · выше ${pct(UPGRADE_MAX_CHANCE)} не поднять`;
+  } else if (target && upgradeAdd > 0 && state.bal <= 0) {
+    hint = 'На балансе нет денег для доплаты';
+  } else if (target) {
+    hint = `Максимум шанса ${pct(UPGRADE_MAX_CHANCE)} — при доплате ${fmt(upgradeAddCap(target))}`;
+  }
+  $('uAddHint').innerHTML = hint;
 }
 
 let needleAngle = 0;
@@ -5391,12 +6232,15 @@ $('uGo').onclick = async () => {
   busy = true;
   $('uGo').disabled = true;
 
-  // Исход решается сразу, ставка уходит до анимации — перезагрузкой не отменить.
-  const chance = upgradeChance(target);
+  // Исход решается сразу, ставка и доплата уходят до анимации — перезагрузкой не отменить.
+  const add = effectiveAdd(target);
+  const chance = upgradeChance(target, add);
   const win = rnd() < chance;
   const stake = upgradeStake;
   const mult = upgradeMult;
   removeItem(stake);
+  if (add > 0) setBal(-add);
+  upgradeAdd = 0;
   state.upgrades++;
   const prize = win ? makeItem(target.c, target.i) : null;
   state.pending = prize ? [prize] : [];
@@ -5426,7 +6270,7 @@ $('uGo').onclick = async () => {
   } else {
     sad();
     shake();
-    toast(`Апгрейд провален. «${baseName(stake)}» сгорает синим пламенем.`, 3000);
+    toast(`Апгрейд провален. «${baseName(stake)}» сгорает синим пламенем${add > 0 ? `, доплата ${fmt(add)} вместе с ним` : ''}.`, 3200);
     busy = false;
     renderUpgrade();
     renderInventory();
@@ -5550,7 +6394,7 @@ function updateCrashButton() {
 }
 $('bet').oninput = updateCrashButton;
 
-$$('.quick button').forEach((b) => (b.onclick = () => {
+$$('[data-q]').forEach((b) => (b.onclick = () => {
   let v = parseFloat($('bet').value) || 1;
   if (b.dataset.q === 'half') v = Math.max(1, Math.floor(v / 2));
   if (b.dataset.q === 'dbl') v = v * 2;
@@ -5716,9 +6560,21 @@ function grannyVisit() {
 }
 $('gOk').onclick = () => ($('granny').hidden = true);
 
+/* Две вкладки. Браузер присылает событие storage, когда сохранение меняет ДРУГАЯ вкладка.
+   Тогда эта вкладка перестаёт сохранять и просит обновиться: прогресс не затрётся молча.
+   Фоновые таймеры (заряды, бафф, решение бабушки) в скрытой вкладке не пишут, чтобы она
+   не перехватывала игру у вкладки, в которой играют. */
+addEventListener('storage', (e) => {
+  if (e.storageArea !== localStorage || (e.key !== SAVE_KEY && e.key !== null)) return;
+  saveLocked = true;
+  $('elsewhere').hidden = false;
+  $('eReload').focus({ preventScroll: true });
+});
+$('eReload').onclick = () => location.reload();
+
 // Раз в 20 секунд при долге от 150 ₽ бабушка с шансом 28% решает прийти.
 setInterval(() => {
-  if (state.debt < GRANNY_DEBT || state.grannyDue) return;
+  if (document.hidden || saveLocked || state.debt < GRANNY_DEBT || state.grannyDue) return;
   if (rnd() < GRANNY_CHANCE) {
     state.grannyDue = true;
     save();
@@ -5726,9 +6582,10 @@ setInterval(() => {
   }
 }, GRANNY_CHECK_MS);
 
-// Решила прийти — ждёт конца открытия, стоит у двери 5 секунд и заходит.
+// Решила прийти — ждёт конца открытия, стоит у двери GRANNY_DOOR_MS и заходит.
 let grannyEntersAt = null;
 setInterval(() => {
+  if (document.hidden || saveLocked) return; // бабушка приходит, только когда на игру смотрят
   if (!state.grannyDue) { grannyEntersAt = null; return; }
   if (state.debt < GRANNY_DEBT) {
     state.grannyDue = false;
@@ -5740,7 +6597,7 @@ setInterval(() => {
   if (busy || anyModalOpen() || crash.state === 'run') { grannyEntersAt = null; return; }
   if (!grannyEntersAt) {
     grannyEntersAt = Date.now() + GRANNY_DOOR_MS;
-    toast('Бабушка стоит у двери… 👵', 2600);
+    toast('Бабушка стоит у двери… 👵', GRANNY_DOOR_MS, { important: true });
     renderRepay();
     return;
   }
@@ -5785,7 +6642,7 @@ function feedPush() {
    ========================================================================== */
 
 document.addEventListener('keydown', (e) => {
-  if (e.key !== 'Escape') return;
+  if (e.key !== 'Escape' || !$('elsewhere').hidden) return;
   if (invUi.open && !anyModalOpen()) {
     invUi.open = null;
     renderInvView();
@@ -5801,6 +6658,7 @@ document.addEventListener('keydown', (e) => {
    ========================================================================== */
 
 function renderAll() {
+  renderContents();
   renderMuseum();
   renderCraft();
   renderLevel();
@@ -5831,7 +6689,7 @@ renderArena();
 
 if (restoreNotes.length) {
   save();
-  setTimeout(() => toast(restoreNotes.join('. ') + '.', 4500), 600);
+  setTimeout(() => toast(restoreNotes.join('. ') + '.', 5000, { important: true }), 600);
 }
 })();
 </script>
