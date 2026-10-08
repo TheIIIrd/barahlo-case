@@ -130,7 +130,7 @@ function cashout() {
   crash.cashed = true;
   state.pendingBet = 0;
   const win = r2(crash.bet * crash.mult);
-  state.crashNet += win - crash.bet;
+  state.crashNet = r2(state.crashNet + win - crash.bet);
   setBal(win);
   renderStats();
   toast(`Забрал на ×${crash.mult.toFixed(2)}: +${fmt(win)}`);
@@ -206,7 +206,7 @@ function crashBoom() {
     crash.cashed ? 'var(--good)' : 'var(--bad)');
   if (!crash.cashed) {
     state.pendingBet = 0;
-    state.crashNet -= crash.bet;
+    state.crashNet = r2(state.crashNet - crash.bet);
     save();
     sad();
     shake();

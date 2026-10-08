@@ -4,6 +4,15 @@
 'use strict';
 
 let bench = []; // предметы на верстаке
+const BENCH_MAX = 10;
+
+// Какой экземпляр класть на верстак из стопки xs: не закреплённый; сначала не занятый в контракте или
+// апгрейде, из них — самый дешёвый.
+function benchNext(xs) {
+  const busyElsewhere = elsewhereItems();
+  return xs.filter((x) => !x.lock && !bench.includes(x))
+    .sort((a, b) => busyElsewhere.has(a) - busyElsewhere.has(b) || a.price - b.price)[0] || null;
+}
 
 // Рецепт, который точно совпадает с набором предметов.
 function matchRecipe(list) {
@@ -34,16 +43,27 @@ function isPartialRecipe(list) {
 
 const ownedCount = (key) => state.inv.filter((x) => itemKey(x) === key).length;
 
+// Поделка нужна рецепту Кузни: «· ⚒️ Кузне: К♥ Король Борщ» (карту называем, только если её рецепт уже виден).
+function forgeUse(name) {
+  const card = CRAFT_FOR_CARD.get(name);
+  if (!card) return '';
+  const seen = cardKnown(card.id) || recipeOpen(card);
+  return ` · <span class="forge-use" title="Эта поделка нужна для карты в Кузне">⚒️ нужна Кузне${seen ? ': ' + cardTitle(card) : ''}</span>`;
+}
+
 /* Массовая сборка: все известные рецепты выбранной редкости подряд, пока хватает
    незакреплённых ингредиентов. Берутся самые дешёвые экземпляры. */
 const BATCH_MAX = 200;
 let craftRarity = null;
 
-// Незакреплённые предметы по ключу «кейс|индекс», от дешёвых к дорогим.
+// Незакреплённые предметы по ключу «кейс|индекс», от дешёвых к дорогим. То, что лежит в контракте или
+// на ставке апгрейда, не берём: одно действие не должно съедать показанное в другом.
+const elsewhereItems = () => new Set([...contractItems, upgradeStake].filter(Boolean));
 function craftIndex() {
   const idx = new Map();
+  const away = elsewhereItems();
   for (const it of state.inv) {
-    const k = !it.lock && itemKey(it);
+    const k = !it.lock && !away.has(it) && itemKey(it);
     if (!k) continue;
     if (!idx.has(k)) idx.set(k, []);
     idx.get(k).push(it);
@@ -98,7 +118,9 @@ function renderBatch() {
       ${n ? `Собрать всё: ${n} ${plural(n, 'поделка', 'поделки', 'поделок')}` : 'Нечего собирать'}</button>`;
   $$('[data-br]', $('batch')).forEach((b) => (b.onclick = () => {
     craftRarity = +b.dataset.br;
+    const fk = focusKey($('batch'));
     renderBatch();
+    restoreFocus(fk);
     tone(650, 0.03);
   }));
   $('batchGo').onclick = batchCraft;
@@ -143,56 +165,96 @@ async function batchCraft() {
   });
 }
 
+// Перерисовка Мастерской заменяет кнопки — фокус возвращаем на ту же стопку или плитку.
 function renderCraft() {
-  bench = bench.filter((x) => state.inv.includes(x));
+  const fk = focusKey($('sub-craft'));
+  renderCraftNow();
+  restoreFocus(fk);
+}
+function renderCraftNow() {
+  // Закрепили уже на верстаке — убираем с верстака (как в контракте): закреплённое не сжигаем.
+  bench = bench.filter((x) => state.inv.includes(x) && !x.lock);
   const known = RECIPES.filter((r) => state.recipes[r.id]).length;
   $('subCraftN').textContent = known + '/' + RECIPES.length;
   $('rcpN').textContent = `открыто ${known} из ${RECIPES.length}`;
   if (!subVisible('craft')) return;
 
-  // Верстак.
-  let slots = '';
-  for (let i = 0; i < 10; i++) {
-    const x = bench[i];
-    slots += x
-      ? `<div class="slot f" data-i="${i}" style="--c:${RARITY[x.r].c}" title="${x.name} · убрать">${x.ic}</div>`
-      : '<div class="slot"></div>';
+  // Верстак: одинаковые предметы — одной стопкой с числом. Нажатие снимает один предмет из стопки.
+  const stacks = new Map();
+  for (const x of bench) {
+    const k = itemKey(x);
+    if (!stacks.has(k)) stacks.set(k, []);
+    stacks.get(k).push(x);
   }
-  $('bSlots').innerHTML = slots;
-  $$('.slot.f', $('bSlots')).forEach((el) => (el.onclick = () => {
-    bench.splice(+el.dataset.i, 1);
+  $('bSlots').innerHTML = [...stacks].map(([k, xs]) => {
+    const x = xs[0];
+    const total = sum(xs, (y) => y.price);
+    const n = xs.length;
+    return `<button type="button" class="bstack${n > 1 ? ' many' : ''}" data-k="${k}" style="--c:${RARITY[x.r].c}"
+        title="${baseName(x)}${n > 1 ? ' ×' + n : ''} · ${fmt(total)} — нажми, чтобы убрать${n > 1 ? ' один' : ''}"
+        aria-label="${baseName(x)}: ${n} шт., ${fmt(total)}. Убрать один">
+      ${n > 1 ? `<span class="q" aria-hidden="true">×${n}</span>` : ''}<span class="ic">${x.ic}</span><span class="nm">${baseName(x)}</span>
+      <span class="p${total < 0 ? ' neg' : ''}">${slotMoney(total)}</span></button>`;
+  }).join('') + (bench.length < BENCH_MAX ? '<div class="bstack add" aria-hidden="true">+</div>' : '');
+  $$('.bstack[data-k]', $('bSlots')).forEach((el) => (el.onclick = () => {
+    if (busy) return;
+    const xs = stacks.get(el.dataset.k);
+    bench.splice(bench.lastIndexOf(xs[xs.length - 1]), 1);
     tone(500, 0.03);
     renderCraft();
   }));
+  $('bCap').innerHTML = `<span class="pips" aria-hidden="true">${Array.from({ length: BENCH_MAX }, (_, i) => `<i${i < bench.length ? ' class="on"' : ''}></i>`).join('')}</span>
+    <span><b>${bench.length}</b> из ${BENCH_MAX}</span>`;
 
   const match = matchRecipe(bench);
-  if (!bench.length) $('bInfo').innerHTML = 'Положи предметы снизу. Можно экспериментировать: если рецепта нет, ничего не пропадёт.';
+  if (!bench.length) $('bInfo').innerHTML = 'Положи предметы снизу. Если рецепта нет — ничего не пропадёт.';
   else if (match) $('bInfo').innerHTML = state.recipes[match.id] ? `Получится: <b>${match.out[2]}</b>` : '<b>Что-то получается…</b> Жми «Собрать».';
   else if (isPartialRecipe(bench)) $('bInfo').innerHTML = 'Кажется, чего-то не хватает…';
   else $('bInfo').innerHTML = 'Такой рецепт мне неизвестен. Но попробовать можно.';
   $('bGo').disabled = !bench.length || busy;
 
-  // Что можно положить.
-  const available = state.inv.filter((x) => !bench.includes(x) && itemKey(x)).reverse();
-  $('bPickN').textContent = available.length ? `${available.length} шт.` : '';
-  $('bPick').innerHTML = available.length
-    ? available.map((x, k) => `
-      <button class="inv-item${bench.length >= 10 || x.lock ? ' dim' : ''}" type="button" data-u="${x.uid}"
-        style="--c:${RARITY[x.r].c};${k > 8 ? 'animation:none' : ''}" title="${x.name} · ${x.wear}">
-        ${x.lock ? '<span class="st" style="background:var(--muted)">🔒</span>' : ''}
+  // Что можно положить: тоже стопками — плитка на вид, новые сверху. Нажатие кладёт следующий по очереди
+  // экземпляр (benchNext). Закреплённые не берём: если свободных нет, плитка тусклая.
+  const groups = new Map();
+  for (const x of state.inv.slice().reverse()) {
+    const k = !bench.includes(x) && itemKey(x);
+    if (!k) continue;
+    if (!groups.has(k)) groups.set(k, []);
+    groups.get(k).push(x);
+  }
+  const avail = sum([...groups.values()], (xs) => xs.length);
+  $('bPickN').textContent = avail ? `${avail} шт. · ${groups.size} ${plural(groups.size, 'вид', 'вида', 'видов')}` : '';
+  const full = bench.length >= BENCH_MAX;
+  $('bPick').innerHTML = groups.size
+    ? [...groups].map(([k, xs], j) => {
+      const free = xs.filter((x) => !x.lock);
+      const locked = xs.length - free.length;
+      const next = benchNext(xs);
+      const x = next || xs[0];
+      const prices = (free.length ? free : xs).map((y) => y.price);
+      const lo = Math.min(...prices);
+      const from = Math.max(...prices) > lo ? 'от ' : ''; // «от» — только если цены разные
+      const price = from + slotMoney(lo);
+      return `
+      <button class="inv-item${full || !free.length ? ' dim' : ''}" type="button" data-pk="${k}"${full || !free.length ? ' aria-disabled="true"' : ''}
+        style="--c:${RARITY[x.r].c};${j > 8 ? 'animation:none' : ''}"
+        title="${baseName(x)} · ${from}${fmt(lo)} · свободно ${free.length}${locked ? ` · закреплено ${locked}` : ''}${free.length ? ' — нажми, чтобы положить' : ''}">
+        ${locked ? `<span class="st" style="background:var(--muted)">🔒${locked > 1 || free.length ? locked : ''}</span>` : ''}
+        ${free.length > 1 ? `<span class="qn">×${free.length}</span>` : ''}
         <span class="ic">${x.ic}</span>${baseName(x)}
-        <span class="p${x.price < 0 ? ' neg' : ''}">${fmtShort(x.price)}</span>
-      </button>`).join('')
+        <span class="p${lo < 0 ? ' neg' : ''}">${price}</span>
+      </button>`;
+    }).join('')
     : '<span class="empty">Инвентарь пуст. Открой пару кейсов.</span>';
   $$('.inv-item', $('bPick')).forEach((b) => (b.onclick = () => {
-    if (bench.length >= 10) { toast('На верстаке максимум 10 предметов.'); return; }
-    const it = state.inv.find((x) => x.uid === +b.dataset.u);
-    if (it && it.lock) { toast('Закреплённое на верстак не кладём — сначала открепи в инвентаре.'); return; }
-    if (it && !bench.includes(it)) {
-      bench.push(it);
-      tone(800, 0.03);
-      renderCraft();
-    }
+    if (busy) return;
+    if (bench.length >= BENCH_MAX) { toast(`На верстаке максимум ${BENCH_MAX} предметов.`); return; }
+    const it = benchNext(groups.get(b.dataset.pk) || []);
+    if (!it) { toast('Закреплённое на верстак не кладём — сначала открепи в инвентаре.'); return; }
+    claimItem(it, 'bench'); // свободных нет — берём из контракта или апгрейда, предупредив
+    bench.push(it);
+    tone(800, 0.03);
+    renderCraft();
   }));
 
   // Книга рецептов.
@@ -208,7 +270,7 @@ function renderCraft() {
             <div class="nm">${name}</div>
             <div class="ings">${parts.map((p) =>
               `<span class="ing${p.have >= p.x.q ? ' ok' : ''}">${p.x.ic} ${p.x.name} <small>есть ${p.have} · нужно ${p.x.q}</small></span>`).join('')}</div>
-            <div class="meta">${RARITY[rar].n} · ≈ ${fmtShort(base)}</div>
+            <div class="meta">${RARITY[rar].n} · ≈ ${fmtShort(base)}${forgeUse(name)}</div>
           </div>
           <button class="btn${ready ? ' primary' : ''}" type="button" data-auto="${ri}" ${ready && !busy ? '' : 'disabled'}>Собрать</button>
         </div>`;
@@ -233,12 +295,17 @@ $('bGo').onclick = () => doCraft(bench.slice());
 // Собрать известный рецепт из самых дешёвых подходящих предметов.
 function autoCraft(r) {
   const use = [];
+  const away = elsewhereItems();
   for (const x of r.keys) {
     const found = state.inv
-      .filter((y) => itemKey(y) === x.k && !use.includes(y))
+      .filter((y) => itemKey(y) === x.k && !use.includes(y) && !away.has(y))
       .sort((a, b) => (!!a.lock - !!b.lock) || (a.price - b.price))
       .slice(0, x.q);
-    if (found.length < x.q) { toast('Не хватает ингредиентов.'); return; }
+    if (found.length < x.q) {
+      toast(state.inv.some((y) => itemKey(y) === x.k && away.has(y))
+        ? 'Не хватает свободных ингредиентов: часть лежит в контракте или на апгрейде.' : 'Не хватает ингредиентов.', 3200);
+      return;
+    }
     use.push(...found);
   }
   if (use.some((x) => x.lock)) {
@@ -271,7 +338,7 @@ async function doCraft(list) {
   const result = craftResult(recipe, list);
 
   list.forEach(removeItem);
-  bench = [];
+  bench = bench.filter((x) => !list.includes(x)); // собрали из книги — чужое на верстаке остаётся
   state.recipes[recipe.id] = true;
   state.crafts++;
   state.pending = [result];
@@ -279,9 +346,10 @@ async function doCraft(list) {
   holdXP(firstTime ? 40 : 10);
   save();
 
-  $$('.slot', $('bSlots')).forEach((s, i) => {
+  const usedKeys = new Set(list.map(itemKey));
+  $$('.bstack[data-k]', $('bSlots')).filter((s) => usedKeys.has(s.dataset.k)).forEach((s, i) => {
     s.style.animationDelay = i * 40 + 'ms';
-    if (s.classList.contains('f')) s.classList.add('suck');
+    s.classList.add('suck');
   });
   for (let i = 0; i < 4; i++) {
     tone(300 + i * 120, 0.06, 'square', 0.05);

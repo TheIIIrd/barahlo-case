@@ -14,6 +14,33 @@
   transition: outline-color .35s, border-color .35s, color .35s, background-color .35s !important;
 }
 :root.hc .case[aria-pressed="true"], :root.hc .room[aria-pressed="true"] { outline-color: var(--accent); }
+/* Цветная рамка + серая обводка = двойная рамка. Где цвет что-то значит (выбрано, можно собрать, редкость,
+   зал собран), обводка берёт этот цвет и сливается с рамкой в одну потолще. */
+:root.hc :is(.tab[aria-selected="true"], .room.done) { outline-color: var(--accent); }
+:root.hc .chip[aria-pressed="true"]:not(:focus-visible) { outline-color: var(--c, var(--accent)); } /* фокус — всегда оранжевый */
+:root.hc .inv-item.sel { outline-color: var(--accent); box-shadow: none; }
+:root.hc .modal .mbox { outline-color: var(--c, var(--line)); } /* .modal — чтобы перебить общее правило выше */
+/* Рецепт, который можно собрать, но ещё ни разу не собирали: рамка цвета редкости, полоска слева остаётся. */
+:root.hc .rcp.hot {
+  outline: 2px solid color-mix(in srgb, var(--c) 75%, #fff);
+  border-color: var(--line);
+  border-left-color: var(--c);
+}
+/* Пунктир (пустое место) — без сплошной обводки поверх, сам пунктир светлее. */
+:root.hc .ex.vacant { outline-color: transparent; border-color: var(--muted); }
+:root.hc .room.craftroom:not([aria-pressed="true"]):not(.done):not(:focus-visible) { outline-color: transparent; border-color: var(--muted); }
+:root.hc .ex.vacant { border-bottom-color: var(--c); }
+/* Выключенная кнопка: тёмный текст на полупрозрачном оранжевом не читался — пунктир и светлый текст. */
+/* Выключенный чип быстрого заполнения — так же, как кнопка: пунктир вместо полупрозрачности. */
+:root.hc .cfill .chip:disabled { opacity: 1; border-style: dashed; color: var(--muted); }
+:root.hc .btn:disabled {
+  opacity: 1;
+  background: transparent;
+  color: var(--muted);
+  border-style: dashed;
+  border-color: var(--muted);
+  outline-color: transparent;
+}
 :root.hc .reel-wrap { box-shadow: inset 0 1px var(--line), inset 0 -1px var(--line); }
 :root.hc :is(button, select, input):focus-visible {
   outline: 3px solid var(--accent);

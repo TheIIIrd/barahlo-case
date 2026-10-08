@@ -191,6 +191,12 @@
   text-overflow: ellipsis;
   max-width: 100%;
 }
+.multi-grid .ps { display: none; }
+/* Узкая плитка на телефоне: сумма коротко («25 тыс»), полная — в подсказке плитки. */
+@media (max-width:560px) {
+  .multi-grid .pl { display: none; }
+  .multi-grid .ps { display: inline; }
+}
 .multi-grid .nm {
   display: -webkit-box;
   -webkit-box-orient: vertical;

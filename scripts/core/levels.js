@@ -5,6 +5,7 @@
 
 // Опыт до следующего уровня: 90 × уровень^1,65.
 const xpNeed = (lvl) => Math.round(90 * Math.pow(lvl, 1.65));
+const LVL_SANE = 100000; // выше — только испорченное сохранение
 
 // Опыт за предмет растёт с его ценой плавно (по порядку величины), без раннего потолка:
 // копеечный хлам ≈ 3, предмет за 1 000 ₽ ≈ 13, за миллион ≈ 23, дальше не больше 23.
@@ -39,7 +40,7 @@ function addXP(n) {
 function levelUp() {
   const from = state.lvl;
   const gifts = [];
-  while (state.xp >= xpNeed(state.lvl)) {
+  for (let guard = 0; state.xp >= xpNeed(state.lvl) && guard < 1000; guard++) { // не больше 1000 уровней за раз
     state.xp -= xpNeed(state.lvl);
     state.lvl++;
     const gift = giftCase(state.lvl);

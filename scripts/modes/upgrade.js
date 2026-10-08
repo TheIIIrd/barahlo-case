@@ -51,7 +51,12 @@ $$('[data-ua]', $('v-upgrade')).forEach((b) => (b.onclick = () => {
 }));
 
 function renderUpgrade() {
-  if (upgradeStake && !state.inv.includes(upgradeStake)) upgradeStake = null;
+  const fk = focusKey($('v-upgrade'));
+  renderUpgradeNow();
+  restoreFocus(fk);
+}
+function renderUpgradeNow() {
+  if (upgradeStake && (!state.inv.includes(upgradeStake) || upgradeStake.lock)) upgradeStake = null; // закреплённое не сжигаем
   const stakeBox = $('uStake');
   const targetBox = $('uTarget');
 
@@ -113,6 +118,7 @@ let needleAngle = 0;
 let upgradeShown = { add: 0, chance: 0 };
 
 $('uGo').onclick = async () => {
+  if (upgradeStake && upgradeStake.lock) { renderUpgrade(); toast('Ставку закрепили — закреплённое не сжигаем.'); return; }
   const target = upgradeTarget();
   if (!target || busy) return;
   // Баланс успел измениться (заём, возврат долга), а экран — нет: сначала показываем новые цифры.
@@ -136,6 +142,7 @@ $('uGo').onclick = async () => {
   state.upgrades++;
   const prize = win ? makeItem(target.c, target.i) : null;
   state.pending = prize ? [prize] : [];
+  if (prize) trackBest(prize); // до сохранения — как у кейсов
   holdXP(12);
   save();
   renderPicker();
@@ -153,7 +160,6 @@ $('uGo').onclick = async () => {
   releaseXP();
 
   if (win) {
-    trackBest(prize);
     renderStats();
     renderInventory();
     showDrop(prize, `Апгрейд ×${mult} удался!`, () => {

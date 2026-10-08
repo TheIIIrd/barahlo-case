@@ -96,7 +96,7 @@ function showDrop(it, context, after) {
     if (keep) {
       state.inv.push(it);
     } else {
-      state.earn += it.price;
+      state.earn = r2(state.earn + it.price);
       setBal(it.price);
       toast(it.price < 0 ? `Выброшено. Утилизация стоила ${fmt(-it.price)}` : `Продано за ${fmt(it.price)}`);
     }
@@ -143,7 +143,7 @@ function showMulti(won, { cost = 0, sorted = false, title = '', sub = '', note =
     <div style="--c:${RARITY[x.r].c};animation-delay:${Math.round(i * step)}ms" title="${x.name}${n > 1 ? ' ×' + n : ''} · ${fmt(price)}">
       ${n > 1 ? `<span class="cnt">×${n}</span>` : ''}
       <span class="ic">${x.ic}</span><span class="nm">${x.name}</span>
-      <span class="p${price < 0 ? ' neg' : ''}">${fmtShort(price)}</span>
+      <span class="p${price < 0 ? ' neg' : ''}"><span class="pl">${fmtShort(price)}</span><span class="ps">${slotMoney(price)}</span></span>
     </div>`).join('');
   $('mGrid').scrollTop = 0;
   $('mSell').textContent = sellLabel(total, 'Продать всё', 'Выбросить всё');
@@ -170,7 +170,7 @@ function showMulti(won, { cost = 0, sorted = false, title = '', sub = '', note =
     if (keep) {
       state.inv.push(...won);
     } else {
-      state.earn += total;
+      state.earn = r2(state.earn + total);
       setBal(total);
       toast('Улов продан за ' + fmt(total));
     }

@@ -195,7 +195,8 @@
       <div class="craft">
         <div class="panel bench" id="bench">
           <h2>Верстак <small>до 10 предметов</small></h2>
-          <div class="slots" id="bSlots"></div>
+          <div class="bstacks" id="bSlots" role="group" aria-label="На верстаке"></div>
+          <div class="bcap" id="bCap"></div>
           <div class="bench-info" id="bInfo"></div>
           <div class="row-c"><button class="btn" id="bClear" type="button">Очистить</button><button class="btn primary" id="bGo" type="button">🔨 Собрать</button></div>
           <h2 style="margin-top:6px">Что положить <small id="bPickN"></small></h2>
@@ -214,30 +215,34 @@
   <!-- CONTRACT -->
   <section class="view panel" id="v-contract" role="tabpanel" hidden>
     <div class="chead">
-      <h2 id="cTitle">Контракт обмена <small>10 предметов → 1 классом выше</small></h2>
+      <h2 id="cTitle"><span class="cm-n">Контракт обмена <small>10 предметов → 1 классом выше</small></span><span class="cm-m">⚡ Мегаконтракт <small id="cMegaSub"></small></span></h2>
       <button class="knife" id="cMega" type="button" role="switch" aria-checked="false" aria-label="Мегаконтракт"
         title="Рубильник: обычный контракт или мегаконтракт до 100 предметов">
         <span class="kn-l off">Обычный</span><span class="kn-plate"><i class="kn-clip"></i><i class="kn-blade"></i><i class="kn-hinge"></i></span><span class="kn-l on">⚡ Мега</span>
       </button>
     </div>
-    <p class="lead" id="cLead">Выбери в инвентаре 10 предметов одной редкости. Взамен получишь один предмет следующей редкости из тех же кейсов — чем больше вложено из кейса, тем вероятнее результат из него. Износ результата заметно лучше среднего вложенного. Заодно отличный способ избавиться от вещей с отрицательной ценой.</p>
-    <div class="slots" id="slots"></div>
-    <div class="contract-info" id="cInfo">
-      <span>Редкость: <b id="cRar">—</b></span>
-      <span>Вложено: <b id="cIn">0,00 ₽</b></span>
-      <span>Средний износ: <b id="cFl">—</b></span>
-    </div>
-    <div class="contract-info mega-only" id="cMegaInfo" hidden>
-      <span>Предметов: <b id="mgN">0 / 100</b></span>
-      <span>Вложено: <b id="mgIn">0,00 ₽</b></span>
-      <span>Получишь: <b id="mgOut">—</b></span>
-      <label class="mg-t">Из кейса: <select id="cTarget" aria-label="Из какого кейса результат"></select></label>
+    <!-- Обе версии заголовка, описания и сведений лежат в одной клетке сетки, видна одна: высота не меняется
+         при переключении рубильника, и ничего ниже не прыгает. -->
+    <div class="cfacts-box" id="cLead"></div>
+    <div class="slots-box"><div class="slots" id="slots"></div></div>
+    <div class="cinfo-box">
+      <div class="contract-info cm-n" id="cInfo">
+        <span>Редкость: <b id="cRar">—</b></span>
+        <span>Вложено: <b id="cIn">0,00 ₽</b></span>
+        <span>Средний износ: <b id="cFl">—</b></span>
+      </div>
+      <div class="contract-info cm-m" id="cMegaInfo">
+        <span>Предметов: <b id="mgN">0 / 100</b></span>
+        <span>Вложено: <b id="mgIn">0,00 ₽</b></span>
+        <span>Получишь: <b id="mgOut">—</b></span>
+        <label class="mg-t">Из кейса: <select id="cTarget" aria-label="Из какого кейса результат"></select></label>
+      </div>
     </div>
     <div class="outs" id="cOuts"></div>
     <div class="row-c">
-      <button class="btn" id="cAuto" type="button">Автозаполнить дешёвым</button>
+      <button class="btn cm-btn" id="cAuto" type="button"><span class="cm-n">Автозаполнить дешёвым</span><span class="cm-m">Добавить дешёвое</span></button>
       <button class="btn" id="cClear" type="button">Очистить</button>
-      <button class="btn primary" id="cGo" type="button" disabled>Подписать контракт</button>
+      <button class="btn primary cm-btn" id="cGo" type="button" disabled><span class="cm-n">Подписать контракт</span><span class="cm-m">⚡ Подписать мегаконтракт</span></button>
     </div>
     <div class="cfill" id="cFill" role="group" aria-label="Заполнить самыми дешёвыми выбранной редкости"></div>
   </section>

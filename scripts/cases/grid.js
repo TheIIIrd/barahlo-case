@@ -63,6 +63,11 @@ function caseTagHTML(c) {
 }
 
 function renderCases() {
+  const fk = focusKey($('cases'));
+  renderCasesNow();
+  restoreFocus(fk);
+}
+function renderCasesNow() {
   $('cases').innerHTML = CASES.map((c) => {
     const price = casePrice(c);
     const discounted = !c.free && price < c.price;

@@ -93,7 +93,9 @@ function saveLooksValid(s) {
     if (!optNum(s[k])) return false;
   }
   if ((s.debt || 0) < 0 || (s.pendingBet || 0) < 0 || (s.pendingXp || 0) < 0 || (s.xp || 0) < 0) return false;
-  if (s.lvl !== undefined && !(Number.isInteger(s.lvl) && s.lvl >= 1)) return false;
+  if (s.lvl !== undefined && !(Number.isInteger(s.lvl) && s.lvl >= 1 && s.lvl <= LVL_SANE)) return false;
+  // Опыт с запасом на одно прерванное действие, но не «бесконечный»: иначе подсчёт уровней повесил бы игру.
+  if ((s.xp || 0) > xpNeed(s.lvl || 1) * 10 + 1e6 || (s.pendingXp || 0) > 1e6) return false;
   for (const k of ['tokens', 'recipes', 'museum', 'museumHalf', 'museumDone', 'buffs', 'cards', 'cardsEver', 'forgeFails']) {
     if (s[k] !== undefined && !isObj(s[k])) return false;
   }

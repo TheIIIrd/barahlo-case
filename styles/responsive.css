@@ -26,6 +26,11 @@
   }
 }
 
+/* Планшет: сведения мегаконтракта с длинным «Получишь» и выбором кейса бывают в три строки — место под них есть всегда. */
+@media (min-width:561px) and (max-width:1100px) {
+  .cinfo-box { min-height: 120px; }
+}
+
 @media (max-width:560px) {
   /* Ряды кнопок без «сирот»: множители апгрейда и доплата Кузни — ровной сеткой. */
   .mults { display: grid; grid-template-columns: repeat(4, 1fr); }
@@ -42,13 +47,23 @@
   #bulkMega .long { display: none; }
   /* Мегаконтракт: возможные результаты — ровными рядами по пять. */
   .mega .outs { display: grid; grid-template-columns: repeat(5, 40px); justify-content: center; }
+  /* Возможные результаты — сразу на два ряда: пока выбираешь предметы, список снизу не прыгает. */
+  .outs { min-height: 86px; align-content: start; }
+  /* Сведения — по строке на пункт; «Получишь» с запасом на две строки. Высота не зависит от сумм. */
+  .contract-info { display: grid; justify-items: center; align-content: center; gap: 4px; }
+  #cMegaInfo > span:nth-of-type(3) { min-height: 2.9em; text-align: center; } /* «Получишь: …» */
+  .cinfo-box { min-height: 0; }
+  .inv-hint { min-height: 3em; } /* подсказка выбора в одну или две строки — сетка под ней не прыгает */
+  .cfacts { grid-template-columns: 1fr 1fr; }
+  .cfact { padding: 7px 8px; gap: 1px 6px; font-size: 11.5px; }
+  .cfact .i { font-size: 18px; }
   /* На телефоне уведомления сверху: внизу живут кнопки — панель продажи, карточка предмета, окна. */
   #toasts, body:has(.bulk:not([hidden])) #toasts {
     top: calc(10px + env(safe-area-inset-top, 0px));
     bottom: auto;
   }
   /* Под палец: не меньше 34px в высоту. */
-  .chip, .btn.sm, .ex .btn, .toolbar input, #qsCheap { min-height: 34px; }
+  .chip, .btn.sm, .ex .btn, .toolbar input, #qsCheap, #sort { min-height: 34px; }
   .check { min-height: 34px; }
   /* Звук и контраст на телефоне — значками в строке уровня: шапка на строку короче. */
   .wallet .btn.tgl { grid-column: span 1; padding: 6px 0; font-size: 18px; }
@@ -144,7 +159,7 @@
   .uslot { min-height: 150px; }
   .uslot .ic { font-size: 44px; }
   .slot { font-size: 22px; }
-  .slots { gap: 5px; }
+  .slots { --sg: 5px; }
 }
 
 @media (max-width:480px) {
@@ -175,7 +190,7 @@
 
 /* Сенсорные экраны любой ширины (планшеты тоже): кнопки и фильтры — не меньше 34px под палец. */
 @media (pointer: coarse) {
-  .chip, .btn.sm, .ex .btn, .toolbar input, #qsCheap, .check, .seg button, #cTarget, .fmult .seg button { min-height: 36px; }
+  .chip, .btn.sm, .ex .btn, .toolbar input, #qsCheap, .check, .seg button, #cTarget, #sort, .fmult .seg button { min-height: 36px; }
 }
 
 @media (max-width:400px) {

@@ -37,9 +37,11 @@ function recipeOpen(card) {
   return card.rank < 3 || cardKnown(card.suit.id + RANK_IDS[card.rank - 1]);
 }
 
-// Предмет, нужный особому рецепту, игрок уже видел: он есть в инвентаре или в музее.
+// Предмет, нужный особому рецепту, игрок уже видел: он есть в инвентаре или в музее. Поделку — ещё и если
+// её рецепт уже открыт в книге Мастерской.
 function itemSeen(name) {
   const e = CATALOG_BY_NAME.get(name);
+  if (e.c === CRAFT_ROOM && state.recipes[RECIPES[e.i].id]) return true;
   return !!state.museum[museumKey(e.c.id, e.i)] || state.inv.some((x) => x.caseId === e.c.id && idxOf(x) === e.i);
 }
 
@@ -149,22 +151,13 @@ function needLabel(q, card) {
 // Пояснение к требованию: откуда брать.
 function needWhere(q, card) {
   if (q.card) return 'карта из коллекции — уйдёт в дело при успехе, при неудаче останется';
+  if (isCraftNeed(q)) return itemSeen(q.item) ? 'поделка Мастерской: подойдёт любой экземпляр, с любым износом' : 'загадка: эту поделку ты ещё не собирал — её делают на верстаке Мастерской';
   if (q.item) return itemSeen(q.item) ? 'особый предмет: подойдёт любой экземпляр, с любым износом' : 'загадка: этот предмет ещё не попадался';
   return `редкость «${RARITY[q.r].n}» из кейсов масти ${card.suit.sym} ${card.suit.name}: ` +
     card.suit.cases.map((id) => roomById(id).name).join(', ');
 }
 const needColor = (q) => (q.card ? cardColor(CARD_BY_ID.get(q.card))
   : RARITY[q.item ? CATALOG_BY_NAME.get(q.item).r : q.r].c);
-
-// Сумма на стопке: слот узкий, поэтому от сотни рублей — без копеек, а от 10 тысяч — коротко и без «₽»:
-// «127 тыс», «1,2 млн» (полная сумма — в подсказке слота).
-const slotMoney = (v) => {
-  const a = Math.abs(v);
-  if (a >= 1e6) return fmtShort(v).replace(/\u00a0₽$/, '');
-  if (a >= 1e4) return Math.round(v / 1e3).toLocaleString('ru-RU') + '\u00a0тыс';
-  if (a >= 100) return Math.round(v).toLocaleString('ru-RU') + '\u00a0₽';
-  return fmt(v);
-};
 
 // Слоты наковальни: по стопке на требование рецепта (сколько набрано и на какую сумму), в конце — будущая
 // карта. Нажатие на стопку открывает её вкладку в «Что можно положить».
@@ -183,9 +176,10 @@ function renderSlots(card, plan) {
     const total = sum(r.items, (y) => y.price);
     return `<button type="button" class="fslot${stack}${x ? '' : ' empty'}${short ? ' short' : ''}${ri === forgeTab ? ' cur' : ''}" data-row="${ri}" style="--c:${needColor(r.q)}"
         title="${label}: ${r.have} из ${r.need}${r.items.length ? ' · ' + fmt(total) : ''} — нажми, чтобы выбрать предметы" aria-label="${label}: ${r.have} из ${r.need}${r.items.length ? ', ' + fmt(total) : ''}"${ri === forgeTab ? ' aria-current="true"' : ''}>
-      ${r.pinned.length ? '<span class="pin">✋</span>' : ''}<span class="ic">${ic}</span>
+      ${r.pinned.length ? '<span class="pin">✋</span>' : ''}${isCraftNeed(r.q) ? '<span class="cft" title="Поделка Мастерской">🔨</span>' : ''}<span class="ic">${ic}</span>
       <span class="n">${r.have}/${r.need}</span>${r.items.length ? `<span class="p${total < 0 ? ' neg' : ''}">${slotMoney(total)}</span>` : ''}</button>`;
   });
+  $('fSlots').classList.toggle('tight', plan.rows.length >= 5); // пять требований (с поделкой) — слоты поуже
   $('fSlots').innerHTML = parts.join('<span class="fop" aria-hidden="true">+</span>') +
     `<span class="fop" aria-hidden="true">→</span><div class="fslot out" aria-hidden="true">${cardHTML(card, { size: 'xs' })}${plan.mult > 1 ? `<span class="n">×${plan.mult}</span>` : ''}</div>`;
   $$('button.fslot', $('fSlots')).forEach((b) => (b.onclick = () => {
@@ -207,6 +201,14 @@ function whereHTML(card, row) {
     const c = CARD_BY_ID.get(q.card);
     return `<div class="fwhere"><b>Где взять:</b> выковать ${cardTitle(c)} в Кузне${miss > 1 ? ` (ещё ${miss})` : ''}.
       <button type="button" class="btn sm" data-wcard="${c.id}">⚒️ К рецепту</button></div>`;
+  }
+  if (isCraftNeed(q)) {
+    const rcp = RECIPES[CATALOG_BY_NAME.get(q.item).i];
+    const how = state.recipes[rcp.id]
+      ? `собрать в Мастерской «${rcp.out[2]}»: ${rcp.keys.map((x) => `${x.ic} ${x.name}${x.q > 1 ? ' ×' + x.q : ''}`).join(' + ')}`
+      : 'загадка — это поделка Мастерской. Рецепт откроется, когда соберёшь её на верстаке впервые';
+    return `<div class="fwhere"><b>Где взять:</b> ${how}.
+      <button type="button" class="btn sm" data-wcraft="1">🔨 В Мастерскую</button></div>`;
   }
   if (q.item && !itemSeen(q.item)) {
     return `<div class="fwhere"><b>Где взять:</b> загадка — этот предмет падает в одном из кейсов масти ${card.suit.sym} ${card.suit.name}.</div>`;
@@ -252,6 +254,11 @@ function renderPick(card, plan) {
     renderCases();
     renderArena();
   }));
+  $$('[data-wcraft]', $('fWhere')).forEach((b) => (b.onclick = () => {
+    if (busy) return;
+    goTab('inventory');
+    setSub('craft');
+  }));
   $$('[data-wcard]', $('fWhere')).forEach((b) => (b.onclick = () => {
     if (busy) return;
     forgeCardId = b.dataset.wcard;
@@ -294,7 +301,7 @@ function renderPick(card, plan) {
     forgeToggle(forgeTab, +b.dataset.uid);
   }));
   const more = all.length - PICK_LIMIT;
-  $('fPickNote').textContent = !all.length ? 'В инвентаре таких предметов нет — открывай кейсы этой масти.'
+  $('fPickNote').textContent = !all.length ? (isCraftNeed(q) ? 'Такой поделки в инвентаре нет — собери её в Мастерской.' : 'В инвентаре таких предметов нет — открывай кейсы этой масти.')
     : more > 0 ? `Показаны первые ${PICK_LIMIT} — ещё ${more} подходят. Сначала идут выбранные и самые дешёвые.`
     : row.pinned.length || forgeSel.skip.size ? 'Нажми на выбранный предмет, чтобы Кузня взяла другой.' : 'Кузня выбрала самые дешёвые. Нажми на другой предмет, чтобы положить его.';
 }

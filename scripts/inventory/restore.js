@@ -44,6 +44,7 @@ async function restore(it) {
   it.wear = wearOf(it.float);
   it.price = itemPrice(it.base, it.float, it.noise, it.stat);
   it.resto = (it.resto || 0) + 1;
+  holdXP(6); // опыт — вместе с исходом, до анимации: перезагрузка его не потеряет
   save();
 
   const card = $('detail');
@@ -53,7 +54,7 @@ async function restore(it) {
   clearInterval(ticker);
   card.classList.remove('resting');
   busy = false;
-  addXP(6);
+  releaseXP();
   renderAll();
 
   const hero = document.querySelector('#detail .hero');

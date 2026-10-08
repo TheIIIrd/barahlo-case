@@ -65,6 +65,7 @@ function flashExhibit(key) {
 // Сдать предмет. Если в музее уже есть такой, но потрёпаннее, старый возвращается в инвентарь.
 function donate(it, fromCard) {
   if (busy || !state.inv.includes(it)) return;
+  if (it.lock) { toast('Закреплённое в музей не сдаём — сначала открепи.'); return; }
   const i = idxOf(it);
   if (i < 0) { toast('Этот предмет музею не нужен. Съешь его.'); return; }
   const key = museumKey(it.caseId, i);
@@ -150,7 +151,7 @@ function donateAll(cid) {
 
 function museumButtonHTML(it) {
   const i = idxOf(it);
-  if (i < 0) return '';
+  if (i < 0 || it.lock) return ''; // закреплённое музей не предлагает
   const ex = state.museum[museumKey(it.caseId, i)];
   if (!ex) return '<button class="btn wide" type="button" id="dtMus">🏛 Сдать в музей</button>';
   if (it.float < ex.float) return '<button class="btn wide" type="button" id="dtMus">🏛 Заменить экспонат в музее (лучше износ)</button>';
@@ -158,6 +159,11 @@ function museumButtonHTML(it) {
 }
 
 function renderMuseum() {
+  const fk = focusKey($('sub-museum'));
+  renderMuseumNow();
+  restoreFocus(fk);
+}
+function renderMuseumNow() {
   const n = museumCount();
   const exhibits = Object.values(state.museum);
   const value = sum(exhibits, (x) => x.price);

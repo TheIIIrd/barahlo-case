@@ -183,7 +183,7 @@ async function openCases() {
     if (gifts) state.tokens[c.id] -= gifts;
     if (paid) {
       setBal(-cost);
-      state.spent += cost;
+      state.spent = r2(state.spent + cost);
     }
   }
   state.opened += openCount;

@@ -234,7 +234,7 @@
   font-size: 9px;
   -webkit-line-clamp: 1;
 }
-.card.win { animation: winpulse 1s ease-in-out infinite; }
+.card.win { animation: winpulse 1s ease-in-out 5; } /* пять вспышек и всё: бесконечные тени зря грузили видеокарту */
 /* Под открытым окном пульс не виден, а перерисовка двадцати теней тормозит — ставим на паузу. */
 body:has(.modal:not([hidden])) .card.win { animation-play-state: paused; }
 @keyframes winpulse {
