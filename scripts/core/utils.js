@@ -27,8 +27,10 @@ function plural(n, one, few, many) {
 }
 
 // Деньги: полная сумма с копейками.
-const fmt = (n) =>
-  r2(n).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '\u00a0₽'; // ₽ не уезжает на новую строку
+// Форматтеры создаём один раз: toLocaleString на каждый вызов заметно тормозил большие списки (5000 предметов).
+const NF_MONEY = new Intl.NumberFormat('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const NF = new Intl.NumberFormat('ru-RU');
+const fmt = (n) => NF_MONEY.format(r2(n)) + '\u00a0₽'; // ₽ не уезжает на новую строку
 
 // Деньги кратко: «1,5 млрд ₽» для больших сумм, иначе полная.
 function fmtShort(n) {
@@ -41,26 +43,50 @@ function fmtShort(n) {
       const x = n / v;
       const rounded = Math.abs(x) >= 100 ? Math.round(x) : Math.round(x * 10) / 10;
       // 999,96 млн округлилось бы до «1 000 млн» — тогда показываем следующей единицей: «1 млрд».
-      if (Math.abs(rounded) >= 1000 && k > 0) return (Math.round((n / units[k - 1][0]) * 10) / 10).toLocaleString('ru-RU') + ' ' + units[k - 1][1] + '\u00a0₽';
-      return rounded.toLocaleString('ru-RU') + ' ' + u + '\u00a0₽';
+      if (Math.abs(rounded) >= 1000 && k > 0) return NF.format(Math.round((n / units[k - 1][0]) * 10) / 10) + ' ' + units[k - 1][1] + '\u00a0₽';
+      return NF.format(rounded) + ' ' + u + '\u00a0₽';
     }
   }
 }
 
-/* Перерисовка заменяет кнопки — фокус клавиатуры возвращаем на «ту же» кнопку: по id или по data-атрибутам.
+/* Перерисовка заменяет кнопки — фокус клавиатуры возвращаем на «ту же» кнопку: по id или по data-атрибутам,
+   и ищем только внутри root (такой же data-u бывает и в «Последних находках»). Если кнопки больше нет
+   (последний предмет стопки, продали), фокус встаёт на ближайшую видимую кнопку на том же месте в root.
    focusKey(root) — запомнить до перерисовки (если фокус внутри root), restoreFocus(key) — вернуть после. */
+const FOCUSABLE = 'button:not([disabled]), select:not([disabled]), input:not([disabled]), [tabindex="0"]';
+const canFocus = (el) => !!el && !el.disabled && el.isConnected && el.getClientRects().length > 0 && getComputedStyle(el).visibility === 'visible';
 function focusKey(root) {
   const a = document.activeElement;
   if (!a || a === document.body || !root || !root.contains(a)) return null;
-  if (a.id) return '#' + CSS.escape(a.id);
-  const d = Object.entries(a.dataset).map(([k, v]) => `[data-${k.replace(/[A-Z]/g, (m) => '-' + m.toLowerCase())}="${CSS.escape(v)}"]`).join('');
-  return d ? a.tagName.toLowerCase() + d : null;
+  let sel = null;
+  if (a.id) sel = '#' + CSS.escape(a.id);
+  else {
+    const d = Object.entries(a.dataset).map(([k, v]) => `[data-${k.replace(/[A-Z]/g, (m) => '-' + m.toLowerCase())}="${CSS.escape(v)}"]`).join('');
+    if (d) sel = a.tagName.toLowerCase() + d;
+  }
+  return { root, sel, idx: $$(FOCUSABLE, root).indexOf(a) };
 }
 function restoreFocus(key) {
   if (!key || (document.activeElement && document.activeElement !== document.body && document.activeElement.isConnected)) return;
-  const el = document.querySelector(key);
-  if (el && !el.disabled) el.focus({ preventScroll: true });
+  let el = key.sel ? $$(key.sel, key.root).find(canFocus) : null;
+  if (!el && key.idx >= 0) {
+    // Ближайшая видимая кнопка к прежнему месту: сначала вперёд, потом назад.
+    const all = $$(FOCUSABLE, key.root);
+    const from = Math.min(key.idx, all.length - 1);
+    for (let d = 0; !el && d < all.length; d++) el = [all[from + d], all[from - d]].find(canFocus) || null;
+  }
+  if (el) el.focus({ preventScroll: true });
 }
+
+// Сумма на стопке (Кузня, Мастерская): слот узкий, поэтому от сотни рублей — без копеек, а от 10 тысяч — коротко и без «₽»:
+// «127 тыс», «1,2 млн» (полная сумма — в подсказке слота).
+const slotMoney = (v) => {
+  const a = Math.abs(v);
+  if (a >= 1e6) return fmtShort(v).replace(/\u00a0₽$/, '');
+  if (a >= 1e4) return NF.format(Math.round(v / 1e3)) + '\u00a0тыс';
+  if (a >= 100) return NF.format(Math.round(v)) + '\u00a0₽';
+  return fmt(v);
+};
 
 // Проценты с русской запятой: 2,35%.
 const fmtPct = (x, digits = 2) => x.toLocaleString('ru-RU', { minimumFractionDigits: digits, maximumFractionDigits: digits }) + '%';

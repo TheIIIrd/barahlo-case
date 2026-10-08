@@ -100,6 +100,7 @@ function renderAlbumDetail() {
     forgeCardId = recipeOpen(card) ? card.id : card.suit.id + RANK_IDS[card.rank - 1];
     forgeSuit = card.suit.id;
     forgeAdd = 0;
+    forgeMult = 1; // как и при любом другом выборе карты
     resetForgeSel();
     albumPick = null;
     setCardsSub('forge');

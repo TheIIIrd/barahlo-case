@@ -73,6 +73,11 @@ function itemCardHTML(x, mode) {
 }
 
 function renderInvView() {
+  const fk = focusKey($('v-inventory'));
+  renderInvViewNow();
+  restoreFocus(fk);
+}
+function renderInvViewNow() {
   const all = state.inv;
   const total = sum(all, (x) => x.price);
   $('tabInvN').textContent = all.length;
@@ -250,6 +255,8 @@ function renderItemCard() {
     tone(it.lock ? 900 : 500, 0.05);
   };
   $('dtUp').onclick = () => {
+    if (it.lock) { toast('Закреплённое на апгрейд не ставим — сначала открепи.'); return; }
+    claimItem(it, 'upgrade');
     upgradeStake = it;
     invUi.open = null;
     goTab('upgrade');
@@ -260,7 +267,7 @@ function renderItemCard() {
     if (contractMega) {
       if (it.lock) { toast('Закреплённое в мегаконтракт не кладём — сначала открепи.'); return; }
       if (contractItems.length >= MEGA_MAX && !contractItems.includes(it)) { toast(`В мегаконтракте уже ${MEGA_MAX} предметов.`); return; }
-      if (!contractItems.includes(it)) contractItems.push(it);
+      if (!contractItems.includes(it)) { claimItem(it, 'contract'); contractItems.push(it); }
       invUi.open = null;
       goTab('contract');
       renderContract();
@@ -273,7 +280,7 @@ function renderItemCard() {
       return;
     }
     if (contractItems.length >= 10) { toast('В контракте уже 10 предметов.'); return; }
-    if (!contractItems.includes(it)) contractItems.push(it);
+    if (!contractItems.includes(it)) { claimItem(it, 'contract'); contractItems.push(it); }
     invUi.open = null;
     goTab('contract');
     renderContract();
@@ -314,7 +321,7 @@ async function sellItems(list, sourceEl) {
   await sleep(list.length > 1 ? 300 : 200);
 
   list.forEach(removeItem);
-  state.earn += v;
+  state.earn = r2(state.earn + v);
   busy = false;
   setBal(v);
   renderAll();

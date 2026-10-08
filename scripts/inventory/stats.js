@@ -10,7 +10,7 @@ function renderStats() {
   $('sEarn').textContent = fmt(state.earn);
 
   const roi = state.spent ? ((state.earn + sum(state.inv, (x) => x.price)) / state.spent - 1) * 100 : null;
-  $('sRoi').textContent = roi === null ? '—' : (roi > 0 ? '+' : '') + roi.toFixed(1) + '%';
+  $('sRoi').textContent = roi === null ? '—' : (roi > 0 ? '+' : '') + fmtPct(roi, 1);
   $('sRoi').className = roi === null ? '' : roi >= 0 ? 'pos' : 'neg';
 
   $('sCU').textContent = `${state.contracts} / ${state.upgrades} / ${state.crafts}`;

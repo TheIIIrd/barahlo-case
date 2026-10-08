@@ -7,7 +7,7 @@
 
    Новый файл в styles/ или scripts/ нужно добавить и в index.html, и в CORE ниже —
    tools/check_site.py (он же запускается при деплое) проверит, что ничего не забыто. */
-const CACHE = 'junkcase-v29';
+const CACHE = 'junkcase-v30';
 const CORE = [
   './',
   './index.html',
@@ -86,13 +86,21 @@ self.addEventListener('activate', (e) => {
 
 // Сначала кэш — только СВОЕЙ версии (caches.match без open искал бы во всех кэшах сразу и мог бы
 // на время обновления смешать файлы двух версий). Чего в нём нет (шрифты Google), берём из сети и докладываем.
+// Страница игры с «?utm=…» и т. п. — та же страница: отдаём её из кэша, иначе свежий index.html из сети
+// смешался бы со старыми скриптами из кэша. Адреса с «?…» в кэш не кладём — он рос бы без конца.
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
-  e.respondWith(caches.open(CACHE).then((c) => c.match(e.request)).then((hit) => hit || fetch(e.request).then((r) => {
-    if (r && (r.ok || r.type === 'opaque')) {
-      const copy = r.clone();
-      caches.open(CACHE).then((c) => c.put(e.request, copy));
+  const url = new URL(e.request.url);
+  const page = e.request.mode === 'navigate' && url.origin === location.origin && /\/(index\.html)?$/.test(url.pathname);
+  e.respondWith(caches.open(CACHE).then(async (c) => {
+    const hit = (await c.match(e.request, { ignoreSearch: page })) || (page ? await c.match('./') : undefined);
+    if (hit) return hit;
+    try {
+      const r = await fetch(e.request);
+      if (r && (r.ok || r.type === 'opaque') && !page && (url.origin !== location.origin || !url.search)) c.put(e.request, r.clone());
+      return r;
+    } catch (err) {
+      return (page && (await c.match('./'))) || Response.error();
     }
-    return r;
-  }).catch(() => (e.request.mode === 'navigate' ? caches.open(CACHE).then((c) => c.match('./')) : Response.error()))));
+  }));
 });

@@ -151,9 +151,14 @@ function loadState(saved) {
       }
     }
   };
+  // Номера предметов: счётчик — выше всех уже выданных; нет номера или он повторяется (испорченный файл) —
+  // выдаём новый, иначе выбор и продажа задели бы сразу два предмета.
+  s.uid = s.inv.reduce((m, x) => (Number.isInteger(x.uid) && x.uid >= m ? x.uid + 1 : m), Math.max(1, Math.floor(s.uid) || 1));
+  const seenUid = new Set();
   s.inv.forEach((x) => {
     fix(x);
-    if (!x.uid) x.uid = s.uid++;
+    if (!Number.isInteger(x.uid) || x.uid < 1 || seenUid.has(x.uid)) x.uid = s.uid++;
+    seenUid.add(x.uid);
   });
   Object.values(s.museum).forEach(fix);
   s.inv.forEach(hydrate);

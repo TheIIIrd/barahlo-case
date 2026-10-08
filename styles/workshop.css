@@ -10,14 +10,107 @@
   flex-direction: column;
   gap: 12px;
 }
-.bench .slots { max-width: none; }
-.bench .slot { cursor: pointer; }
-.bench .slot.f:hover { filter: brightness(1.2); }
+/* Верстак: стопки одинаковых предметов (×N) и шкала заполнения на 10 делений. Место — сразу на два ряда
+   (больше 10 стопок не бывает, а в ряд их влезает от пяти), поэтому, пока кладёшь предметы, список
+   «Что положить» под пальцем не съезжает. */
+.bstacks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  align-content: center;
+  align-items: center;
+  min-height: 198px; /* два ряда по 82px + щель + отступы */
+  padding: 14px 10px 10px;
+  border-radius: 12px;
+  background: var(--bg2);
+}
+.bstack {
+  all: unset;
+  box-sizing: border-box;
+  position: relative;
+  width: 78px;
+  min-height: 82px;
+  padding: 4px 3px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border-radius: 10px;
+  border: 2px solid var(--c);
+  background: radial-gradient(circle, color-mix(in srgb, var(--c) 22%, transparent), var(--panel2) 75%);
+  font-size: 9.5px;
+  line-height: 1.2;
+  text-align: center;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+  animation: pop .3s cubic-bezier(.2, 1.6, .4, 1);
+}
+.bstack:hover { filter: brightness(1.2); }
+.bstack:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* Стопка: «карточки» сзади, как в Кузне. Тенями — они не занимают места. */
+.bstack.many { box-shadow: 3px -3px 0 -1px #263244, 6px -6px 0 -2px #1d2734; }
+.bstack .ic { font-size: 28px; line-height: 1; }
+/* Длинное название — не больше двух строк: высота стопки постоянная. */
+.bstack .nm { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.bstack .p { font-family: var(--f-mono); color: var(--good); white-space: nowrap; }
+.bstack .p.neg { color: var(--bad); }
+.bstack .q {
+  position: absolute;
+  top: -9px;
+  right: -9px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 5px;
+  border-radius: 11px;
+  background: var(--fg);
+  color: var(--bg);
+  font: 800 12px/22px var(--f-body);
+  text-align: center;
+}
+.bstack.add {
+  border: 2px dashed var(--line);
+  background: transparent;
+  color: var(--muted);
+  font-size: 22px;
+  cursor: default;
+  animation: none;
+}
+.bstack.add:hover { filter: none; }
+.bstack.suck { animation: suck .7s cubic-bezier(.6, 0, .8, .4) forwards; }
+.bcap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: -4px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.bcap .pips { display: flex; gap: 3px; }
+.bcap .pips i { width: 14px; height: 8px; border-radius: 2px; background: var(--line); transition: background .15s; }
+.bcap .pips i.on { background: var(--accent); }
+.bcap b { color: var(--fg); font-family: var(--f-mono); }
+/* «Что положить»: сколько свободных в стопке. */
+.inv-item .qn {
+  position: absolute;
+  top: 3px;
+  right: 4px;
+  font-family: var(--f-mono);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--fg);
+  background: color-mix(in srgb, var(--c) 40%, var(--bg));
+  border-radius: 4px;
+  padding: 0 4px;
+}
+.rcp .forge-use { color: var(--accent); }
 .bench.shake { animation: shake .45s; }
 .bench-info {
   font-size: 13px;
   color: var(--muted);
-  min-height: 1.5em;
+  min-height: 3em; /* две строки: подсказка разной длины не двигает кнопки */
   text-align: center;
 }
 .bench-info b { color: var(--accent); }
@@ -157,6 +250,15 @@
   .reels.compact.x20 .card .ic { font-size: 20px; }
   .reels.compact.x20 .card .t { display: none; }
   .reels.compact.x20 .reel-wrap { height: 64px; }
+}
+/* Телефон: стопки компактнее — по пять в ряд, без названия (оно в подсказке и в озвучке). */
+@media (max-width:560px) {
+  .bstacks { gap: 6px 5px; min-height: 144px; padding: 12px 4px 8px; }
+  .bstack { width: 50px; min-height: 58px; padding: 3px 1px; font-size: 9px; }
+  .bstack .nm { display: none; }
+  .bstack .ic { font-size: 24px; }
+  .bstack .q { top: -8px; right: -6px; min-width: 20px; height: 20px; font-size: 11px; line-height: 20px; padding: 0 4px; }
+  .bstack.many { box-shadow: 2px -2px 0 -1px #263244, 4px -4px 0 -2px #1d2734; }
 }
 .rooms .room.craftroom {
   grid-column: 1/-1;

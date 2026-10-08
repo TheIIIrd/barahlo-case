@@ -94,26 +94,36 @@ function megaOdds(value, target = megaTarget) {
 // Можно ли нацелить мегаконтракт на кейс c при текущем вложении.
 const megaTargetOk = (c, value) => !megaOdds(value, c.id).why;
 
+// Описание обоих режимов — четыре плитки-факта. Обе четвёрки лежат в одной клетке сетки (видна одна),
+// поэтому описание не меняет высоту при переключении рубильника.
+const contractFacts = (mode, facts) => `<div class="cfacts cm-${mode}">` + facts.map(([ic, b, t, hl]) =>
+  `<div class="cfact"><span class="i" aria-hidden="true">${ic}</span><b${hl ? ' class="hl"' : ''}>${b}</b><span>${t}</span></div>`).join('') + '</div>';
+$('cLead').innerHTML = contractFacts('n', [
+  ['📦', '10 предметов', 'одной редкости, из инвентаря ниже'],
+  ['⬆️', '1 классом выше', 'скорее из кейса, откуда вложено больше'],
+  ['✨', 'Износ лучше', 'чем в среднем у вложенных'],
+  ['🗑️', 'Минусовые', 'отличный способ от них избавиться'],
+]) + contractFacts('m', [
+  ['📦', `${MEGA_MIN}–${MEGA_MAX} предметов`, 'любой редкости'],
+  ['🎲', '1 предмет', `ценой обычно ${fmtPct(MEGA_RANGE[0] * 100, 0)}–${fmtPct(MEGA_RANGE[1] * 100, 0)} вложенного`],
+  ['⚖️', `В среднем ${fmtPct(MEGA_RETURN * 100, 0)}`, `${fmtPct(MEGA_TARGET_RETURN * 100, 0)}, если выбрать кейс`, true],
+  ['➖', 'Минусовые', 'уменьшают вложенное'],
+]);
+$('cTarget').parentElement.title = `Нацелить на один кейс: так проще добрать музей и именные предметы для Кузни, но в среднем выйдет ${fmtPct(MEGA_TARGET_RETURN * 100, 0)}`;
+$('cMegaSub').textContent = `до ${MEGA_MAX} предметов любой редкости → 1 по стоимости`;
+
 function renderMegaSwitch() {
   $('cMega').setAttribute('aria-checked', contractMega);
   $('v-contract').classList.toggle('mega', contractMega);
-  $('cTitle').innerHTML = contractMega
-    ? `⚡ Мегаконтракт <small>до ${MEGA_MAX} предметов любой редкости → 1 по стоимости</small>`
-    : 'Контракт обмена <small>10 предметов → 1 классом выше</small>';
-  $('cLead').textContent = contractMega
-    ? `Сложи от ${MEGA_MIN} до ${MEGA_MAX} предметов любой редкости. Взамен — один предмет ценой обычно от ${fmtPct(MEGA_RANGE[0] * 100, 0)} до ${fmtPct(MEGA_RANGE[1] * 100, 0)} вложенного, в среднем ${fmtPct(MEGA_RETURN * 100, 0)}. Предметы с минусом уменьшают вложенное. Можно нацелить на один кейс — так проще добрать музей и именные предметы для Кузни, но в среднем выйдет ${fmtPct(MEGA_TARGET_RETURN * 100, 0)}.`
-    : 'Выбери в инвентаре 10 предметов одной редкости. Взамен получишь один предмет следующей редкости из тех же кейсов — чем больше вложено из кейса, тем вероятнее результат из него. Износ результата заметно лучше среднего вложенного. Заодно отличный способ избавиться от вещей с отрицательной ценой.';
-  $('cInfo').hidden = contractMega;
-  $('cMegaInfo').hidden = !contractMega;
-  $('cAuto').textContent = contractMega ? 'Добавить дешёвое' : 'Автозаполнить дешёвым';
-  $('cGo').textContent = contractMega ? '⚡ Подписать мегаконтракт' : 'Подписать контракт';
 }
 
 function renderMega() {
   const n = contractItems.length;
   $('slots').setAttribute('aria-hidden', 'true'); // сто значков читать вслух незачем: количество — в «Предметов»
-  $('slots').innerHTML = contractItems.map((x) => `<div class="slot f" style="--c:${RARITY[x.r].c}" title="${x.name} · ${fmt(x.price)}">${x.ic}</div>`).join('') +
-    (n < MEGA_MAX ? '<div class="slot more" aria-hidden="true">+</div>' : '');
+  $('slots').innerHTML = n
+    ? contractItems.map((x) => `<div class="slot f" style="--c:${RARITY[x.r].c}" title="${x.name} · ${fmt(x.price)}">${x.ic}</div>`).join('') +
+      (n < MEGA_MAX ? '<div class="slot more" aria-hidden="true">+</div>' : '')
+    : `<div class="mg-empty">Сюда лягут до ${MEGA_MAX} предметов. Выбирай в инвентаре ниже или добавляй кнопками внизу.</div>`;
   const value = megaValue();
   $('mgN').textContent = `${n} / ${MEGA_MAX}`;
   $('mgIn').textContent = fmt(value);
@@ -139,7 +149,8 @@ function renderMega() {
     const hi = Math.max(...res.odds.map((o) => o.e.base));
     $('mgOut').textContent = `${fmtShort(lo)} – ${fmtShort(hi)} · в среднем ${fmtShort(res.mean)}`;
     // Возможные результаты: самые вероятные, по редкости.
-    const top = res.odds.slice().sort((a, b) => b.p - a.p || b.e.r - a.e.r).slice(0, 14);
+    // Самые вероятные результаты: на телефоне — ровно два ряда (9 и «+N»), на большом экране — 14.
+    const top = res.odds.slice().sort((a, b) => b.p - a.p || b.e.r - a.e.r).slice(0, matchMedia('(max-width:560px)').matches ? 9 : 14);
     $('cOuts').innerHTML = top.map((o) => `<span role="img" style="--c:${RARITY[o.e.r].c}" title="${o.e.name} · ${fmt(o.e.base)} · ${fmtPct(o.p * 100, o.p < 0.01 ? 2 : 1)}" aria-label="${o.e.name}, ${fmt(o.e.base)}, шанс ${fmtPct(o.p * 100, o.p < 0.01 ? 2 : 1)}">${o.e.ic}</span>`).join('') +
       (res.odds.length > top.length ? `<span class="more" title="Всего возможных результатов: ${res.odds.length}">+${res.odds.length - top.length}</span>` : '');
   }
@@ -261,26 +272,27 @@ function fillContract(rarity) {
   if (taken) toast(`Без нужного музею не обошлось: ${taken} ${plural(taken, 'предмет', 'предмета', 'предметов')} с 🏛 в контракте.`, 3200);
 }
 
-// Кнопки по редкостям: сколько незакреплённых предметов каждой редкости есть.
+// Кнопки по редкостям: сколько незакреплённых предметов каждой редкости есть. Ряды обоих режимов лежат
+// в одной клетке сетки (виден один) — при переключении рубильника высота ряда не меняется.
 function renderContractFill() {
-  if (contractMega) {
-    const counts = [0, 0, 0, 0, 0, 0, 0];
-    let neg = 0;
-    state.inv.forEach((x) => { if (!x.lock && !contractItems.includes(x)) { if (x.price < 0) neg++; else counts[x.r]++; } });
-    const full = contractItems.length >= MEGA_MAX || busy;
-    $('cFill').innerHTML = '<span class="lbl">Добавить:</span>' +
-      `<button class="chip" type="button" data-mf="dup" ${full ? 'disabled' : ''} title="Все копии, кроме лучшей (без минусовых — для них своя кнопка)">Дубликаты</button>` +
-      `<button class="chip" type="button" data-mf="neg" ${full || !neg ? 'disabled' : ''} title="Предметы с отрицательной ценой">С минусом<b>${neg}</b></button>` +
-      counts.map((n, r) => `<button class="chip" type="button" data-mf="${r}" style="--c:${RARITY[r].c}" ${n && !full ? '' : 'disabled'}
-        title="Самые дешёвые «${RARITY[r].n}», пока есть место"><i></i>${RARITY[r].n}<b>${n}</b></button>`).join('');
-    $$('[data-mf]', $('cFill')).forEach((b) => (b.onclick = () => megaFill(b.dataset.mf)));
-    return;
-  }
+  // Считаем ровно то, что кнопки возьмут: без закреплённых, без лежащего на верстаке и на ставке апгрейда.
+  const elsewhere = new Set([...bench, upgradeStake].filter(Boolean));
+  const mc = [0, 0, 0, 0, 0, 0, 0];
+  let neg = 0;
+  state.inv.forEach((x) => { if (!x.lock && !contractItems.includes(x) && !elsewhere.has(x)) { if (x.price < 0) neg++; else mc[x.r]++; } });
+  const full = !contractMega || contractItems.length >= MEGA_MAX || busy;
+  const mega = '<div class="cm-m"><span class="lbl">Добавить:</span>' +
+    `<button class="chip" type="button" data-mf="dup" ${full ? 'disabled' : ''} title="Все копии, кроме лучшей (без минусовых — для них своя кнопка)">Дубликаты</button>` +
+    `<button class="chip" type="button" data-mf="neg" ${full || !neg ? 'disabled' : ''} title="Предметы с отрицательной ценой">С минусом<b>${neg}</b></button>` +
+    mc.map((n, r) => `<button class="chip" type="button" data-mf="${r}" style="--c:${RARITY[r].c}" ${n && !full ? '' : 'disabled'}
+      title="Самые дешёвые «${RARITY[r].n}», пока есть место"><i></i>${RARITY[r].n}<b>${n}</b></button>`).join('') + '</div>';
   const counts = [0, 0, 0, 0, 0, 0];
-  state.inv.forEach((x) => { if (x.r < 6 && !x.lock) counts[x.r]++; });
-  $('cFill').innerHTML = '<span class="lbl">Самыми дешёвыми:</span>' + counts.map((n, r) => `
-    <button class="chip" type="button" data-cf="${r}" style="--c:${RARITY[r].c}" ${n >= 10 && !busy ? '' : 'disabled'}
-      title="10 самых дешёвых «${RARITY[r].n}»"><i></i>${RARITY[r].n}<b>${n}</b></button>`).join('');
+  state.inv.forEach((x) => { if (x.r < 6 && !x.lock && !elsewhere.has(x)) counts[x.r]++; });
+  const normal = '<div class="cm-n"><span class="lbl">Самыми дешёвыми:</span>' + counts.map((n, r) => `
+    <button class="chip" type="button" data-cf="${r}" style="--c:${RARITY[r].c}" ${n >= 10 && !busy && !contractMega ? '' : 'disabled'}
+      title="10 самых дешёвых «${RARITY[r].n}»"><i></i>${RARITY[r].n}<b>${n}</b></button>`).join('') + '</div>';
+  $('cFill').innerHTML = normal + mega;
+  $$('[data-mf]', $('cFill')).forEach((b) => (b.onclick = () => megaFill(b.dataset.mf)));
   $$('[data-cf]', $('cFill')).forEach((b) => (b.onclick = () => fillContract(+b.dataset.cf)));
 }
 
@@ -319,6 +331,7 @@ $('cGo').onclick = async () => {
   contractItems.slice().forEach(removeItem);
   state.pending = [result];
   state.contracts++;
+  trackBest(result); // до сохранения: перезагрузка посреди анимации не теряет статистику
   holdXP(25);
   save();
   renderPicker();
@@ -334,7 +347,6 @@ $('cGo').onclick = async () => {
   await sleep(reducedMotion ? 100 : 700);
 
   contractItems = [];
-  trackBest(result);
   releaseXP();
   renderContract();
   renderInventory();
@@ -371,6 +383,7 @@ async function signMega() {
   contractItems.slice().forEach(removeItem);
   state.pending = [result];
   state.contracts++;
+  trackBest(result); // до сохранения: перезагрузка посреди анимации не теряет статистику
   holdXP(25 + n / 4);
   save();
   renderPicker();
@@ -386,7 +399,6 @@ async function signMega() {
   await sleep(reducedMotion ? 100 : 900);
 
   contractItems = [];
-  trackBest(result);
   releaseXP();
   renderContract();
   renderInventory();

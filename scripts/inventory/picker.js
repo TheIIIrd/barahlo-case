@@ -12,6 +12,16 @@ let megaTarget = '';      // мегаконтракт нацелен на кей
 const takenItems = () => new Set([...bench, ...contractItems, upgradeStake].filter(Boolean));
 let upgradeStake = null;
 let upgradeMult = 2;
+
+/* Предмет лежит только в одном месте: верстак, контракт или ставка апгрейда. Кладём в новое место —
+   убираем из прежнего и говорим об этом, чтобы одно действие не съело то, что показано в другом. */
+function claimItem(it, place) {
+  const from = [];
+  if (place !== 'bench' && bench.includes(it)) { bench = bench.filter((x) => x !== it); from.push('с верстака'); }
+  if (place !== 'contract' && contractItems.includes(it)) { contractItems = contractItems.filter((x) => x !== it); from.push('из контракта'); }
+  if (place !== 'upgrade' && upgradeStake === it) { upgradeStake = null; from.push('со ставки апгрейда'); }
+  if (from.length) toast(`«${baseName(it)}» переложен ${from.join(' и ')}.`, 2600);
+}
 let upgradeAdd = 0; // доплата деньгами к ставке апгрейда
 
 function pickerList() {
@@ -25,7 +35,7 @@ function pickerList() {
 $('sort').onchange = () => renderPicker();
 
 function renderPicker() {
-  const fk = focusKey($('wrap'));
+  const fk = focusKey($('picker'));
   try { renderPickerNow(); } finally { restoreFocus(fk); }
 }
 function renderPickerNow() {
@@ -57,10 +67,10 @@ function renderPickerNow() {
       else if (x.lock || x.r >= 6 || (rarity !== null && x.r !== rarity) || contractItems.length >= 10) cls += ' dim';
     } else {
       if (upgradeStake === x) cls += ' sel';
-      if (x.price <= 0) cls += ' dim';
+      if (x.price <= 0 || x.lock) cls += ' dim';
     }
     return `
-      <button class="${cls}" type="button" data-u="${x.uid}"
+      <button class="${cls}" type="button" data-u="${x.uid}"${cls.includes(' dim') ? ' aria-disabled="true"' : ''}
         style="--c:${RARITY[x.r].c};${k > 8 ? 'animation:none' : ''}" title="${x.name} · ${x.wear}">
         ${x.stat ? '<span class="st">СЧ™</span>' : ''}<span class="ic">${x.ic}</span>${baseName(x)}
         <span class="p${x.price < 0 ? ' neg' : ''}" title="${fmt(x.price)}">${fmtShort(x.price)}</span>
@@ -78,7 +88,10 @@ function pickerClick(it, el) {
     if (el.classList.contains('dim')) return;
     const i = contractItems.indexOf(it);
     if (i >= 0) contractItems.splice(i, 1);
-    else contractItems.push(it);
+    else {
+      claimItem(it, 'contract');
+      contractItems.push(it);
+    }
     tone(800, 0.04);
     renderContract();
     renderPicker();
@@ -87,7 +100,12 @@ function pickerClick(it, el) {
       toast('Предмет с отрицательной ценой апгрейдить нельзя. Только выбросить.');
       return;
     }
-    upgradeStake = upgradeStake === it ? null : it;
+    if (it.lock) { toast('Закреплённое на апгрейд не ставим — сначала открепи в инвентаре.'); return; }
+    if (upgradeStake === it) upgradeStake = null;
+    else {
+      claimItem(it, 'upgrade');
+      upgradeStake = it;
+    }
     tone(800, 0.04);
     renderUpgrade();
     renderPicker();
