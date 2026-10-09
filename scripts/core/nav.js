@@ -18,6 +18,10 @@ function goTab(t) {
   $$('.tabs .tab').forEach((x) => x.setAttribute('aria-selected', x.dataset.tab === t));
   TABS.forEach((v) => ($('v-' + v).hidden = v !== t));
   $('picker').hidden = !(t === 'contract' || t === 'upgrade');
+  // «Выбор из инвентаря» у контракта — внутри вкладки (справа или ниже), у апгрейда — отдельной панелью под ней.
+  if (t === 'contract' || t === 'upgrade') resetPickPage(); // выбор снова с первых LIST_PAGE предметов
+  const pickHost = t === 'contract' ? $('cSide') : $('pickHome');
+  if ($('picker').parentElement !== pickHost) pickHost.appendChild($('picker'));
   if (t !== 'inventory') closeItemCard();
   if (t === 'crash') sizeCrashCanvas();
   // Кнопки открытия и «Курса огурцов» обновляем при каждом переходе: пока шла анимация на другой
@@ -25,12 +29,14 @@ function goTab(t) {
   if (t === 'cases') updateOpenButton(); // заодно перемерит подсказку, измеренную на скрытой вкладке
   if (t === 'crash') updateCrashButton();
   if (t === 'upgrade') renderUpgrade(); // доплата и шанс зависят от баланса, а он мог измениться
+  if (t === 'contract') renderContract(); // предмет могли закрепить или продать на другой вкладке
   renderInventory();
   if (t === 'inventory') {
     renderMuseum();
     renderCraft();
   }
   if (t === 'cards') renderCards();
+  updateCBar(); // липкая полоса контракта — только на его вкладке
   // Новая вкладка начинается сверху: если страница прокручена ниже полосы вкладок — возвращаемся к ней.
   const bar = $$('.tabs')[0];
   if (bar.getBoundingClientRect().top < 0) bar.scrollIntoView({ block: 'start', behavior: reducedMotion ? 'auto' : 'smooth' });
@@ -47,7 +53,10 @@ function setSub(section) {
   INV_SECTIONS.forEach((v) => ($('sub-' + v).hidden = v !== section));
   if (section !== 'items') closeItemCard();
   if (section === 'museum') renderMuseum();
-  if (section === 'craft') renderCraft();
+  if (section === 'craft') {
+    benchPickLimit = LIST_PAGE; // «Что положить» снова с первых видов
+    renderCraft();
+  }
   if (section === 'items') renderInvView();
   tone(560, 0.03);
 }

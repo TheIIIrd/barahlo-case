@@ -88,7 +88,7 @@ function renderUpgradeNow() {
     ? `${fmtPct(chance * 100, chance < 0.01 ? 2 : chance < 0.1 ? 1 : 0)}<small>шанс успеха</small>`
     : '—<small>шанс</small>';
   $('mults').innerHTML = UPGRADE_MULTS
-    .map((m) => `<button class="btn${m === upgradeMult ? ' primary' : ''}" type="button" data-m="${m}">×${m}</button>`).join('');
+    .map((m) => `<button class="btn${m === upgradeMult ? ' primary' : ''}" type="button" data-m="${m}">×${NF.format(m)}</button>`).join('');
   $$('button', $('mults')).forEach((b) => (b.onclick = () => {
     if (busy) return;
     upgradeMult = +b.dataset.m;
@@ -118,13 +118,13 @@ let needleAngle = 0;
 let upgradeShown = { add: 0, chance: 0 };
 
 $('uGo').onclick = async () => {
-  if (upgradeStake && upgradeStake.lock) { renderUpgrade(); toast('Ставку закрепили — закреплённое не сжигаем.'); return; }
+  if (upgradeStake && upgradeStake.lock) { renderUpgrade(); toast('Ставка закреплена, а закреплённое не сжигается.'); return; }
   const target = upgradeTarget();
   if (!target || busy) return;
   // Баланс успел измениться (заём, возврат долга), а экран — нет: сначала показываем новые цифры.
   if (Math.abs(effectiveAdd(target) - upgradeShown.add) > 0.001 || Math.abs(upgradeChance(target, effectiveAdd(target)) - upgradeShown.chance) > 1e-9) {
     renderUpgrade();
-    toast('Баланс изменился — проверь доплату и шанс и жми ещё раз.');
+    toast('Баланс изменился — проверь доплату и шанс и нажми ещё раз.');
     return;
   }
   busy = true;
@@ -162,7 +162,7 @@ $('uGo').onclick = async () => {
   if (win) {
     renderStats();
     renderInventory();
-    showDrop(prize, `Апгрейд ×${mult} удался!`, () => {
+    showDrop(prize, `Апгрейд ×${NF.format(mult)} удался!`, () => {
       busy = false;
       renderUpgrade();
     });

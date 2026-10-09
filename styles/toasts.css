@@ -18,7 +18,7 @@
   border: 1px solid var(--line);
   padding: 10px 16px;
   border-radius: 10px;
-  font-size: 13px;
+  font-size: var(--fs-m);
   animation: slidein .3s;
   max-width: 100%;
   pointer-events: none; /* уведомление не перехватывает нажатия на кнопки под ним */
@@ -36,4 +36,42 @@
 body:has(.modal:not([hidden])) #toasts {
   top: calc(12px + env(safe-area-inset-top, 0px));
   bottom: auto;
+}
+
+/* Кнопка «В самый низ» / «Наверх» (scripts/core/toend.js). Видна только на длинных страницах. */
+.toend {
+  position: fixed;
+  right: calc(14px + env(safe-area-inset-right, 0px));
+  bottom: calc(16px + var(--lift, 0px) + env(safe-area-inset-bottom, 0px));
+  z-index: 54;
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--panel2) 92%, transparent);
+  color: var(--fg);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .45);
+  backdrop-filter: blur(6px);
+  cursor: pointer;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(8px);
+  transition: opacity .2s, visibility .2s, transform .2s, bottom .2s;
+}
+.toend.on { opacity: 1; visibility: visible; transform: none; }
+.toend.lifted { bottom: calc(16px + var(--lift)); }
+.toend svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; transition: transform .2s; }
+.toend.up svg { transform: rotate(180deg); }
+.toend:hover { color: var(--accent); border-color: var(--accent); }
+.toend:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* Под окнами и шторками (карточка предмета и карты на телефоне) кнопки нет. */
+body:has(.modal:not([hidden])) .toend { opacity: 0; visibility: hidden; }
+@media (max-width: 860px) {
+  body:has(.detail.show, .cdetail.show) .toend { opacity: 0; visibility: hidden; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .toend, .toend svg { transition: none; }
 }

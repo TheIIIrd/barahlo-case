@@ -42,7 +42,7 @@
 .room .rt b {
   overflow-wrap: anywhere;
   hyphens: auto;
-  font-size: 12.5px;
+  font-size: var(--fs-m);
   line-height: 1.2;
   overflow: hidden;
   display: -webkit-box;
@@ -50,6 +50,8 @@
   -webkit-box-orient: vertical;
   min-height: 2.4em;
   display: -webkit-box;
+  font-family: var(--f-display);
+  font-weight: 400;
 }
 .room .bar {
   position: relative;
@@ -77,11 +79,12 @@
 }
 .room .cnt {
   font-family: var(--f-mono);
-  font-size: 10.5px;
+  font-size: var(--fs-xs);
   color: var(--muted);
   display: flex;
   justify-content: space-between;
 }
+.room .cnt .can { font-family: var(--f-body); }
 .room.done { border-color: var(--accent); }
 .room.done .bar i { background: var(--accent); }
 .room .can {
@@ -104,11 +107,11 @@
 .hall-top h3 {
   font-family: var(--f-display);
   font-weight: 400;
-  font-size: 20px;
+  font-size: var(--fs-title);
   margin: 0;
 }
 .hall-top .bonus {
-  font-size: 12px;
+  font-size: var(--fs-s);
   color: var(--muted);
 }
 .hall-top .bonus b { color: var(--accent); }
@@ -151,8 +154,8 @@
   line-height: 1.15;
 }
 .ex .nm {
-  font-size: 12px;
-  font-weight: 700;
+  font-size: var(--fs-s);
+  font-weight: 600;
   line-height: 1.2;
   height: 2.4em;
   overflow: hidden;
@@ -162,32 +165,33 @@
   width: 100%;
 }
 .ex .meta {
-  font-family: var(--f-mono);
-  font-size: 10px;
+  font-size: var(--fs-micro);
   color: var(--muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
+  font-variant-numeric: tabular-nums;
 }
 .ex .plate {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
   max-width: 100%;
   white-space: nowrap; /* «Мусор средней руки» в две строки сдвигал карточку вниз */
   overflow: hidden;
   text-overflow: ellipsis;
-  font-size: 10px;
-  letter-spacing: .08em;
-  text-transform: uppercase;
   color: color-mix(in srgb, var(--c) 70%, #fff); /* мелкий текст: синий и фиолетовый светлее, чтобы читались */
 }
 .ex .btn {
   width: 100%;
   min-height: 46px; /* «Сдать», «Выкупить … ₽» и «Заменить» — одной высоты в ряду */
   margin-top: auto;
-  font-size: 12px;
+  font-size: var(--fs-s);
   padding: 7px 8px;
 }
-.ex .btn small { display: block; font-family: var(--f-mono); font-size: 11px; white-space: nowrap; }
+.ex .btn small { display: block; font-family: var(--f-mono); font-weight: 600; font-size: var(--fs-xs); white-space: nowrap; }
 .ex .meta:has(+ .btn) { margin-bottom: 6px; }
 .ex.vacant .ic {
   filter: grayscale(1) brightness(.5);
@@ -206,12 +210,12 @@
   position: static;
   display: inline-block;
   margin-top: 2px;
-  font-size: 9px;
-  font-family: var(--f-mono);
+  font-size: var(--fs-badge);
   padding: 1px 5px;
   border-radius: 4px;
   background: var(--good);
   color: #06210f;
+  font-weight: 800;
 }
 .ex.flash { animation: exflash .9s ease-out; }
 @keyframes exflash {
@@ -222,6 +226,6 @@
   position: absolute;
   bottom: 4px;
   right: 5px;
-  font-size: 11px;
+  font-size: var(--fs-xs);
   z-index: 1;
 }

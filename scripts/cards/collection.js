@@ -85,15 +85,15 @@ function renderAlbumDetail() {
   const recipe = recipeOpen(card)
     ? rec.need.map((q) => `${needLabel(q, card)}${q.n > 1 ? ' ×' + q.n : ''}`).join(' + ')
     : `откроется, когда выкуешь ${cardTitle(CARD_BY_ID.get(card.suit.id + RANK_IDS[card.rank - 1]))}`;
-  box.innerHTML = `<button class="btn sm close" type="button" id="aClose" aria-label="Закрыть">✕</button>
+  box.innerHTML = `<button class="btn sm close" type="button" id="aClose" aria-label="Закрыть" title="Закрыть">✕</button>
     ${known ? cardHTML(card, { count: cardCount(card.id) }) : cardBackHTML(card)}
     <h3>${known ? cardTitle(card) : `${RANKS[card.rank]}${card.suit.sym} — ещё не выкована`}</h3>
     ${known ? `<p class="lore">${card.lore}</p>
       <div class="cstats"><span>🪙 Цена ${card.cost}</span><span>⚔️ Атака ${card.atk}</span><span>❤️ Здоровье ${card.hp}</span></div>
-      ${sig ? `<p class="csig"><b>${sig.n}.</b> ${sig.d}</p>` : ''}
+      ${sig ? `<p class="csig"><b>${sig.n}.</b> ${sig.d}.</p>` : ''}
       <p class="muted">В коллекции ×${cardCount(card.id)} · характеристики пригодятся в будущих сражениях</p>` : ''}
     <p class="crecipe"><b>Рецепт:</b> ${recipe}</p>
-    <button class="btn primary" type="button" id="aForge">⚒️ ${recipeOpen(card) ? 'В Кузню' : 'Открыть Кузню'}</button>`;
+    <button class="btn primary" type="button" id="aForge">⚒️ В Кузню</button>`;
   $('aClose').onclick = closeAlbumCard;
   $('aForge').onclick = () => {
     if (busy) return;

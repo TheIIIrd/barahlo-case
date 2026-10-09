@@ -17,7 +17,7 @@ function restoreBlockHTML(it) {
         <div><div class="k">Шанс успеха</div><div class="v">${Math.round(RESTO_CHANCE * 100)}%</div></div>
       </div>
       <button class="btn" type="button" id="dtResto" ${noMoneyNow || busy ? 'disabled' : ''}>${noMoneyNow ? 'Не хватает на реставрацию' : 'Реставрировать'}</button>
-      <div class="note" style="margin:0">Успех снижает износ в 1,5–4 раза, неудача — реставратор чихнул, и износ растёт. Каждая попытка втрое дороже. Чем ниже износ, тем дороже предмет: на «Музейном» ×2, на «Атомарно чистом» ×5 и больше.</div>
+      <div class="note" style="margin:0">При успехе износ падает в 1,5–4 раза, при неудаче реставратор чихает и износ растёт. Каждая попытка втрое дороже. Чем ниже износ, тем дороже предмет: на «Музейном» ×2, на «Атомарно чистом» ×5 и больше.</div>
     </div>`;
 }
 
@@ -65,7 +65,7 @@ async function restore(it) {
       burst(r.left + r.width / 2, r.top + r.height / 2, ['#ffffff', '#5fe08a', '#ffd23f'], 90);
     }
     floatText(hero, `Износ ${fmtWear(oldFloat)} → ${fmtWear(it.float)}`, 'var(--good)');
-    toast(`Отреставрировано: ${it.wear}. Цена ${fmtShort(oldPrice)} → ${fmtShort(it.price)}.`, 3200);
+    toast(`Отреставрировано до состояния «${it.wear}». Цена ${fmtShort(oldPrice)} → ${fmtShort(it.price)}.`, 3200);
   } else {
     sad();
     shake();

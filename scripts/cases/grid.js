@@ -72,7 +72,7 @@ function renderCasesNow() {
     const price = casePrice(c);
     const discounted = !c.free && price < c.price;
     const priceHTML = c.free
-      ? 'Бесплатно'
+      ? '<span class="word">Бесплатно</span>'
       : (discounted && !c.tier ? '<s>' + fmtShort(c.price) + '</s>' : '') + fmtShort(price);
     const left = buffLeft(c);
     return `
@@ -159,5 +159,5 @@ function tickBuffs() {
 function renderBuffNote() {
   const left = buffLeft(currentCase);
   $('caseBuff').hidden = !left;
-  if (left) $('caseBuff').textContent = `🔥 Бафф: редкие выпадают в ${BUFF_MULT} раз чаще · ещё ${fmtLeft(left)}`;
+  if (left) $('caseBuff').textContent = `🔥 Бафф: редкие ×${BUFF_MULT} · ещё ${fmtLeft(left)}`;
 }

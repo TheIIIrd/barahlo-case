@@ -99,7 +99,7 @@
 }
 .case .nm {
   font-family: var(--f-display);
-  font-size: 13px;
+  font-size: var(--fs-m);
   line-height: 1.25;
   height: 2.5em;
   overflow: hidden;
@@ -113,20 +113,20 @@
 }
 .case .pr {
   font-family: var(--f-mono);
-  font-size: 11px;
+  font-size: var(--fs-xs);
   color: var(--accent);
 }
+.case .pr .word { font-family: var(--f-body); font-weight: 600; }
 .case .tag {
   position: absolute;
   top: 10px;
   right: 10px;
-  font-family: var(--f-mono);
-  font-size: 9.5px;
+  font-size: var(--fs-badge);
   padding: 1px 5px;
   border-radius: 4px;
   background: var(--good);
   color: #06210f;
-  font-weight: 600;
+  font-weight: 800;
 }
 /* Бафф: таймер в углу плитки и тёплая рамка (без анимаций — плиток много). */
 .case.buffed {
@@ -139,7 +139,7 @@
   right: 10px;
   bottom: 10px;
   font-family: var(--f-mono);
-  font-size: 10px;
+  font-size: var(--fs-micro);
   font-weight: 600;
   color: var(--accent2);
   font-variant-numeric: tabular-nums;

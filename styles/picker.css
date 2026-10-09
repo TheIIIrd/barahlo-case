@@ -8,14 +8,14 @@
   margin-bottom: 10px;
 }
 .inv-hint {
-  font-size: 12px;
+  font-size: var(--fs-s);
   color: var(--accent);
   flex: 1;
   min-width: 180px;
 }
 select {
   font-family: var(--f-body);
-  font-size: 13px;
+  font-size: var(--fs-m);
   padding: 6px 8px;
   border-radius: 8px;
   border: 1px solid var(--line);
@@ -40,7 +40,8 @@ select {
   border-bottom: 3px solid var(--c);
   padding: 8px 4px 6px;
   text-align: center;
-  font-size: 10.5px;
+  font-size: var(--fs-xs);
+  font-weight: 600;
   line-height: 1.2;
   min-width: 0;
   overflow-wrap: anywhere; /* длинное слово переносится, а не наезжает на соседнюю плитку */
@@ -56,24 +57,26 @@ select {
 .inv-item .p {
   display: block;
   font-family: var(--f-mono);
+  font-weight: 400;
   color: var(--good);
-  font-size: 10px;
+  font-size: var(--fs-micro);
   margin-top: 2px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
 }
+.inv-item .p .word { font-family: var(--f-body); }
 .inv-item .st {
   position: absolute;
   top: 3px;
   left: 3px;
-  font-family: var(--f-mono);
-  font-size: 8px;
+  font-size: var(--fs-badge);
   padding: 0 3px;
   border-radius: 3px;
   background: var(--accent2);
   color: #2a1600;
+  font-weight: 800;
 }
 .inv-item .x {
   position: absolute;
@@ -83,7 +86,7 @@ select {
   place-items: center;
   background: rgba(13, 17, 23, .88);
   font-weight: 800;
-  font-size: 12px;
+  font-size: var(--fs-s);
   color: var(--good);
   opacity: 0;
   transition: .15s;
@@ -109,7 +112,7 @@ select {
   from { transform: scale(.3); }
 }
 .empty {
-  font-size: 13px;
+  font-size: var(--fs-m);
   color: var(--muted);
   grid-column: 1/-1;
 }
@@ -117,7 +120,7 @@ select {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  font-size: 13px;
+  font-size: var(--fs-m);
 }
 .stats div {
   display: flex;
@@ -143,7 +146,7 @@ select {
   grid-template-columns: minmax(0, 150px) 1fr 28px;
   gap: 8px;
   align-items: center;
-  font-size: 11px;
+  font-size: var(--fs-xs);
 }
 .rb > span:first-child {
   white-space: nowrap;
@@ -169,7 +172,7 @@ select {
 }
 footer {
   text-align: center;
-  font-size: 11px;
+  font-size: var(--fs-xs);
   color: var(--muted);
 }
 body:has(.bulk:not([hidden])) #toasts {
@@ -178,3 +181,5 @@ body:has(.bulk:not([hidden])) #toasts {
 
 /* Минус на подсвеченной (выбранной) плитке: обычный красный на ней слишком тёмный. */
 .inv-item.sel .p.neg { color: #ff9aa6 !important; }
+/* Выбранные предметы, что лежат дальше показанной части списка. */
+.pick-sep { grid-column: 1 / -1; margin: 6px 2px 0; font-size: var(--fs-s); color: var(--muted); }

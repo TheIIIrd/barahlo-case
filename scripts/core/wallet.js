@@ -77,29 +77,29 @@ $('loan').onclick = () => {
   const now = Date.now();
   loanStreak = now - loanStreak.at < 3000 ? { n: loanStreak.n + 1, at: now, sum: loanStreak.sum + amount } : { n: 1, at: now, sum: amount };
   const text = state.debt >= MAX_DEBT
-    ? `Бабушка дала ${amount < LOAN ? 'последние ' : ''}${fmt(amount)} и закрыла банку с гречкой: больше ${fmt(MAX_DEBT)} в долг не даёт`
+    ? `Бабушка дала ${amount < LOAN ? 'последние ' : ''}${fmt(amount)} и закрыла банку с гречкой: больше ${fmt(MAX_DEBT)} в долг не даёт.`
     : loanStreak.n === 1
     ? pick([
-      `Бабушка дала ${LOAN} ₽ и пирожок`,
+      `Бабушка дала ${fmt(LOAN)} и пирожок.`,
       'Бабушка: «Только на учёбу!»',
-      'Бабушка достала деньги из банки с гречкой',
+      'Бабушка достала деньги из банки с гречкой.',
       'Бабушка: «Опять на свои коробки?»',
     ])
-    : `Бабушка дала уже ${fmt(loanStreak.sum)} подряд и тяжело вздохнула · долг ${fmt(state.debt)}`;
+    : `Бабушка дала уже ${fmt(loanStreak.sum)} подряд и тяжело вздохнула. Долг — ${fmt(state.debt)}.`;
   toast(text, 2400, { key: 'loan' });
   tone(700, 0.1, 'sine', 0.06);
 };
 
 $('repay').onclick = () => {
   if (busy) return; // во время продажи с доплатой баланс ещё не списан — иначе ушёл бы в минус
-  if (!state.debt) { toast('Ты ничего не должен. Бабушка гордится тобой.'); return; }
+  if (!state.debt) { toast('Долгов нет. Бабушка гордится тобой.'); return; }
   const pay = r2(Math.min(state.debt, state.bal));
   if (pay <= 0) { toast('Нечем отдавать. Бабушка поймёт. Наверное.'); return; }
   state.debt = r2(state.debt - pay);
   setBal(-pay);
   renderStats();
   tone(900, 0.1, 'sine', 0.06);
-  toast(state.debt ? `Вернул ${fmt(pay)}. Осталось ${fmt(state.debt)}` : 'Долг погашен! Бабушка испекла пирожки.');
+  toast(state.debt ? `Возвращено ${fmt(pay)}. Осталось ${fmt(state.debt)}.` : 'Долг погашен! Бабушка испекла пирожки.');
 };
 
 /* Кнопки долга. «Вернуть» всегда шириной с «Вернуть 3 000,00 ₽»: подпись и невидимая распорка

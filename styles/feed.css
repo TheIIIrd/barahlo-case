@@ -19,7 +19,7 @@
   border-radius: 8px;
   background: var(--panel);
   border-bottom: 2px solid var(--c);
-  font-size: 12px;
+  font-size: var(--fs-s);
   animation: slidein .5s ease-out;
   max-width: 240px;
 }
@@ -40,7 +40,7 @@
 }
 .feed-item .who {
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--fs-xs);
 }
 @keyframes slidein {
   from { transform: translateX(-30px); opacity: 0; }

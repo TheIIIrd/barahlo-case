@@ -38,7 +38,7 @@ header {
 .brand small {
   display: block;
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--fs-s);
 }
 .wallet {
   display: flex;
@@ -52,8 +52,7 @@ header {
   align-items: center;
 }
 .bal {
-  font-family: var(--f-mono);
-  font-weight: 600;
+  font-weight: 400;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -63,7 +62,7 @@ header {
   border: 1px solid var(--line);
   font-variant-numeric: tabular-nums;
 }
-.bal b { color: var(--good); }
+.bal b { color: var(--good); font-family: var(--f-mono); font-weight: 800; margin-left: .15em; }
 .bump { animation: bump .4s; }
 @keyframes bump {
   40% { transform: scale(1.12); }
@@ -97,7 +96,7 @@ header {
   display: grid;
   place-items: center;
   font-family: var(--f-display);
-  font-size: 14px;
+  font-size: var(--fs-l);
   color: #2a1600;
   background: conic-gradient(var(--accent) var(--p, 0%), var(--panel2) 0);
   position: relative;
@@ -112,19 +111,19 @@ header {
   color: var(--accent);
 }
 .lvl .t {
-  font-size: 12px;
+  font-size: var(--fs-s);
   font-weight: 800;
   line-height: 1.2;
 }
 .lvl .x {
   font-family: var(--f-mono);
-  font-size: 10px;
+  font-size: var(--fs-micro);
   color: var(--muted);
 }
 .btn {
   font-family: var(--f-body);
   font-weight: 800;
-  font-size: 13px;
+  font-size: var(--fs-m);
   border: 1px solid var(--line);
   background: var(--panel2);
   color: var(--fg);

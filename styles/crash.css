@@ -12,23 +12,25 @@
   gap: 10px;
 }
 .field label {
-  display: block;
-  font-size: 11px;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: .08em;
   text-transform: uppercase;
-  letter-spacing: .1em;
+  display: block;
   color: var(--muted);
   margin-bottom: 4px;
 }
 .field input {
   width: 100%;
   font-family: var(--f-mono);
-  font-size: 15px;
+  font-size: var(--fs-l);
   padding: 10px 12px;
   border-radius: 10px;
   border: 1px solid var(--line);
   background: var(--bg2);
   color: var(--fg);
 }
+.field input::placeholder { font-family: var(--f-body); }
 .quick {
   display: flex;
   gap: 6px;
@@ -64,7 +66,7 @@
 .cmult small {
   display: block;
   font-family: var(--f-body);
-  font-size: 13px;
+  font-size: var(--fs-m);
   color: var(--muted);
   font-weight: 600;
 }
@@ -76,8 +78,9 @@
 }
 .chist span {
   font-family: var(--f-mono);
-  font-size: 11px;
+  font-size: var(--fs-xs);
   padding: 3px 8px;
   border-radius: 6px;
   background: var(--bg2);
 }
+.chist .word { font-family: var(--f-body); }

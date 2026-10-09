@@ -18,7 +18,7 @@
   white-space: nowrap;
   text-align: center;
   font-family: var(--f-display);
-  font-size: 14px;
+  font-size: var(--fs-l);
   padding: 10px 16px;
   border-radius: 10px;
   border: 1px solid var(--line);

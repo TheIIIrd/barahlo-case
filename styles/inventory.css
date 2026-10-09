@@ -7,7 +7,7 @@
   background: var(--panel2);
   color: var(--fg);
   font-family: var(--f-mono);
-  font-size: 11px;
+  font-size: var(--fs-xs);
   line-height: 18px;
 }
 .tab[aria-selected="true"] .cnt {
@@ -27,22 +27,25 @@
   min-width: 0;
 }
 .tile .k {
-  font-size: 11px;
-  color: var(--muted);
-  text-transform: uppercase;
+  font-size: var(--fs-xs);
+  font-weight: 600;
   letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted);
 }
 .tile .v {
-  font-family: var(--f-display);
-  font-size: 22px;
+  font-family: var(--f-mono);
+  font-size: var(--fs-num);
   line-height: 1.2;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-weight: 600;
 }
+.tile .v .ti { font-family: var(--f-body); font-size: .9em; }
 .tile .s {
-  font-size: 12px;
+  font-size: var(--fs-s);
   color: var(--muted);
   white-space: nowrap;
   overflow: hidden;
@@ -58,7 +61,7 @@
   flex: 1 1 200px;
   min-width: 0;
   font-family: var(--f-body);
-  font-size: 14px;
+  font-size: var(--fs-l);
   padding: 9px 12px;
   border-radius: 10px;
   border: 1px solid var(--line);
@@ -78,7 +81,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
+  font-size: var(--fs-s);
   font-weight: 600;
   padding: 6px 10px;
   border-radius: 99px;
@@ -111,14 +114,14 @@
   align-items: center;
 }
 .quick-sel .lbl {
-  font-size: 12px;
+  font-size: var(--fs-s);
   color: var(--muted);
   margin-right: 2px;
 }
 .quick-sel input {
   width: 64px;
   font-family: var(--f-mono);
-  font-size: 13px;
+  font-size: var(--fs-m);
   padding: 6px 8px;
   border-radius: 8px;
   border: 1px solid var(--line);
@@ -131,7 +134,7 @@
   gap: 6px;
 }
 .btn.sm {
-  font-size: 12px;
+  font-size: var(--fs-s);
   padding: 6px 10px;
   border-radius: 8px;
 }
@@ -160,7 +163,8 @@
   gap: 16px;
   align-items: start;
 }
-.inv2 .more { grid-column: 1 / -1; justify-self: center; padding-inline: 24px; }
+/* «Показать ещё» — во всю ширину сетки (инвентарь, выбор для контракта и апгрейда, Мастерская, Кузня). */
+:is(.inv2, .inv) > .more { grid-column: 1 / -1; justify-self: center; padding-inline: 24px; margin-block: 4px; }
 .inv2 {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
@@ -203,7 +207,7 @@
   position: relative;
   overflow-wrap: anywhere;
   hyphens: auto;
-  font-size: 11px;
+  font-size: var(--fs-xs);
   font-weight: 600;
   line-height: 1.2;
   height: 2.4em;
@@ -216,12 +220,12 @@
 .icard .p {
   position: relative;
   font-family: var(--f-mono);
-  font-size: 11px;
+  font-size: var(--fs-xs);
   color: var(--good);
 }
 .icard .w {
   position: relative;
-  font-size: 9.5px;
+  font-size: var(--fs-micro);
   color: var(--muted);
   white-space: nowrap;
   overflow: hidden;
@@ -234,19 +238,19 @@
   position: absolute;
   top: 5px;
   left: 5px;
-  font-family: var(--f-mono);
-  font-size: 8.5px;
+  font-size: var(--fs-badge);
   padding: 0 4px;
   border-radius: 3px;
   background: var(--accent2);
   color: #2a1600;
   z-index: 1;
+  font-weight: 800;
 }
 .icard .lk {
   position: absolute;
   top: 4px;
   right: 5px;
-  font-size: 12px;
+  font-size: var(--fs-s);
   z-index: 1;
 }
 .icard .box {
@@ -261,7 +265,7 @@
   z-index: 1;
   display: grid;
   place-items: center;
-  font-size: 12px;
+  font-size: var(--fs-s);
   font-weight: 800;
   color: #2a1600;
 }
@@ -312,28 +316,28 @@
   filter: drop-shadow(0 10px 20px rgba(0, 0, 0, .6));
 }
 .detail .rar {
-  font-family: var(--f-mono);
-  font-size: 11px;
-  letter-spacing: .12em;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: .08em;
   text-transform: uppercase;
   color: var(--c);
 }
 .detail h3 {
   font-family: var(--f-display);
   font-weight: 400;
-  font-size: 19px;
+  font-size: var(--fs-title);
   line-height: 1.2;
   margin: 2px 0 6px;
   text-wrap: balance;
 }
 .detail .lore {
-  font-size: 13px;
+  font-size: var(--fs-m);
   color: var(--muted);
   margin: 0 0 12px;
 }
 .detail .specs { margin-bottom: 12px; }
 /* В узкой панели — в две строки, а не «Найдено на пом…». */
-.detail .specs .v { white-space: normal; overflow-wrap: anywhere; line-height: 1.3; font-size: 12.5px; }
+.detail .specs .v { white-space: normal; overflow-wrap: anywhere; line-height: 1.3; font-size: var(--fs-m); }
 .detail .acts {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -341,13 +345,13 @@
 }
 .detail .acts .wide { grid-column: 1/-1; }
 .detail .note {
-  font-size: 11px;
+  font-size: var(--fs-xs);
   color: var(--muted);
   margin-top: 8px;
 }
 .detail .emptyd {
   color: var(--muted);
-  font-size: 13px;
+  font-size: var(--fs-m);
   text-align: center;
   padding: 30px 8px;
 }
@@ -377,7 +381,7 @@
 @keyframes slideup {
   from { transform: translateY(20px); opacity: 0; }
 }
-.bulk .info { font-size: 14px; }
+.bulk .info { font-size: var(--fs-m); }
 .bulk .info b { font-family: var(--f-mono); }
 #bulkMega .short { display: none; }
 @media (max-width: 560px) { #bulkMega .short { display: inline; } }
@@ -398,7 +402,7 @@
 .saves + .saves { margin-top: 12px; }
 .saves .lbl {
   flex: 1 1 220px;
-  font-size: 12px;
+  font-size: var(--fs-s);
   color: var(--muted);
 }
 .saves .acts {
@@ -419,7 +423,7 @@
   z-index: 75;
   pointer-events: none;
   font-family: var(--f-display);
-  font-size: 18px;
+  font-size: var(--fs-h);
   text-shadow: 0 2px 8px rgba(0, 0, 0, .6);
   animation: floaty 1.1s ease-out forwards;
 }
@@ -501,7 +505,7 @@
   padding: 10px 12px;
   border-radius: 10px;
   font-weight: 800;
-  font-size: 14px;
+  font-size: var(--fs-l);
   color: var(--muted);
   text-align: center;
   min-width: 0;
@@ -518,7 +522,7 @@
 }
 .subnav .cnt {
   font-family: var(--f-mono);
-  font-size: 11px;
+  font-size: var(--fs-xs);
   font-weight: 400;
   padding: 0 6px;
   border-radius: 99px;

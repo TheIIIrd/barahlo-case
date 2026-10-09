@@ -15,24 +15,25 @@
   align-items: baseline;
   gap: 8px;
 }
-.resto .rh b { font-size: 13px; }
+.resto .rh b { font-size: var(--fs-m); }
 .resto .rh span {
-  font-family: var(--f-mono);
-  font-size: 11px;
+  font-size: var(--fs-xs);
   color: var(--muted);
+  font-variant-numeric: tabular-nums;
 }
 .resto .rrow {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 6px;
-  font-size: 12px;
+  font-size: var(--fs-s);
 }
 .resto .rrow div { min-width: 0; }
 .resto .rrow .k {
-  font-size: 10px;
-  color: var(--muted);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: .08em;
   text-transform: uppercase;
-  letter-spacing: .06em;
+  color: var(--muted);
 }
 .resto .rrow .v {
   font-family: var(--f-mono);

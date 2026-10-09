@@ -26,11 +26,6 @@
   }
 }
 
-/* Планшет: сведения мегаконтракта с длинным «Получишь» и выбором кейса бывают в три строки — место под них есть всегда. */
-@media (min-width:561px) and (max-width:1100px) {
-  .cinfo-box { min-height: 120px; }
-}
-
 @media (max-width:560px) {
   /* Ряды кнопок без «сирот»: множители апгрейда и доплата Кузни — ровной сеткой. */
   .mults { display: grid; grid-template-columns: repeat(4, 1fr); }
@@ -42,21 +37,27 @@
   /* Панель выбора: сведения сверху, кнопки — ровным рядом во всю ширину. */
   .bulk { display: grid; grid-template-columns: 1fr; gap: 8px; padding: 10px 12px; }
   .bulk .acts { display: grid; grid-template-columns: auto auto 1fr; gap: 6px; }
-  .bulk .acts .btn { padding-inline: 10px; font-size: 12.5px; white-space: nowrap; }
-  .bulk .info { font-size: 13px; }
+  .bulk .acts .btn { padding-inline: 10px; font-size: var(--fs-m); white-space: nowrap; }
+  .bulk .info { font-size: var(--fs-m); }
   #bulkMega .long { display: none; }
-  /* Мегаконтракт: возможные результаты — ровными рядами по пять. */
-  .mega .outs { display: grid; grid-template-columns: repeat(5, 40px); justify-content: center; }
-  /* Возможные результаты — сразу на два ряда: пока выбираешь предметы, список снизу не прыгает. */
-  .outs { min-height: 86px; align-content: start; }
-  /* Сведения — по строке на пункт; «Получишь» с запасом на две строки. Высота не зависит от сумм. */
-  .contract-info { display: grid; justify-items: center; align-content: center; gap: 4px; }
-  #cMegaInfo > span:nth-of-type(3) { min-height: 2.9em; text-align: center; } /* «Получишь: …» */
-  .cinfo-box { min-height: 0; }
   .inv-hint { min-height: 3em; } /* подсказка выбора в одну или две строки — сетка под ней не прыгает */
-  .cfacts { grid-template-columns: 1fr 1fr; }
-  .cfact { padding: 7px 8px; gap: 1px 6px; font-size: 11.5px; }
-  .cfact .i { font-size: 18px; }
+  /* Пояснение контракта — плитки два на два, мельче: всегда два ряда в обоих режимах. */
+  .chow > div { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .chow .hw { font-size: var(--fs-xs); padding: 6px 7px; gap: 0 5px; }
+  .chow .i { font-size: 13px; }
+  /* Контракт: прогноз в две колонки без стрелки, строки результатов уже; мега — по 10 слотов в ряд. */
+  .fc { padding: 10px 12px; }
+  /* «Вложено» и «Получишь» — друг под другом: длинный диапазон («92 000,00 ₽ – 220 000,00 ₽») помещается целиком. */
+  .fc-sum { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .fc-sum .arr { display: none; }
+  .cact .btn { padding-inline: 10px; }
+  #cGo { white-space: normal; line-height: 1.25; } /* «Подписать мегаконтракт» на 360 — в две строки, а не за край */
+  .fr { grid-template-columns: 22px minmax(0, 1fr) auto 36px 42px; gap: 6px; }
+  .mega .slots { grid-template-columns: repeat(10, minmax(0, 1fr)); }
+  .mega .slot { font-size: clamp(13px, 3.4vw, 18px); }
+  /* Чипы быстрого заполнения — одной строкой, листаются вбок. */
+  #picker .cfill > div { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-inline: -14px; padding: 2px 14px; }
+  #picker .cfill .chip, #picker .cfill .lbl { flex: none; white-space: nowrap; }
   /* На телефоне уведомления сверху: внизу живут кнопки — панель продажи, карточка предмета, окна. */
   #toasts, body:has(.bulk:not([hidden])) #toasts {
     top: calc(10px + env(safe-area-inset-top, 0px));
@@ -80,7 +81,7 @@
     line-height: 1.2;
   }
   .inv2 { grid-template-columns: repeat(3, 1fr); }
-  .tile .v { font-size: 18px; }
+  .tile .v { font-size: var(--fs-l); } /* моно шире: «84 653,79 ₽» с иконкой влезает в плитку на 360 */
   .cases {
     grid-template-columns: 1fr 1fr;
     gap: 6px;
@@ -99,7 +100,7 @@
     width: 30px;
     height: 30px;
   }
-  .case .nm { font-size: 12px; }
+  .case .nm { font-size: var(--fs-s); }
   .case .tag {
     top: 8px;
     right: 8px;
@@ -123,7 +124,7 @@
     grid-column: span 3;
     justify-content: center;
     text-align: center;
-    font-size: 12px;
+    font-size: var(--fs-s);
     padding: 6px 8px;
     line-height: 1.2;
   }
@@ -132,7 +133,7 @@
     grid-template-columns: 1fr 1fr;
   }
   .tab {
-    font-size: 13px;
+    font-size: var(--fs-m);
     padding: 9px 8px;
   }
   .mini { flex-basis: calc((100% - 16px)/3); }
@@ -200,5 +201,5 @@
 @media (max-width:380px) {
   .fslots { gap: 3px; }
   .fslot { width: 53px; }
-  #loan { white-space: nowrap; font-size: 12px; }
+  #loan { white-space: nowrap; font-size: var(--fs-s); }
 }

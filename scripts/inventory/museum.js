@@ -65,13 +65,13 @@ function flashExhibit(key) {
 // Сдать предмет. Если в музее уже есть такой, но потрёпаннее, старый возвращается в инвентарь.
 function donate(it, fromCard) {
   if (busy || !state.inv.includes(it)) return;
-  if (it.lock) { toast('Закреплённое в музей не сдаём — сначала открепи.'); return; }
+  if (it.lock) { toast('Закреплённое не сдаётся в Музей — сначала открепи.'); return; }
   const i = idxOf(it);
-  if (i < 0) { toast('Этот предмет музею не нужен. Съешь его.'); return; }
+  if (i < 0) { toast('Этот предмет Музею не нужен. Съешь его.'); return; }
   const key = museumKey(it.caseId, i);
   const old = state.museum[key];
   if (old && it.float >= old.float) {
-    toast(`В музее уже экспонат лучше: износ ${fmtFloat(old.float)}.`, 3000);
+    toast(`В Музее уже экспонат лучше: износ ${fmtWear(old.float)}.`, 3000);
     return;
   }
 
@@ -79,9 +79,9 @@ function donate(it, fromCard) {
   state.museum[key] = it;
   if (old) {
     state.inv.push(old);
-    toast(`Экспонат заменён. Старый (износ ${fmtFloat(old.float)}) вернулся в инвентарь.`, 3000);
+    toast(`Экспонат заменён. Старый (износ ${fmtWear(old.float)}) вернулся в инвентарь.`, 3000);
   } else {
-    toast(`«${baseName(it)}» теперь в музее. Посетители в восторге.`);
+    toast(`«${baseName(it)}» теперь в Музее. Посетители в восторге.`);
   }
   tone(1000, 0.12, 'triangle', 0.07);
   checkRoom(roomById(it.caseId));
@@ -107,7 +107,7 @@ function buyExhibit(c, i) {
   it.bought = true;
   state.museum[key] = it;
   toast(pick([
-    'Купил на «Авито». Продавец сказал «торг уместен», но не уступил.',
+    'Куплено на «Авито». Продавец сказал «торг уместен», но не уступил.',
     'Выкуплено у коллекционера. Он плакал.',
     'Перекупщик поднял цену в последний момент.',
   ]));
@@ -139,9 +139,9 @@ function donateAll(cid) {
   }
   if (n) {
     tone(1000, 0.12, 'triangle', 0.07);
-    toast(`В музей ${plural(n, 'сдан', 'сдано', 'сдано')} ${n} ${plural(n, 'экспонат', 'экспоната', 'экспонатов')}. Закреплённые предметы я не трогал.`);
+    toast(`В Музей ${plural(n, 'сдан', 'сдано', 'сдано')} ${n} ${plural(n, 'экспонат', 'экспоната', 'экспонатов')}. Закреплённые остались на месте.`);
   } else {
-    toast('Подходящих предметов нет. Закреплённые не трогаются.');
+    toast('Подходящих предметов нет. Закреплённые не сдаются.');
   }
   // После итога: если зал перешёл на новый уровень, его поздравление важнее и заменит итог.
   rooms.forEach((c) => checkRoom(c, rooms.length > 1));
@@ -153,8 +153,8 @@ function museumButtonHTML(it) {
   const i = idxOf(it);
   if (i < 0 || it.lock) return ''; // закреплённое музей не предлагает
   const ex = state.museum[museumKey(it.caseId, i)];
-  if (!ex) return '<button class="btn wide" type="button" id="dtMus">🏛 Сдать в музей</button>';
-  if (it.float < ex.float) return '<button class="btn wide" type="button" id="dtMus">🏛 Заменить экспонат в музее (лучше износ)</button>';
+  if (!ex) return '<button class="btn wide" type="button" id="dtMus">🏛 Сдать в Музей</button>';
+  if (it.float < ex.float) return '<button class="btn wide" type="button" id="dtMus">🏛 Заменить экспонат в Музее (износ лучше)</button>';
   return '';
 }
 
@@ -175,10 +175,10 @@ function renderMuseumNow() {
   $('tabMusN').textContent = n + '/' + MUSEUM_TOTAL;
   $('mN').textContent = `${n} / ${MUSEUM_TOTAL}`;
   $('mNs').textContent = n
-    ? `${Math.round((n / MUSEUM_TOTAL) * 100)}% коллекции · ~${(n * 37).toLocaleString('ru-RU')} посетителей в день`
-    : 'Сдай первый экспонат из инвентаря';
+    ? `${Math.round((n / MUSEUM_TOTAL) * 100)}% Музея · ~${(n * 37).toLocaleString('ru-RU')} посетителей в день`
+    : 'сдай первый экспонат из инвентаря';
   $('mH').textContent = `${Object.keys(state.museumDone).length} / ${ROOMS.length}`;
-  $('mHs').textContent = museumAllDone() ? 'Ты Хранитель Барахла' : 'собери зал целиком';
+  $('mHs').textContent = museumAllDone() ? 'ты Хранитель Барахла' : 'собери зал целиком';
   $('mV').textContent = fmtShort(value);
   $('mV').title = fmt(value);
   $('mVs').textContent = exhibits.length ? 'средний износ ' + fmtWear(avgFloat) : '—';
@@ -236,7 +236,7 @@ function renderHall(c) {
       const better = state.inv
         .filter((y) => !y.lock && y.caseId === c.id && idxOf(y) === i && y.float < ex.float)
         .sort((a, b) => a.float - b.float)[0];
-      const ribbon = ex.stat ? '<span class="rib" style="background:var(--accent2);color:#2a1600">СчётЧих™</span>'
+      const ribbon = ex.stat ? '<span class="rib" style="background:var(--accent2);color:#2a1600">СЧ™</span>'
         : ex.bought ? '<span class="rib" style="background:var(--muted)">куплен</span>' : '';
       return `
         <div class="ex filled" data-k="${key}" style="--c:${RARITY[x[0]].c}">
@@ -244,7 +244,7 @@ function renderHall(c) {
           <span class="meta">${ex.wear}</span>
           <span class="meta">износ ${fmtWear(ex.float)}</span>
           <span class="meta" style="color:${ex.price < 0 ? 'var(--bad)' : 'var(--good)'}">${fmtShort(ex.price)}</span>
-          ${better ? `<button class="btn" type="button" data-swap="${better.uid}">Заменить на лучший (${fmtWear(better.float)})</button>` : ''}
+          ${better ? `<button class="btn" type="button" data-swap="${better.uid}">Заменить (износ ${fmtWear(better.float)})</button>` : ''}
         </div>`;
     }
 
@@ -256,7 +256,7 @@ function renderHall(c) {
       : fmtPct(chanceOf(c, i)) + ' в кейсе';
     let action;
     if (own.length) action = `<button class="btn primary" type="button" data-don="${own[0].uid}">Сдать (есть ${own.length})</button>`;
-    else if (c.craft) action = '<button class="btn" type="button" data-craftgo="1">В мастерскую</button>';
+    else if (c.craft) action = '<button class="btn" type="button" data-craftgo="1">🔨 В Мастерскую</button>';
     else action = `<button class="btn" type="button" data-buy="${i}" ${state.bal < buyPrice(c, i) ? 'disabled' : ''}>Выкупить <small>${fmtShort(buyPrice(c, i))}</small></button>`;
     return `
       <div class="ex vacant" data-k="${key}" style="--c:${RARITY[x[0]].c}">
@@ -267,7 +267,7 @@ function renderHall(c) {
   $('hall').innerHTML = `
     <div class="hall-top">
       <div><h3>${c.ic} ${c.craft ? 'Зал поделок' : `Зал «${c.name}»`}</h3><div class="bonus">${bonus}</div></div>
-      <button class="btn" type="button" id="donAll">Сдать всё подходящее</button>
+      <button class="btn" type="button" id="donAll">🏛 Сдать всё подходящее</button>
     </div>
     <div class="exhibits">${exhibitsHTML}</div>`;
 

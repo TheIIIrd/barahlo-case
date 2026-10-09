@@ -82,7 +82,8 @@ function restoreFocus(key) {
 // «127 тыс», «1,2 млн» (полная сумма — в подсказке слота).
 const slotMoney = (v) => {
   const a = Math.abs(v);
-  if (a >= 1e6) return fmtShort(v).replace(/\u00a0₽$/, '');
+  // «10,9 млрд» не влезает в узкую стопку — от десяти единиц без дробной части: «11 млрд».
+  if (a >= 1e6) return fmtShort(v).replace(/\u00a0₽$/, '').replace(/^(-?\d{2,}),(\d)/, (m, i, d) => String(Math.round(+`${i}.${d}`)));
   if (a >= 1e4) return NF.format(Math.round(v / 1e3)) + '\u00a0тыс';
   if (a >= 100) return NF.format(Math.round(v)) + '\u00a0₽';
   return fmt(v);
@@ -91,13 +92,30 @@ const slotMoney = (v) => {
 // Проценты с русской запятой: 2,35%.
 const fmtPct = (x, digits = 2) => x.toLocaleString('ru-RU', { minimumFractionDigits: digits, maximumFractionDigits: digits }) + '%';
 
-const fmtFloat = (fl) => (fl < 1e-9 ? fl.toExponential(3) : fl.toFixed(10));
+// Числа — с русской запятой, как деньги и проценты: износ 0,6655, множитель ×2,47.
+const fmtFloat = (fl) => (fl < 1e-9 ? fl.toExponential(3) : fl.toFixed(10)).replace('.', ',');
 // Износ коротко, для подписей: 4 значащие цифры, совсем маленький — в экспоненте («2.35e-12»).
-const fmtWear = (fl) => (fl < 1e-4 ? fl.toExponential(2) : fl.toPrecision(4));
+const fmtWear = (fl) => (fl < 1e-4 ? fl.toExponential(2) : fl.toPrecision(4)).replace('.', ',');
+// Множитель «Курса огурцов»: два знака после запятой.
+const fmtX = (m) => '×' + NF_MONEY.format(m);
 
 // Перезапуск CSS-анимации на элементе.
 function replay(el, cls) {
   el.classList.remove(cls);
   void el.offsetWidth;
   el.classList.add(cls);
+}
+
+// «Показать ещё N · всего M» в конце сетки, если показано не всё.
+const moreButtonHTML = (id, rest, page, total) => (rest > 0
+  ? `<button class="btn more" type="button" id="${id}">Показать ещё ${Math.min(page, rest)} · всего ${total}</button>` : '');
+// Нажали «Показать ещё» с клавиатуры (кнопка была в фокусе) — фокус на первый из новых предметов, а не в начало.
+function showMore(btnId, render, grid, sel, from) {
+  const had = document.activeElement === $(btnId);
+  render();
+  const el = had && grid.querySelectorAll(sel)[from];
+  if (el) {
+    el.focus({ preventScroll: true });
+    el.scrollIntoView({ block: 'nearest' }); // в сетке со своей прокруткой плитка выше кнопки — показываем целиком
+  }
 }
