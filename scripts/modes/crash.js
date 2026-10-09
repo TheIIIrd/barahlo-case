@@ -52,7 +52,7 @@ function drawCrash() {
     g.moveTo(34, y);
     g.lineTo(crashW - 10, y);
     g.stroke();
-    g.fillText('×' + +m.toFixed(1), 2, y + 3);
+    g.fillText('×' + NF.format(+m.toFixed(1)), 2, y + 3);
   }
   const stepT = tMax <= 12 ? 2 : tMax <= 30 ? 5 : 10;
   for (let t = 0; t <= tMax; t += stepT) g.fillText(t + 'с', X(t) - 6, crashH - 8);
@@ -104,7 +104,7 @@ function updateCrashButton() {
     hint.textContent = 'новый раунд через секунду';
     btn.disabled = true;
   } else if (crash.state === 'wait' || crash.state === 'run') {
-    label.textContent = crash.state === 'wait' ? 'ЗАСАЛИВАЕМ…' : 'ЖДЁМ КОНЦА РАУНДА';
+    label.textContent = crash.state === 'wait' ? 'ЗАСОЛКА…' : 'ИДЁТ РАУНД';
     hint.textContent = crash.cashed ? 'выигрыш забран' : 'ставка принята';
     btn.disabled = true;
   } else {
@@ -133,7 +133,7 @@ function cashout() {
   state.crashNet = r2(state.crashNet + win - crash.bet);
   setBal(win);
   renderStats();
-  toast(`Забрал на ×${crash.mult.toFixed(2)}: +${fmt(win)}`);
+  toast(`Забрано на ${fmtX(crash.mult)}: +${fmt(win)}.`);
   fanfare(crash.mult >= 10 ? 6 : crash.mult >= 3 ? 4 : 2);
   const r = $('cbox').getBoundingClientRect();
   burst(r.left + r.width / 2, r.top + r.height * 0.4, ['#5fe08a', '#ffffff', '#ffb02e'], crash.mult >= 5 ? 180 : 70);
@@ -188,7 +188,7 @@ $('crashBtn').onclick = async () => {
       lastBeep = m;
       tone(300 + m * 60, 0.03, 'sine', 0.04);
     }
-    setCrashLabel('×' + m.toFixed(2), crash.cashed ? 'Забрано ✓' : 'Курс огурца растёт',
+    setCrashLabel(fmtX(m), crash.cashed ? 'Забрано ✓' : 'Курс огурца растёт',
       crash.cashed ? 'var(--good)' : 'var(--accent)');
     if (!crash.cashed) $('crashTxt').textContent = 'ЗАБРАТЬ ' + fmt(crash.bet * m);
     drawCrash();
@@ -201,8 +201,8 @@ function crashBoom() {
   addXP(4); // за раунд — в конце: если перезагрузить посреди раунда, ставка вернётся, а опыт не начислится
   drawCrash();
   updateCrashButton();
-  setCrashLabel('×' + crash.cp.toFixed(2),
-    crash.cashed ? 'Банка взорвалась, но ты успел' : 'БАНКА ВЗОРВАЛАСЬ',
+  setCrashLabel(fmtX(crash.cp),
+    crash.cashed ? 'Банка взорвалась, но выигрыш уже забран' : 'Банка взорвалась',
     crash.cashed ? 'var(--good)' : 'var(--bad)');
   if (!crash.cashed) {
     state.pendingBet = 0;
@@ -224,6 +224,6 @@ function crashBoom() {
 function renderCrashHistory() {
   $('chist').innerHTML = state.chist.map((m) => {
     const color = m >= 10 ? 'var(--r6)' : m >= 2 ? 'var(--good)' : 'var(--bad)';
-    return `<span style="color:${color}">×${m.toFixed(2)}</span>`;
-  }).join('') || '<span>Раундов ещё не было</span>';
+    return `<span style="color:${color}">${fmtX(m)}</span>`;
+  }).join('') || '<span class="word">Раундов ещё не было</span>';
 }

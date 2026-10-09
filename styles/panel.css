@@ -9,7 +9,7 @@
 .panel h2 {
   font-family: var(--f-display);
   font-weight: 400;
-  font-size: 16px;
+  font-size: var(--fs-h);
   margin: 0 0 12px;
   display: flex;
   justify-content: space-between;
@@ -19,11 +19,11 @@
 }
 .panel h2 small {
   font-family: var(--f-body);
-  font-size: 12px;
+  font-size: var(--fs-s);
   color: var(--muted);
 }
 .lead {
-  font-size: 13px;
+  font-size: var(--fs-m);
   color: var(--muted);
   margin: -4px 0 14px;
   max-width: 70ch;

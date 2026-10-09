@@ -28,28 +28,29 @@
   top: 5px;
   left: 7px;
   font-family: var(--f-display);
-  font-size: 14px;
+  font-size: var(--fs-l);
   line-height: 1;
   color: var(--sc);
 }
 .pcard .pc-corner i {
   display: block;
   font-style: normal;
-  font-size: 12px;
+  font-size: var(--fs-s);
 }
 .pcard .pc-n {
   position: absolute;
   top: 5px;
   right: 6px;
   font-family: var(--f-mono);
-  font-size: 11px;
+  font-size: var(--fs-xs);
   font-weight: 600;
   color: var(--accent);
 }
 .pcard .pc-ic { font-size: 34px; line-height: 1.1; }
 .pcard .pc-nm {
-  font-size: 11px;
-  font-weight: 800;
+  font-family: var(--f-display);
+  font-size: var(--fs-xs);
+  font-weight: 400;
   line-height: 1.15;
   display: -webkit-box;
   -webkit-box-orient: vertical;
@@ -60,11 +61,11 @@
   display: flex;
   gap: 4px;
   font-family: var(--f-mono);
-  font-size: 10px;
+  font-size: var(--fs-micro);
 }
 .pcard .pc-stats b { font-weight: 400; white-space: nowrap; }
 .pcard .pc-sig {
-  font-size: 9.5px;
+  font-size: var(--fs-badge);
   font-weight: 800;
   color: var(--sc);
   text-transform: uppercase;
@@ -92,8 +93,8 @@
   border-width: 1.5px;
   justify-content: center;
 }
-.pcard.xs .pc-corner { top: 3px; left: 4px; font-size: 10px; }
-.pcard.xs .pc-corner i { font-size: 9px; }
+.pcard.xs .pc-corner { top: 3px; left: 4px; font-size: var(--fs-micro); }
+.pcard.xs .pc-corner i { font-size: var(--fs-badge); }
 .pcard.xs .pc-ic { font-size: 22px; }
 .pcard.xs :is(.pc-nm, .pc-stats, .pc-sig, .pc-n) { display: none; }
 .pcard.back.xs .pc-ic { font-size: 18px; }
@@ -105,7 +106,7 @@
   gap: 16px;
   align-items: start;
 }
-.anvil h2 small { font-family: var(--f-body); font-size: 12px; color: var(--muted); }
+.anvil h2 small { font-family: var(--f-body); font-size: var(--fs-s); color: var(--muted); }
 .anvil-top {
   display: flex;
   align-items: center;
@@ -153,9 +154,9 @@
 /* Итог серии */
 .fr-ic { display: flex; justify-content: center; margin: 2px 0 8px; }
 .fr-list { list-style: none; padding: 0; margin: 4px 0 14px; display: flex; flex-direction: column; gap: 6px; text-align: left; }
-.fr-list li { display: grid; grid-template-columns: 12px auto; column-gap: 8px; align-items: baseline; font-size: 13px; padding: 8px 10px; border-radius: 10px; background: var(--bg2); }
+.fr-list li { display: grid; grid-template-columns: 12px auto; column-gap: 8px; align-items: baseline; font-size: var(--fs-m); padding: 8px 10px; border-radius: 10px; background: var(--bg2); }
 .fr-list li i { width: 10px; height: 10px; border-radius: 50%; background: var(--nc); }
-.fr-list li span { grid-column: 2; color: var(--muted); font-size: 12px; }
+.fr-list li span { grid-column: 2; color: var(--muted); font-size: var(--fs-s); }
 .fcard .pcard { width: 140px; }
 .fcard.forged .pcard { animation: forged .9s cubic-bezier(.2, 1.5, .4, 1); }
 @keyframes forged {
@@ -188,7 +189,7 @@
   border-radius: 9px;
   background: linear-gradient(180deg, var(--panel2), var(--bg2));
   border-bottom: 3px solid var(--c);
-  font-size: 9.5px;
+  font-size: var(--fs-micro);
   text-align: center;
   cursor: pointer;
 }
@@ -202,14 +203,14 @@ button.fslot:focus-visible { outline: 2px solid var(--accent); }
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  padding: 0 3px;
+  padding: 0 1px;
 }
 .fslot .p.neg, .fpick-grid .p.neg { color: var(--bad); }
-.fslot .pin { position: absolute; top: 2px; right: 3px; font-size: 10px; }
-.fslot .cft { position: absolute; top: 2px; left: 3px; font-size: 10px; } /* требование — поделка Мастерской */
+.fslot .pin { position: absolute; top: 2px; right: 3px; font-size: var(--fs-micro); }
+.fslot .cft { position: absolute; top: 2px; left: 3px; font-size: var(--fs-micro); } /* требование — поделка Мастерской */
 .fslot .n {
   font-family: var(--f-mono);
-  font-size: 11px;
+  font-size: var(--fs-xs);
   font-weight: 600;
   line-height: 1;
   color: var(--fg);
@@ -219,7 +220,7 @@ button.fslot:focus-visible { outline: 2px solid var(--accent); }
 /* Пять требований (рецепты с поделкой) — слоты чуть уже, чтобы с будущей картой влезть в ряд. */
 .fslots.tight { gap: 4px; }
 .fslots.tight .fslot:not(.card):not(.out) { width: 62px; }
-.fslots.tight .fop { font-size: 13px; }
+.fslots.tight .fop { font-size: var(--fs-m); }
 /* Стопка: требование из нескольких предметов — две «карточки» выглядывают сзади справа сверху.
    Тенями, а не псевдоэлементами: тени не занимают места, поэтому все слоты ряда стоят ровно. */
 .fslot.stack { box-shadow: 3px -3px 0 -1px #263244, 6px -6px 0 -2px #1d2734; }
@@ -243,7 +244,7 @@ button.fslot:focus-visible { outline: 2px solid var(--accent); }
 }
 .fslot.card.short .pcard { opacity: .4; }
 .fslot.card.short .n { color: var(--bad); }
-.fop { font-family: var(--f-display); color: var(--muted); font-size: 16px; }
+.fop { font-family: var(--f-display); color: var(--muted); font-size: var(--fs-h); }
 .fpick { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
 .fpick h3 {
   display: flex;
@@ -253,9 +254,9 @@ button.fslot:focus-visible { outline: 2px solid var(--accent); }
   margin: 0 0 4px;
   font-family: var(--f-display);
   font-weight: 400;
-  font-size: 15px;
+  font-size: var(--fs-h);
 }
-.fpick-help { margin: 0 0 10px; font-size: 12px; color: var(--muted); }
+.fpick-help { margin: 0 0 10px; font-size: var(--fs-s); color: var(--muted); }
 .fpick .chips { margin-bottom: 10px; }
 .inv-item .st.nm { background: var(--panel2); }
 /* «Где взять» под вкладкой требования. */
@@ -267,7 +268,7 @@ button.fslot:focus-visible { outline: 2px solid var(--accent); }
   padding: 10px 12px;
   border-radius: 10px;
   background: var(--bg2);
-  font-size: 12.5px;
+  font-size: var(--fs-m);
 }
 .fwhere > .btn { align-self: flex-start; }
 .fw-row { display: flex; align-items: center; gap: 10px; min-width: 0; }
@@ -282,11 +283,11 @@ button.fslot:focus-visible { outline: 2px solid var(--accent); }
   background: color-mix(in srgb, var(--cc) 35%, var(--panel2));
 }
 .fw-t { flex: 1; min-width: 0; font-weight: 800; }
-.fw-t small { display: block; font-weight: 400; color: var(--muted); font-family: var(--f-mono); font-size: 11px; }
+.fw-t small { display: block; font-weight: 400; color: var(--muted); font-size: var(--fs-xs); font-variant-numeric: tabular-nums; }
 .fw-row .btn { flex: none; }
 /* Мультикрафт: ×1 … ×5. */
 .fmult { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 8px; }
-.fmult .lbl { font-size: 12px; color: var(--muted); }
+.fmult .lbl { font-size: var(--fs-s); color: var(--muted); }
 .fmult { flex-wrap: wrap; }
 .fmult .seg button.short:not([aria-pressed="true"]) { color: var(--bad); }
 .fpick-grid { max-height: 300px; }
@@ -296,12 +297,13 @@ button.fslot:focus-visible { outline: 2px solid var(--accent); }
   flex-wrap: wrap;
   gap: 6px;
 }
-.fadd .btn { flex: 1 1 auto; font-size: 13px; }
-.fadd .btn small { display: block; font-family: var(--f-mono); font-size: 10px; opacity: .8; }
+.fadd .btn { flex: 1 1 auto; font-size: var(--fs-m); }
+.fadd .btn small { display: block; font-family: var(--f-mono); font-weight: 600; font-size: var(--fs-micro); opacity: .8; }
+.fadd .btn small .word { font-family: var(--f-body); }
 .anvil .hint {
   min-height: 2.8em;
   margin: 8px 0 12px;
-  font-size: 12px;
+  font-size: var(--fs-s);
   color: var(--muted);
   text-align: center;
 }
@@ -311,7 +313,7 @@ button.fslot:focus-visible { outline: 2px solid var(--accent); }
   flex-wrap: wrap;
   justify-content: center;
   gap: 4px 14px;
-  font-size: 13px;
+  font-size: var(--fs-m);
   font-weight: 800;
   color: var(--fg);
 }
@@ -325,7 +327,7 @@ button.fslot:focus-visible { outline: 2px solid var(--accent); }
   gap: 6px;
   margin-bottom: 10px;
 }
-.fsuits .sym { color: var(--c); font-size: 14px; }
+.fsuits .sym { color: var(--c); font-size: var(--fs-l); }
 .flist {
   display: flex;
   flex-direction: column;
@@ -348,11 +350,11 @@ button.fslot:focus-visible { outline: 2px solid var(--accent); }
 .frec:focus-visible { outline: 2px solid var(--accent); }
 .frec.sel { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--bg2)); }
 .frec .fr-t { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
-.frec .fr-t b { font-size: 13px; }
-.frec .fr-t small { font-size: 11.5px; color: var(--muted); }
+.frec .fr-t b { font-family: var(--f-display); font-weight: 400; font-size: var(--fs-m); }
+.frec .fr-t small { font-size: var(--fs-s); color: var(--muted); }
 .frec.ok .fr-t small { color: var(--good); }
 .frec.lock { opacity: .82; }
-.frec .fr-p { font-family: var(--f-mono); font-size: 13px; color: var(--accent); }
+.frec .fr-p { font-family: var(--f-mono); font-size: var(--fs-m); color: var(--accent); }
 
 /* Альбом */
 /* Альбом и карточка карты: как инвентарь — справа липкая панель, на телефоне шторка снизу. */
@@ -379,20 +381,20 @@ button.fslot:focus-visible { outline: 2px solid var(--accent); }
   text-align: center;
 }
 .cdetail .close { display: none; }
-.cdetail .emptyd { color: var(--muted); font-size: 13px; padding: 24px 6px; }
+.cdetail .emptyd { color: var(--muted); font-size: var(--fs-m); padding: 24px 6px; }
 .cdetail .emptyd .ic { display: block; font-size: 36px; margin-bottom: 8px; }
 .cdetail .pcard { width: 160px; }
 .cdetail .pcard .pc-ic { font-size: 52px; }
-.cdetail .pcard .pc-nm { font-size: 13px; }
-.cdetail h3 { margin: 4px 0 0; font-family: var(--f-display); font-weight: 400; font-size: 18px; line-height: 1.2; }
-.cdetail p { margin: 0; font-size: 13px; }
+.cdetail .pcard .pc-nm { font-size: var(--fs-m); }
+.cdetail h3 { margin: 4px 0 0; font-family: var(--f-display); font-weight: 400; font-size: var(--fs-title); line-height: 1.2; }
+.cdetail p { margin: 0; font-size: var(--fs-m); }
 .cdetail .lore { font-style: italic; color: var(--muted); }
-.cdetail .muted { color: var(--muted); font-size: 12px; }
-.cdetail .crecipe { font-size: 12px; color: var(--muted); }
+.cdetail .muted { color: var(--muted); font-size: var(--fs-s); }
+.cdetail .crecipe { font-size: var(--fs-s); color: var(--muted); }
 .cdetail .crecipe b { color: var(--fg); }
 .cdetail .btn.primary { width: 100%; margin-top: 4px; }
 .cstats { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
-.cstats span { font-size: 12px; padding: 3px 10px; border-radius: 99px; background: var(--panel2); }
+.cstats span { font-size: var(--fs-s); padding: 3px 10px; border-radius: 99px; background: var(--panel2); }
 .arow .pcard.picked { outline: 2px solid var(--accent); outline-offset: 2px; }
 .album { display: flex; flex-direction: column; gap: 14px; }
 .asuit {
@@ -410,11 +412,11 @@ button.fslot:focus-visible { outline: 2px solid var(--accent); }
   margin: 0 0 10px;
   font-family: var(--f-display);
   font-weight: 400;
-  font-size: 16px;
+  font-size: var(--fs-h);
 }
 .asuit h3 i { font-style: normal; color: var(--sc); }
-.asuit h3 small { font-family: var(--f-body); font-size: 12px; color: var(--muted); }
-.asuit h3 .cnt { margin-left: auto; font-family: var(--f-mono); font-size: 12px; color: var(--muted); }
+.asuit h3 small { font-family: var(--f-body); font-size: var(--fs-s); color: var(--muted); }
+.asuit h3 .cnt { margin-left: auto; font-family: var(--f-mono); font-size: var(--fs-s); color: var(--muted); }
 .arow {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
@@ -428,9 +430,9 @@ button.fslot:focus-visible { outline: 2px solid var(--accent); }
 @media (min-width: 1100px) {
   .arow { grid-template-columns: repeat(13, minmax(0, 1fr)); gap: 5px; }
   .arow .pcard { padding: 16px 2px 4px; border-radius: 8px; justify-content: center; }
-  .arow .pcard .pc-corner { font-size: 11px; top: 3px; left: 4px; }
-  .arow .pcard .pc-corner i { font-size: 10px; }
-  .arow .pcard .pc-n { font-size: 9.5px; top: 3px; right: 3px; }
+  .arow .pcard .pc-corner { font-size: var(--fs-xs); top: 3px; left: 4px; }
+  .arow .pcard .pc-corner i { font-size: var(--fs-micro); }
+  .arow .pcard .pc-n { font-size: var(--fs-micro); top: 3px; right: 3px; }
   .arow .pcard .pc-ic { font-size: 24px; }
   .arow .pcard :is(.pc-nm, .pc-stats, .pc-sig) { display: none; }
 }
@@ -464,9 +466,9 @@ button.fslot:focus-visible { outline: 2px solid var(--accent); }
   .subnav.cards-nav button { flex-direction: row; }
   .arow { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
   .arow .pcard { padding: 16px 2px 4px; border-radius: 8px; justify-content: center; }
-  .arow .pcard .pc-corner { font-size: 11px; top: 3px; left: 4px; }
-  .arow .pcard .pc-corner i { font-size: 10px; }
-  .arow .pcard .pc-n { font-size: 9.5px; top: 3px; right: 3px; }
+  .arow .pcard .pc-corner { font-size: var(--fs-xs); top: 3px; left: 4px; }
+  .arow .pcard .pc-corner i { font-size: var(--fs-micro); }
+  .arow .pcard .pc-n { font-size: var(--fs-micro); top: 3px; right: 3px; }
   .arow .pcard .pc-ic { font-size: 24px; }
   .arow .pcard :is(.pc-nm, .pc-stats, .pc-sig) { display: none; }
   .anvil-top { gap: 16px; }
@@ -474,17 +476,17 @@ button.fslot:focus-visible { outline: 2px solid var(--accent); }
   .fslots .fop:last-of-type, .fslots .fslot.out { display: none; }
   /* Четыре стопки рецепта короля должны влезать в один ряд на 360px. */
   .fslots { gap: 4px; padding: 12px 6px 8px; }
-  .fop { font-size: 13px; }
-  .fslot { width: 58px; padding: 0 2px; min-height: 64px; font-size: 9px; }
+  .fop { font-size: var(--fs-m); }
+  .fslot { width: 58px; padding: 0 2px; min-height: 64px; font-size: var(--fs-badge); }
   .fslot .ic { font-size: 21px; }
-  .fslot .n { font-size: 10px; }
+  .fslot .n { font-size: var(--fs-micro); }
   .fslot .p { letter-spacing: -.04em; padding: 0 1px; } /* «-84,3 млрд» влезает целиком */
   .fslot.stack { box-shadow: 2px -2px 0 -1px #263244, 4px -4px 0 -2px #1d2734; }
   /* Пять требований (рецепты с поделкой): без «+» между слотами и чуть уже — всё равно в один ряд. */
   .fslots.tight { gap: 4px; padding-inline: 2px; }
   .fslots.tight .fop { display: none; }
   .fslots.tight .fslot:not(.card):not(.out) { width: 51px; padding: 0 1px; }
-  .fslots.tight .fslot .cft { top: 1px; left: 2px; font-size: 8px; }
+  .fslots.tight .fslot .cft { top: 1px; left: 2px; font-size: var(--fs-badge); }
   .fslot .pcard.xs { width: 46px; }
   .anvil-top .wheel { width: 140px; height: 140px; }
   #fWheel.multi { --t: 10px; }

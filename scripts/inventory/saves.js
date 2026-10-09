@@ -151,7 +151,7 @@ function saveSummary(s) {
   const ex = Object.keys(s.museum || {}).length;
   const cards = Object.keys(s.cardsEver || {}).length;
   return `баланс ${fmtShort(s.bal)}, ${s.lvl || 1}-й уровень, ${items} ${plural(items, 'предмет', 'предмета', 'предметов')}` +
-    `, ${ex} ${plural(ex, 'экспонат', 'экспоната', 'экспонатов')} в музее` +
+    `, ${ex} ${plural(ex, 'экспонат', 'экспоната', 'экспонатов')} в Музее` +
     (cards ? `, ${cards} ${plural(cards, 'карта', 'карты', 'карт')} в коллекции` : '');
 }
 const fmtDate = (t) => new Date(t).toLocaleString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });

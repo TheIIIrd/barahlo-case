@@ -53,10 +53,10 @@ function levelUp() {
     const lvl = state.lvl;
     const luck = Math.round(levelLuck() * 100);
     const text = gifts.length === 1
-      ? `Уровень ${lvl}: «${titleOf(lvl)}». Подарок: кейс «${gifts[0].name}»`
-      : `Уровни ${from + 1}–${lvl}: «${titleOf(lvl)}». Подарки: ${gifts.length} ${plural(gifts.length, 'кейс', 'кейса', 'кейсов')}`;
+      ? `Уровень ${lvl}: «${titleOf(lvl)}». Подарок: кейс «${gifts[0].name}».`
+      : `Уровни ${from + 1}–${lvl}: «${titleOf(lvl)}». Подарки: ${gifts.length} ${plural(gifts.length, 'кейс', 'кейса', 'кейсов')}.`;
     setTimeout(() => {
-      toast(text + (luck ? ` · удача +${luck}%` : ''), 4500, { important: true });
+      toast(text + (luck ? ` Удача +${luck}%.` : ''), 4500, { important: true });
       fanfare(4);
       const r = $('lvl').getBoundingClientRect();
       burst(r.left + 20, r.top + 20, ['#ffb02e', '#ffd23f', '#ffffff'], 120);

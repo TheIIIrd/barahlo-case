@@ -98,7 +98,7 @@ function updateOpenButton() {
   if (currentCase.free) {
     const charges = freeCharges();
     const next = freeNext();
-    hint = `заряды ${charges}/${FREE_MAX}` + (next ? ` · +1 через ${Math.ceil(next / 1000)} с` : ' · полный');
+    hint = `заряды ${charges}/${FREE_MAX}` + (next ? ` · +1 через ${Math.ceil(next / 1000)} с` : ' · запас полный');
     if (charges < openCount) {
       disabled = true;
       if (!busy) label = charges ? `ЗАРЯДОВ: ${charges} ИЗ ${openCount}` : 'ЖДИ ' + Math.ceil(next / 1000) + ' С';

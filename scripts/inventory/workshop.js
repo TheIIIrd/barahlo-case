@@ -5,6 +5,8 @@
 
 let bench = []; // предметы на верстаке
 const BENCH_MAX = 10;
+// Сколько видов показано в «Что положить» (по LIST_PAGE, дальше — «Показать ещё»); сбрасывается входом в Мастерскую.
+let benchPickLimit = LIST_PAGE;
 
 // Какой экземпляр класть на верстак из стопки xs: не закреплённый; сначала не занятый в контракте или
 // апгрейде, из них — самый дешёвый.
@@ -192,7 +194,7 @@ function renderCraftNow() {
     const n = xs.length;
     return `<button type="button" class="bstack${n > 1 ? ' many' : ''}" data-k="${k}" style="--c:${RARITY[x.r].c}"
         title="${baseName(x)}${n > 1 ? ' ×' + n : ''} · ${fmt(total)} — нажми, чтобы убрать${n > 1 ? ' один' : ''}"
-        aria-label="${baseName(x)}: ${n} шт., ${fmt(total)}. Убрать один">
+        aria-label="${baseName(x)}: ${n} шт., ${fmt(total)} — нажми, чтобы убрать один">
       ${n > 1 ? `<span class="q" aria-hidden="true">×${n}</span>` : ''}<span class="ic">${x.ic}</span><span class="nm">${baseName(x)}</span>
       <span class="p${total < 0 ? ' neg' : ''}">${slotMoney(total)}</span></button>`;
   }).join('') + (bench.length < BENCH_MAX ? '<div class="bstack add" aria-hidden="true">+</div>' : '');
@@ -208,25 +210,39 @@ function renderCraftNow() {
 
   const match = matchRecipe(bench);
   if (!bench.length) $('bInfo').innerHTML = 'Положи предметы снизу. Если рецепта нет — ничего не пропадёт.';
-  else if (match) $('bInfo').innerHTML = state.recipes[match.id] ? `Получится: <b>${match.out[2]}</b>` : '<b>Что-то получается…</b> Жми «Собрать».';
+  else if (match) $('bInfo').innerHTML = state.recipes[match.id] ? `Получится: <b>${match.out[2]}</b>` : '<b>Что-то получается…</b> Нажми «Собрать».';
   else if (isPartialRecipe(bench)) $('bInfo').innerHTML = 'Кажется, чего-то не хватает…';
-  else $('bInfo').innerHTML = 'Такой рецепт мне неизвестен. Но попробовать можно.';
+  else $('bInfo').innerHTML = 'Такой рецепт неизвестен. Но попробовать можно.';
   $('bGo').disabled = !bench.length || busy;
 
   // Что можно положить: тоже стопками — плитка на вид, новые сверху. Нажатие кладёт следующий по очереди
   // экземпляр (benchNext). Закреплённые не берём: если свободных нет, плитка тусклая.
+  // Порядок видов — по самому новому экземпляру во всём инвентаре, вместе с верстаком: положил предмет —
+  // плитка остаётся на месте (и не уезжает за «Показать ещё»), а вид, целиком лежащий на верстаке, — тусклый «×0».
   const groups = new Map();
+  const onBench = new Set(bench);
   for (const x of state.inv.slice().reverse()) {
-    const k = !bench.includes(x) && itemKey(x);
+    const k = itemKey(x);
     if (!k) continue;
     if (!groups.has(k)) groups.set(k, []);
-    groups.get(k).push(x);
+    if (!onBench.has(x)) groups.get(k).push(x);
   }
   const avail = sum([...groups.values()], (xs) => xs.length);
-  $('bPickN').textContent = avail ? `${avail} шт. · ${groups.size} ${plural(groups.size, 'вид', 'вида', 'видов')}` : '';
+  const kindsLeft = [...groups.values()].filter((xs) => xs.length).length;
+  $('bPickN').textContent = avail ? `${avail} ${plural(avail, 'предмет', 'предмета', 'предметов')} · ${kindsLeft} ${plural(kindsLeft, 'вид', 'вида', 'видов')}` : '';
   const full = bench.length >= BENCH_MAX;
+  const kinds = [...groups];
+  const sample = new Map(); // вид целиком на верстаке — плитку рисуем по экземпляру с верстака
+  for (const x of bench) sample.set(itemKey(x), sample.get(itemKey(x)) || x);
   $('bPick').innerHTML = groups.size
-    ? [...groups].map(([k, xs], j) => {
+    ? kinds.slice(0, benchPickLimit).map(([k, xs], j) => {
+      if (!xs.length) {
+        const y = sample.get(k);
+        return `
+      <button class="inv-item dim" type="button" data-pk="${k}" aria-disabled="true" style="--c:${RARITY[y.r].c};${j > 8 ? 'animation:none' : ''}"
+        title="${baseName(y)} — все уже на верстаке"><span class="qn">×0</span><span class="ic">${y.ic}</span>${baseName(y)}
+        <span class="p off"><span class="word">на верстаке</span></span></button>`;
+      }
       const free = xs.filter((x) => !x.lock);
       const locked = xs.length - free.length;
       const next = benchNext(xs);
@@ -234,7 +250,7 @@ function renderCraftNow() {
       const prices = (free.length ? free : xs).map((y) => y.price);
       const lo = Math.min(...prices);
       const from = Math.max(...prices) > lo ? 'от ' : ''; // «от» — только если цены разные
-      const price = from + slotMoney(lo);
+      const price = (from ? '<span class="word">от </span>' : '') + slotMoney(lo); // «от» — слово, не моноширинным
       return `
       <button class="inv-item${full || !free.length ? ' dim' : ''}" type="button" data-pk="${k}"${full || !free.length ? ' aria-disabled="true"' : ''}
         style="--c:${RARITY[x.r].c};${j > 8 ? 'animation:none' : ''}"
@@ -244,13 +260,21 @@ function renderCraftNow() {
         <span class="ic">${x.ic}</span>${baseName(x)}
         <span class="p${lo < 0 ? ' neg' : ''}">${price}</span>
       </button>`;
-    }).join('')
+    }).join('') + moreButtonHTML('bpMore', kinds.length - benchPickLimit, LIST_PAGE, kinds.length)
     : '<span class="empty">Инвентарь пуст. Открой пару кейсов.</span>';
+  if ($('bpMore')) {
+    $('bpMore').onclick = () => {
+      const from = benchPickLimit;
+      benchPickLimit += LIST_PAGE;
+      showMore('bpMore', renderCraft, $('bPick'), '.inv-item', from);
+    };
+  }
   $$('.inv-item', $('bPick')).forEach((b) => (b.onclick = () => {
     if (busy) return;
     if (bench.length >= BENCH_MAX) { toast(`На верстаке максимум ${BENCH_MAX} предметов.`); return; }
-    const it = benchNext(groups.get(b.dataset.pk) || []);
-    if (!it) { toast('Закреплённое на верстак не кладём — сначала открепи в инвентаре.'); return; }
+    const xs = groups.get(b.dataset.pk) || [];
+    const it = benchNext(xs);
+    if (!it) { toast(xs.length ? 'Закреплённое не кладётся на верстак — сначала открепи в инвентаре.' : 'Все такие уже на верстаке.'); return; }
     claimItem(it, 'bench'); // свободных нет — берём из контракта или апгрейда, предупредив
     bench.push(it);
     tone(800, 0.03);
@@ -280,9 +304,9 @@ function renderCraftNow() {
       <div class="rcp unk${ready ? ' hot' : ''}" style="--c:${RARITY[rar].c}">
         <span class="out">${ic}</span>
         <div>
-          <div class="nm">??? <span style="color:color-mix(in srgb, var(--c) 70%, #fff);font-weight:600;font-size:11px">${RARITY[rar].n}</span></div>
+          <div class="nm">??? <span class="rcp-rar">${RARITY[rar].n}</span></div>
           <div class="hint">${r.hint}</div>
-          <div class="meta">ингредиентов: ${sum(r.keys, (x) => x.q)} · у тебя есть ${typesOwned} из ${r.keys.length} ${plural(r.keys.length, 'вида', 'видов', 'видов')}${ready ? ' · 🔥 всё есть!' : ''}</div>
+          <div class="meta">ингредиентов: ${sum(r.keys, (x) => x.q)} · у тебя есть ${typesOwned} из ${r.keys.length} ${plural(r.keys.length, 'вида', 'видов', 'видов')}${ready ? ' · ✅ всё есть' : ''}</div>
         </div>
       </div>`;
   }).join('');

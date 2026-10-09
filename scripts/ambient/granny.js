@@ -22,7 +22,7 @@ function grannyVisit() {
       removeItem(take);
       const off = r2(Math.min(state.debt, take.price));
       state.debt = r2(state.debt - off);
-      parts.push(`Денег не хватило, поэтому унесла «${take.name}» (${fmt(take.price)}) и списала ${fmt(off)}.` +
+      parts.push(`Денег не хватило, поэтому унесла «${baseName(take)}» (${fmt(take.price)}) и списала ${fmt(off)}.` +
         (take.price > off ? ' Сдачу не дала.' : ''));
     }
   }
@@ -39,9 +39,9 @@ function grannyVisit() {
   } else {
     const flavor = pick([
       'Сказала, что в её время кейсов не было.', 'Оставила тарелку супа.', 'Перекрестила монитор.',
-      'Пообещала вернуться.', 'Спросила, когда ты уже женишься.',
+      'Пообещала вернуться.', 'Спросила, когда ты уже остепенишься.',
     ]);
-    text = parts.join(' ') + ' ' + (state.debt ? `Осталось ${fmt(state.debt)}.` : 'Долг закрыт.') + ' ' + flavor;
+    text = parts.join(' ') + ' ' + (state.debt ? `Осталось ${fmt(state.debt)}.` : 'Долг погашен.') + ' ' + flavor;
   }
 
   $('gText').textContent = text;
@@ -90,7 +90,7 @@ function grannyDoor() {
   if (busy || anyModalOpen() || crash.state === 'run') { grannyEntersAt = null; return; }
   if (!grannyEntersAt) {
     grannyEntersAt = Date.now() + GRANNY_DOOR_MS;
-    toast('Бабушка стоит у двери… 👵', GRANNY_DOOR_MS, { important: true });
+    toast('Бабушка стоит у двери…', GRANNY_DOOR_MS, { important: true });
     renderDebt();
     return;
   }

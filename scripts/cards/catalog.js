@@ -75,7 +75,7 @@ const forgeBonus = () => fullSuits() * FORGE_SUIT_BONUS;
 function cardHTML(card, { size = '', count = 0, attrs = '' } = {}) {
   const sig = card.sigil ? SIGILS[card.sigil] : null;
   return `<div class="pcard${size ? ' ' + size : ''}" style="--sc:${card.suit.color};--rc:${cardColor(card)}" ${attrs}
-      title="${cardTitle(card)}${sig ? ' · ' + sig.n + ': ' + sig.d : ''}">
+      title="${cardTitle(card)}${sig ? ' · ' + sig.n + ' — ' + sig.d[0].toLowerCase() + sig.d.slice(1) : ''}">
     <span class="pc-corner">${RANKS[card.rank]}<i>${card.suit.sym}</i></span>
     ${count > 1 ? `<span class="pc-n">×${count}</span>` : ''}
     <span class="pc-ic">${card.ic}</span>

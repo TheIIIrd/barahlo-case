@@ -20,7 +20,7 @@ function claimItem(it, place) {
   if (place !== 'bench' && bench.includes(it)) { bench = bench.filter((x) => x !== it); from.push('с верстака'); }
   if (place !== 'contract' && contractItems.includes(it)) { contractItems = contractItems.filter((x) => x !== it); from.push('из контракта'); }
   if (place !== 'upgrade' && upgradeStake === it) { upgradeStake = null; from.push('со ставки апгрейда'); }
-  if (from.length) toast(`«${baseName(it)}» переложен ${from.join(' и ')}.`, 2600);
+  if (from.length) toast(`Предмет «${baseName(it)}» переложен ${from.join(' и ')}.`, 2600);
 }
 let upgradeAdd = 0; // доплата деньгами к ставке апгрейда
 
@@ -32,14 +32,21 @@ function pickerList() {
   else list.reverse();
   return list;
 }
-$('sort').onchange = () => renderPicker();
+// Сколько плиток выбора показано: по LIST_PAGE, дальше — «Показать ещё». Сбрасывается сортировкой и переходом на вкладку.
+let pickLimit = LIST_PAGE;
+// Блок «Из дальней части списка»: выбранные предметы за пределами показанного. Состав блока держится, пока
+// выбираешь: снятый предмет остаётся в нём обычной плиткой — соседние не съезжают под пальцем.
+let pickFar = [];
+const resetPickPage = () => { pickLimit = LIST_PAGE; pickFar = []; };
+$('sort').onchange = () => { resetPickPage(); renderPicker(); };
 
 function renderPicker() {
   const fk = focusKey($('picker'));
   try { renderPickerNow(); } finally { restoreFocus(fk); }
 }
 function renderPickerNow() {
-  renderContractFill();
+  $('cFill').hidden = tab !== 'contract'; // чипы быстрого заполнения — только у контракта
+  if (tab === 'contract') renderContractFill();
   const grid = $('inv');
   $('invSum').textContent = `${state.inv.length} ${plural(state.inv.length, 'предмет', 'предмета', 'предметов')} · ${fmtShort(sum(state.inv, (x) => x.price))}`;
   $('invHint').textContent = tab === 'contract' && contractMega
@@ -47,23 +54,35 @@ function renderPickerNow() {
     : tab === 'contract'
     ? (contractItems.length
       ? `Выбрано ${contractItems.length} из 10 · только «${RARITY[contractItems[0].r].n}»`
-      : 'Нажимай на предметы одной редкости (кроме ★), нужно 10 штук')
+      : 'Нажми на предметы одной редкости (кроме ★) — нужно 10')
     : 'Нажми на предмет, чтобы поставить его на апгрейд';
   if ($('picker').hidden) return; // сетку рисуем, только когда её видно (goTab перерисует при открытии)
 
   if (!state.inv.length) {
-    grid.innerHTML = '<span class="empty">Пусто. Сначала открой пару кейсов.</span>';
+    grid.innerHTML = '<span class="empty">Инвентарь пуст. Открой пару кейсов.</span>';
     return;
   }
 
   const rarity = contractItems.length ? contractItems[0].r : null;
-  grid.innerHTML = pickerList().map((x, k) => {
+  const list = pickerList();
+  const shown = list.slice(0, pickLimit);
+  // Выбранные, что лежат дальше показанного (например, «Дешёвое» взяло их из конца списка), — отдельно в конце:
+  // их видно и можно снять, а плитки выше не сдвигаются.
+  const chosen = new Set(tab === 'contract' ? contractItems : [upgradeStake].filter(Boolean));
+  const shownSet = new Set(shown);
+  if (!chosen.size) pickFar = []; // ничего не выбрано (очистили, подписали) — блок больше не нужен
+  const inv = new Set(list);
+  pickFar = pickFar.filter((x) => inv.has(x) && !shownSet.has(x)); // ушедшие из инвентаря и попавшие в показанное
+  const farSet = new Set(pickFar);
+  pickFar.push(...list.filter((x) => chosen.has(x) && !shownSet.has(x) && !farSet.has(x))); // новые — в конец
+  const extra = pickFar;
+  const tile = (x, k) => {
     let cls = 'inv-item';
     if (tab === 'contract' && contractMega) {
-      if (contractItems.includes(x)) cls += ' sel';
+      if (chosen.has(x)) cls += ' sel';
       else if (x.lock || contractItems.length >= MEGA_MAX) cls += ' dim';
     } else if (tab === 'contract') {
-      if (contractItems.includes(x)) cls += ' sel';
+      if (chosen.has(x)) cls += ' sel';
       else if (x.lock || x.r >= 6 || (rarity !== null && x.r !== rarity) || contractItems.length >= 10) cls += ' dim';
     } else {
       if (upgradeStake === x) cls += ' sel';
@@ -75,7 +94,18 @@ function renderPickerNow() {
         ${x.stat ? '<span class="st">СЧ™</span>' : ''}<span class="ic">${x.ic}</span>${baseName(x)}
         <span class="p${x.price < 0 ? ' neg' : ''}" title="${fmt(x.price)}">${fmtShort(x.price)}</span>
       </button>`;
-  }).join('');
+  };
+  grid.innerHTML = shown.map(tile).join('') +
+    (extra.length ? `<p class="pick-sep">Из дальней части списка:</p>${extra.map((x) => tile(x, 99)).join('')}` : '') +
+    moreButtonHTML('pkMore', list.length - shown.length - extra.length, LIST_PAGE, list.length);
+  if ($('pkMore')) {
+    $('pkMore').onclick = () => {
+      const from = pickLimit;
+      pickLimit += LIST_PAGE;
+      pickFar = []; // список перестроится: выбранные из нового куска встанут на свои места
+      showMore('pkMore', renderPicker, grid, '.inv-item', from);
+    };
+  }
 
   $$('.inv-item', grid).forEach((b) => (b.onclick = () => {
     pickerClick(state.inv.find((x) => x.uid === +b.dataset.u), b);
@@ -97,10 +127,10 @@ function pickerClick(it, el) {
     renderPicker();
   } else if (tab === 'upgrade') {
     if (it.price <= 0) {
-      toast('Предмет с отрицательной ценой апгрейдить нельзя. Только выбросить.');
+      toast('Предмет с минусом апгрейдить нельзя — только выбросить.');
       return;
     }
-    if (it.lock) { toast('Закреплённое на апгрейд не ставим — сначала открепи в инвентаре.'); return; }
+    if (it.lock) { toast('Закреплённое не ставится на апгрейд — сначала открепи в инвентаре.'); return; }
     if (upgradeStake === it) upgradeStake = null;
     else {
       claimItem(it, 'upgrade');

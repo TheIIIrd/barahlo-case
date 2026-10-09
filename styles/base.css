@@ -26,11 +26,29 @@
   --r4: #d32ce6;
   --r5: #eb4b4b;
   --r6: #ffd23f;
+  /* Шкала размеров текста (с 1.11.0). Значки-эмодзи и крупные числа (колесо, курс огурцов) — своими размерами.
+     badge — плашки «СЧ™», «ЭЛИТА»; micro — вторые строки в узких плитках; xs — подписи, названия в плитках;
+     s — подсказки и чипы; m — основной текст интерфейса, кнопки; l — крупный текст, вкладки;
+     h — заголовки разделов; title — заголовки карточек; num — крупные числа в плитках. */
+  --fs-badge: 9px;
+  --fs-micro: 10px;
+  --fs-xs: 11px;
+  --fs-s: 12px;
+  --fs-m: 13px;
+  --fs-l: 15px;
+  --fs-h: 17px;
+  --fs-title: 20px;
+  --fs-num: 22px;
+  /* Шрифты по ролям: display — заголовки и названия кейсов/рецептов/карт, body — весь текст,
+     mono — только числа (деньги, проценты, счётчики, износ). Жирность: 400, 600, 800. */
   --f-display: "Russo One", "Arial Black", system-ui, sans-serif;
   --f-body: "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
   --f-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
 }
 * { box-sizing: border-box; }
+/* Кнопки, поля и списки — шрифтом игры (по умолчанию браузер рисует их системным, например чипы — Arial). */
+button, input, select, textarea { font-family: inherit; }
+b, strong { font-weight: 800; }
 /* overflow-x: тряска и «пульсы» не должны давать горизонтальную прокрутку;
    scrollbar-gutter: полоса прокрутки не двигает страницу вбок. */
 html { background: var(--bg); overflow-x: clip; scrollbar-gutter: stable; }
@@ -41,7 +59,7 @@ body {
   background-attachment: fixed;
   color: var(--fg);
   font-family: var(--f-body);
-  font-size: 15px;
+  font-size: var(--fs-l);
   line-height: 1.5;
   /* clip, а не hidden: hidden делает body прокручиваемым контейнером, и «липкие» панели (продажа,
      карточка предмета) переставали липнуть. hidden — запасной вариант для старых браузеров. */

@@ -21,14 +21,14 @@
   text-wrap: balance;
 }
 .arena .sub {
-  font-size: 13px;
+  font-size: var(--fs-m);
   color: var(--muted);
   margin-top: -10px;
   padding-inline: 16px;
   text-align: center;
 }
 .buffnote {
-  font-size: 12.5px;
+  font-size: var(--fs-m);
   font-weight: 800;
   color: var(--accent2);
   text-align: center;
@@ -113,7 +113,7 @@
 }
 .reels.compact.x20 .card .ic { font-size: 24px; }
 .reels.compact.x20 .card .t {
-  font-size: 8px;
+  font-size: var(--fs-badge);
   -webkit-line-clamp: 1;
 }
 .reels.compact.x20 .marker { width: 2px; }
@@ -220,7 +220,7 @@
   position: relative;
   overflow-wrap: anywhere;
   hyphens: auto;
-  font-size: 11px;
+  font-size: var(--fs-xs);
   font-weight: 600;
   text-align: center;
   line-height: 1.2;
@@ -231,7 +231,7 @@
   -webkit-box-orient: vertical;
 }
 .reels.compact .card .t {
-  font-size: 9px;
+  font-size: var(--fs-badge);
   -webkit-line-clamp: 1;
 }
 .card.win { animation: winpulse 1s ease-in-out 5; } /* пять вспышек и всё: бесконечные тени зря грузили видеокарту */
@@ -251,7 +251,7 @@ body:has(.modal:not([hidden])) .card.win { animation-play-state: paused; }
 .open {
   position: relative;
   font-family: var(--f-display);
-  font-size: 17px;
+  font-size: var(--fs-h);
   color: #2a1600;
   border: 0;
   cursor: pointer;
@@ -276,7 +276,7 @@ body:has(.modal:not([hidden])) .card.win { animation-play-state: paused; }
   text-overflow: ellipsis;
 }
 #open > span { line-height: 21px; } /* высота строки одна и для мелкой надписи */
-#open .tight { font-size: 14px; }
+#open .tight { font-size: var(--fs-m); }
 .open:hover:not(:disabled) { filter: brightness(1.08); }
 .open:active:not(:disabled) {
   transform: translateY(4px);
@@ -288,9 +288,12 @@ body:has(.modal:not([hidden])) .card.win { animation-play-state: paused; }
 }
 .open small {
   display: block;
-  font-family: var(--f-mono);
-  font-size: 11px;
+  font-family: var(--f-body);
+  font-weight: 600;
+  letter-spacing: 0;
+  font-size: var(--fs-xs);
   opacity: .8;
+  font-variant-numeric: tabular-nums;
 }
 .seg {
   display: flex;
@@ -301,7 +304,7 @@ body:has(.modal:not([hidden])) .card.win { animation-play-state: paused; }
 .seg button {
   font-family: var(--f-mono);
   font-weight: 600;
-  font-size: 13px;
+  font-size: var(--fs-m);
   border: 0;
   background: var(--panel2);
   color: var(--muted);
@@ -320,7 +323,7 @@ body:has(.modal:not([hidden])) .card.win { animation-play-state: paused; }
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
+  font-size: var(--fs-m);
   color: var(--muted);
   cursor: pointer;
 }
@@ -347,7 +350,7 @@ body:has(.modal:not([hidden])) .card.win { animation-play-state: paused; }
   border-bottom: 3px solid var(--c);
   padding: 8px 6px;
   text-align: center;
-  font-size: 11px;
+  font-size: var(--fs-xs);
   line-height: 1.2;
   min-width: 0;
 }
@@ -369,7 +372,7 @@ body:has(.modal:not([hidden])) .card.win { animation-play-state: paused; }
 .mini .pp {
   display: block;
   font-family: var(--f-mono);
-  font-size: 10px;
+  font-size: var(--fs-micro);
   color: var(--good);
   margin-top: 3px;
 }
@@ -377,14 +380,14 @@ body:has(.modal:not([hidden])) .card.win { animation-play-state: paused; }
   display: block;
   color: var(--muted);
   font-family: var(--f-mono);
-  font-size: 10px;
+  font-size: var(--fs-micro);
 }
 .legend {
   display: flex;
   flex-wrap: wrap;
   gap: 6px 14px;
   justify-content: center;
-  font-size: 11px;
+  font-size: var(--fs-xs);
   color: var(--muted);
   padding-inline: 16px;
 }

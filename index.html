@@ -15,7 +15,7 @@
 <title>Кейсы с Барахлом</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Russo+One&family=Manrope:wght@400;600;800&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Russo+One&family=Manrope:wght@400;600;800&family=JetBrains+Mono:wght@400;600;800&display=swap">
 <link rel="stylesheet" href="styles/base.css">
 <link rel="stylesheet" href="styles/header.css">
 <link rel="stylesheet" href="styles/feed.css">
@@ -92,7 +92,7 @@
       <div class="contents" id="contents"></div>
     </div>
     <div class="panel">
-      <h2>Последние находки <button class="btn sm" id="goInv" type="button">Весь инвентарь</button></h2>
+      <h2>Последние дропы <button class="btn sm" id="goInv" type="button">Весь инвентарь</button></h2>
       <div class="recent" id="recent"></div>
     </div>
   </section>
@@ -162,13 +162,13 @@
           <span class="acts">
             <button class="btn sm" id="saveOut" type="button">💾 Скачать</button>
             <button class="btn sm" id="saveIn" type="button">📂 Загрузить</button>
-            <button class="btn sm" id="saveBack" type="button" hidden>↩️ Вернуть прежнее</button>
-            <button class="btn sm" id="saveBroken" type="button" hidden title="Сохранение, на котором игра не запустилась">⚠️ Скачать несработавшее</button>
+            <button class="btn sm" id="saveBack" type="button" hidden>Вернуть прежнее</button>
+            <button class="btn sm" id="saveBroken" type="button" hidden title="Сохранение, на котором игра не запустилась">Скачать несработавшее</button>
           </span>
           <input type="file" id="saveFile" hidden>
         </div>
         <div class="invfoot saves">
-          <span class="lbl">Сброс удалит всё, включая уровень и долг (прежний прогресс останется запасной копией)</span>
+          <span class="lbl">Сброс удалит всё, включая уровень и долг. Прежний прогресс останется запасной копией.</span>
           <button class="btn sm" id="resetAll" type="button">Начать жизнь заново</button>
         </div>
       </section>
@@ -184,7 +184,7 @@
       <div class="tile"><div class="k">Скидка на кейсы</div><div class="v" id="mB">0%</div><div class="s" id="mBs">за половину и полный зал</div></div>
     </div>
     <div class="panel">
-      <h2>Залы <small>Половина зала даёт первый бонус, полный зал — бонус покруче</small></h2>
+      <h2>Залы <small>половина зала даёт первый бонус, полный — бонус покруче</small></h2>
       <div class="rooms" id="rooms"></div>
     </div>
     <div class="panel hall" id="hall"></div>
@@ -221,36 +221,44 @@
         <span class="kn-l off">Обычный</span><span class="kn-plate"><i class="kn-clip"></i><i class="kn-blade"></i><i class="kn-hinge"></i></span><span class="kn-l on">⚡ Мега</span>
       </button>
     </div>
-    <!-- Обе версии заголовка, описания и сведений лежат в одной клетке сетки, видна одна: высота не меняется
-         при переключении рубильника, и ничего ниже не прыгает. -->
-    <div class="cfacts-box" id="cLead"></div>
-    <div class="slots-box"><div class="slots" id="slots"></div></div>
-    <div class="cinfo-box">
-      <div class="contract-info cm-n" id="cInfo">
-        <span>Редкость: <b id="cRar">—</b></span>
-        <span>Вложено: <b id="cIn">0,00 ₽</b></span>
-        <span>Средний износ: <b id="cFl">—</b></span>
+    <!-- Обе версии (обычный / мега) пояснения, сведений и подписей лежат в одной клетке сетки, видна одна:
+         высота не меняется при переключении рубильника, и ничего ниже не прыгает. -->
+    <div class="chow" id="cLead"></div>
+    <div class="cgrid">
+      <div class="cmain">
+        <div class="slots-box"><div class="slots" id="slots"></div></div>
+        <div class="cmix">
+          <div class="cm-n" id="cInfo"><span id="cRar">Выбери 10 предметов одной редкости</span><span class="cfl">средний износ <b id="cFl">—</b></span></div>
+          <div class="cm-m" id="cMegaInfo"><div class="mixbar" id="mgMix" aria-hidden="true"></div><div class="mixlbl"><span>состав по стоимости</span><b id="mgN">0 / 100</b></div></div>
+        </div>
+        <div class="fc" id="cFc">
+          <div class="fc-sum">
+            <div><span class="k">Вложено</span><b id="cIn">0,00 ₽</b><small id="cInN">0 предметов</small></div>
+            <span class="arr" aria-hidden="true">→</span>
+            <div class="to"><span class="k">Получишь</span><b id="cOut">—</b><small id="cMean">&nbsp;</small></div>
+          </div>
+          <div class="fc-opt">
+            <span class="cm-n">Чаще выпадает из кейса, откуда вложено больше</span>
+            <label class="cm-m mg-t">Из кейса: <select id="cTarget" aria-label="Из какого кейса результат"></select></label>
+          </div>
+          <div class="fc-h"><span class="k">Что может выпасть</span><span class="k">шанс</span></div>
+          <div class="fc-list" id="cOuts"></div>
+          <button class="fc-more" id="cMore" type="button" aria-expanded="false"></button>
+        </div>
+        <div class="cact">
+          <button class="btn" id="cClear" type="button">Очистить</button>
+          <button class="btn primary cm-btn" id="cGo" type="button" disabled><span class="cm-n">✍️ Подписать контракт</span><span class="cm-m"><svg class="bolt" viewBox="0 0 24 24" aria-hidden="true"><path d="M13.5 2 4 13.5h6.2L9 22l10-12.2h-6.3L13.5 2z"/></svg>Подписать мегаконтракт</span></button>
+        </div>
       </div>
-      <div class="contract-info cm-m" id="cMegaInfo">
-        <span>Предметов: <b id="mgN">0 / 100</b></span>
-        <span>Вложено: <b id="mgIn">0,00 ₽</b></span>
-        <span>Получишь: <b id="mgOut">—</b></span>
-        <label class="mg-t">Из кейса: <select id="cTarget" aria-label="Из какого кейса результат"></select></label>
-      </div>
+      <!-- Сюда переезжает «Выбор из инвентаря», пока открыт контракт: на широком экране — справа, на узком — ниже. -->
+      <div class="cside" id="cSide"></div>
     </div>
-    <div class="outs" id="cOuts"></div>
-    <div class="row-c">
-      <button class="btn cm-btn" id="cAuto" type="button"><span class="cm-n">Автозаполнить дешёвым</span><span class="cm-m">Добавить дешёвое</span></button>
-      <button class="btn" id="cClear" type="button">Очистить</button>
-      <button class="btn primary cm-btn" id="cGo" type="button" disabled><span class="cm-n">Подписать контракт</span><span class="cm-m">⚡ Подписать мегаконтракт</span></button>
-    </div>
-    <div class="cfill" id="cFill" role="group" aria-label="Заполнить самыми дешёвыми выбранной редкости"></div>
   </section>
 
   <!-- UPGRADE -->
   <section class="view panel" id="v-upgrade" role="tabpanel" hidden>
     <h2>Апгрейд <small>рискни вещью ради вещи подороже</small></h2>
-    <p class="lead">Выбери предмет в инвентаре и множитель. Чем выше множитель, тем меньше шанс. Проиграл — предмет сгорает.</p>
+    <p class="lead">Выбери предмет в инвентаре и множитель. Чем выше множитель, тем меньше шанс. Не повезло — предмет сгорает.</p>
     <div class="upg">
       <div class="uslot" id="uStake"><span class="k">Ставка</span><span class="empty">Выбери предмет в инвентаре ниже</span></div>
       <div class="wheel" id="wheel"><div class="needle" id="needle"></div><div class="pct" id="uPct">—<small>шанс</small></div></div>
@@ -269,7 +277,7 @@
       </div>
       <div class="hint" id="uAddHint"></div>
     </div>
-    <div class="row-c" style="margin-top:14px"><button class="btn primary" id="uGo" type="button" disabled>Апгрейд</button></div>
+    <div class="row-c" style="margin-top:14px"><button class="btn primary" id="uGo" type="button" disabled>⬆️ Апгрейд</button></div>
   </section>
 
   <!-- CRASH -->
@@ -284,7 +292,7 @@
         <button class="open" id="crashBtn" type="button"><span id="crashTxt">ЗАСОЛИТЬ</span><small id="crashSub">поставить и смотреть</small></button>
         <div class="chist" id="chist" role="group" aria-label="Последние раунды"></div>
       </div>
-      <div class="cbox" id="cbox"><canvas id="crashCv" aria-label="График курса огурца"></canvas><div class="cmult" id="cmult">×1.00<small>Ждём ставку</small></div></div>
+      <div class="cbox" id="cbox"><canvas id="crashCv" aria-label="График курса огурца"></canvas><div class="cmult" id="cmult">×1,00<small>Сделай ставку</small></div></div>
     </div>
   </section>
 
@@ -309,7 +317,7 @@
           <p class="hint" id="fHint"></p>
           <div class="row-c"><button class="btn primary" id="fGo" type="button" disabled>⚒️ Ковать</button></div>
           <div class="fpick" id="fPickBox">
-            <h3>Что можно положить <button class="btn sm" id="fPickReset" type="button" hidden>↺ Автоподбор</button></h3>
+            <h3>Что положить <button class="btn sm" id="fPickReset" type="button" hidden>↺ Автоподбор</button></h3>
             <p class="fpick-help" id="fPickHelp"></p>
             <div id="fWhere"></div>
             <div class="chips" id="fPickTabs" role="group" aria-label="Требование рецепта"></div>
@@ -339,14 +347,22 @@
     </div>
   </section>
 
+  <div id="pickHome">
   <section class="panel" id="picker" hidden>
     <h2>Выбор из инвентаря <small id="invSum">0 предметов</small></h2>
+    <div class="cfill" id="cFill" role="group" aria-label="Быстро заполнить контракт"></div>
     <div class="inv-head">
       <span class="inv-hint" id="invHint"></span>
       <select id="sort" aria-label="Сортировка"><option value="new">Сначала новые</option><option value="price">Сначала дорогие</option><option value="rar">По редкости</option></select>
     </div>
     <div class="inv" id="inv"></div>
   </section>
+  </div>
+  <!-- Телефон и планшет: итог и «Подписать» всегда под рукой, пока листаешь инвентарь (прячется, когда видны кнопки контракта). -->
+  <div class="cbar" id="cBar" hidden>
+    <span class="t" id="cBarT"></span>
+    <button class="btn primary" id="cBarGo" type="button"><span class="pen" aria-hidden="true">✍️&nbsp;</span><svg class="bolt" viewBox="0 0 24 24" aria-hidden="true"><path d="M13.5 2 4 13.5h6.2L9 22l10-12.2h-6.3L13.5 2z"/></svg>Подписать</button>
+  </div>
   <footer>Все предметы вымышлены и ничего не стоят. Деньги тоже ненастоящие, но бабушке всё равно верни.</footer>
 </div>
 
@@ -360,8 +376,8 @@
     <p class="lore" id="dLore"></p>
     <div class="specs">
       <div><div class="k">Состояние</div><div class="v" id="dWear"></div></div>
-      <div><div class="k">Цена на рынке</div><div class="v" id="dPrice"></div></div>
-      <div style="grid-column:1/-1"><div class="k">Степень износа <span id="dFloat"></span></div><div class="floatbar"><i id="dFloatMark"></i></div></div>
+      <div><div class="k">Цена</div><div class="v num" id="dPrice"></div></div>
+      <div style="grid-column:1/-1"><div class="k">Износ <span id="dFloat"></span></div><div class="floatbar"><i id="dFloatMark"></i></div></div>
     </div>
     <div class="mbtns">
       <button class="btn primary" id="dKeep" type="button">Забрать</button>
@@ -442,6 +458,7 @@
 <script src="scripts/core/levels.js"></script>
 <script src="scripts/core/wallet.js"></script>
 <script src="scripts/core/nav.js"></script>
+<script src="scripts/core/toend.js"></script>
 <script src="scripts/cases/grid.js"></script>
 <script src="scripts/cases/roulette.js"></script>
 <script src="scripts/cases/drops.js"></script>

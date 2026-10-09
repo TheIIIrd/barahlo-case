@@ -5,7 +5,7 @@
 
 // Фильтры, режим выбора и открытая карточка. limit — сколько карточек сетки показано сейчас:
 // рисовать тысячи разом долго, поэтому по INV_PAGE и кнопка «Показать ещё».
-const INV_PAGE = 200;
+const INV_PAGE = LIST_PAGE;
 const invUi = { q: '', rar: new Set(), cs: '', sort: 'new', multi: false, sel: new Set(), open: null, limit: INV_PAGE };
 const resetInvPage = () => { invUi.limit = INV_PAGE; };
 
@@ -68,7 +68,7 @@ function itemCardHTML(x, mode) {
       <span class="nm">${baseName(x)}</span>
       <span class="p${x.price < 0 ? ' neg' : ''}" title="${fmt(x.price)}">${fmtShort(x.price)}</span>
       <span class="w">${x.wear}</span>
-      ${museumWants(x) ? '<span class="mus" title="Нужен музею">🏛</span>' : ''}
+      ${museumWants(x) ? '<span class="mus" title="Нужен Музею">🏛</span>' : ''}
     </button>`;
 }
 
@@ -92,7 +92,8 @@ function renderInvViewNow() {
   $('tV').title = fmt(total);
   $('tV').className = 'v' + (total < 0 ? ' neg' : '');
   const best = all.reduce((a, x) => (!a || x.price > a.price ? x : a), null);
-  $('tB').textContent = best ? best.ic + ' ' + fmtShort(best.price) : '—';
+  // Иконка и пробел — не моноширинным: моно-пробел широкий, и на 360 цена не влезала.
+  $('tB').innerHTML = best ? `<span class="ti">${best.ic} </span>${fmtShort(best.price)}` : '—';
   $('tBs').textContent = best ? best.name : '—';
   const negatives = all.filter((x) => x.price < 0);
   $('tM').textContent = negatives.length;
@@ -130,11 +131,15 @@ function renderInvViewNow() {
   if (!all.length) grid.innerHTML = '<span class="empty">Пусто. Даже носка нет. Открой кейс, чтобы это исправить.</span>';
   else if (!list.length) grid.innerHTML = '<span class="empty">Под фильтр ничего не подходит.</span>';
   else {
-    grid.innerHTML = shown.map((x) => itemCardHTML(x, 'grid')).join('') + (rest > 0
-      ? `<button class="btn more" type="button" id="ivMore">Показать ещё ${Math.min(INV_PAGE, rest)} · всего ${list.length}</button>`
-      : '');
+    grid.innerHTML = shown.map((x) => itemCardHTML(x, 'grid')).join('') + moreButtonHTML('ivMore', rest, INV_PAGE, list.length);
   }
-  if ($('ivMore')) $('ivMore').onclick = () => { invUi.limit += INV_PAGE; renderInvView(); };
+  if ($('ivMore')) {
+    $('ivMore').onclick = () => {
+      const from = invUi.limit;
+      invUi.limit += INV_PAGE;
+      showMore('ivMore', renderInvView, grid, '.icard', from);
+    };
+  }
 
   renderBulkBar();
   renderItemCard();
@@ -184,7 +189,7 @@ function renderBulkBar() {
   bar.hidden = !sel.length && !invUi.multi;
   $('bulkMega').disabled = busy || !sel.some((x) => !x.lock);
   if (!sel.length) {
-    $('bulkInfo').textContent = 'Отметь предметы или нажми «Быстрый выбор»';
+    $('bulkInfo').textContent = 'Отметь предметы или нажми кнопку быстрого выбора';
     $('bulkSell').textContent = 'Продать';
     $('bulkSell').disabled = true;
     return;
@@ -216,20 +221,20 @@ function renderItemCard() {
   const sellText = sellLabel(it.price, 'Продать', 'Выбросить');
 
   card.innerHTML = `
-    <button class="btn sm close" type="button" id="dClose">Закрыть</button>
+    <button class="btn sm close" type="button" id="dClose" aria-label="Закрыть" title="Закрыть">✕</button>
     <div class="hero"><div class="rays"></div><span class="ic">${it.ic}</span></div>
     <div class="rar">${R.n}</div>
-    <h3>${baseName(it)}${it.stat ? `<span class="stat-badge">СчётЧих™ ×${STAT_TRAK_MULT}</span>` : ''}</h3>
+    <h3>${baseName(it)}${it.stat ? `<span class="stat-badge">СЧ™ ×${NF.format(STAT_TRAK_MULT)}</span>` : ''}</h3>
     <p class="lore">${it.lore || ''}</p>
     <div class="acts">
       ${museumButtonHTML(it)}
       <button class="btn primary wide" type="button" id="dtSell" ${canPay(it.price) ? '' : 'disabled'}>${sellText}</button>
       <button class="btn" type="button" id="dtLock">${it.lock ? 'Открепить' : '🔒 Закрепить'}</button>
       <button class="btn" type="button" id="dtUp" ${it.price <= 0 ? 'disabled' : ''}>На апгрейд</button>
-      <button class="btn wide" type="button" id="dtCon" ${it.r >= 6 && !contractMega ? 'disabled' : ''}>${contractMega ? '⚡ В мегаконтракт' : 'Добавить в контракт'}</button>
+      <button class="btn wide" type="button" id="dtCon" ${it.r >= 6 && !contractMega ? 'disabled' : ''}>${contractMega ? '⚡ В мегаконтракт' : 'В контракт'}</button>
     </div>
     <div class="specs">
-      <div><div class="k">Цена</div><div class="v ${it.price < 0 ? 'neg' : ''}">${fmt(it.price)}</div></div>
+      <div><div class="k">Цена</div><div class="v num${it.price < 0 ? ' neg' : ''}">${fmt(it.price)}</div></div>
       <div><div class="k">Состояние</div><div class="v">${it.wear}</div></div>
       <div><div class="k">Из кейса</div><div class="v">${caseName(it.caseId)}</div></div>
       <div><div class="k">Получено</div><div class="v">${when}</div></div>
@@ -255,7 +260,7 @@ function renderItemCard() {
     tone(it.lock ? 900 : 500, 0.05);
   };
   $('dtUp').onclick = () => {
-    if (it.lock) { toast('Закреплённое на апгрейд не ставим — сначала открепи.'); return; }
+    if (it.lock) { toast('Закреплённое не ставится на апгрейд — сначала открепи.'); return; }
     claimItem(it, 'upgrade');
     upgradeStake = it;
     invUi.open = null;
@@ -265,7 +270,7 @@ function renderItemCard() {
   };
   $('dtCon').onclick = () => {
     if (contractMega) {
-      if (it.lock) { toast('Закреплённое в мегаконтракт не кладём — сначала открепи.'); return; }
+      if (it.lock) { toast('Закреплённое не кладётся в мегаконтракт — сначала открепи.'); return; }
       if (contractItems.length >= MEGA_MAX && !contractItems.includes(it)) { toast(`В мегаконтракте уже ${MEGA_MAX} предметов.`); return; }
       if (!contractItems.includes(it)) { claimItem(it, 'contract'); contractItems.push(it); }
       invUi.open = null;
@@ -274,7 +279,7 @@ function renderItemCard() {
       renderPicker();
       return;
     }
-    if (it.lock) { toast('Закреплённое в контракт не кладём — сначала открепи.'); return; }
+    if (it.lock) { toast('Закреплённое не кладётся в контракт — сначала открепи.'); return; }
     if (contractItems.length && contractItems[0].r !== it.r) {
       toast(`В контракте уже «${RARITY[contractItems[0].r].n}». Очисти его или выбери такую же редкость.`);
       return;
@@ -326,9 +331,9 @@ async function sellItems(list, sourceEl) {
   setBal(v);
   renderAll();
 
-  const one = list[0].name;
-  if (list.length === 1) toast(v < 0 ? `Выброшено: ${one}. Утилизация ${fmt(-v)}` : `Продано: ${one} за ${fmt(v)}`);
-  else toast(v < 0 ? `Выброшено ${list.length} шт. Доплата ${fmt(-v)}` : `Продано ${list.length} шт. за ${fmt(v)}`);
+  const one = `«${baseName(list[0])}»`;
+  if (list.length === 1) toast(v < 0 ? `Выброшено: ${one}. Утилизация — ${fmt(-v)}.` : `Продано: ${one} за ${fmt(v)}.`);
+  else toast(v < 0 ? `Выброшено ${list.length} ${plural(list.length, 'предмет', 'предмета', 'предметов')}. Утилизация — ${fmt(-v)}.` : `Продано ${list.length} ${plural(list.length, 'предмет', 'предмета', 'предметов')} за ${fmt(v)}.`);
 }
 $('bulkSell').onclick = (e) => sellItems(selectedItems(), e.target);
 // Выбранное — в мегаконтракт: включаем рубильник и переходим в «Контракт».
@@ -348,8 +353,8 @@ $('bulkMega').onclick = () => {
   goTab('contract');
   renderContract();
   renderPicker();
-  const skipped = [sel.length - ok.length && `закреплённых или занятых: ${sel.length - ok.length}`, left > 0 && `не влезло: ${left}`].filter(Boolean);
-  toast(`В мегаконтракте ${contractItems.length} из ${MEGA_MAX}.${skipped.length ? ' Не взяты — ' + skipped.join(', ') + '.' : ''}`);
+  const skipped = [sel.length - ok.length && `${sel.length - ok.length} закреплённых или занятых`, left > 0 && `${left} не ${plural(left, 'влез', 'влезли', 'влезли')}`].filter(Boolean);
+  toast(`В мегаконтракте ${contractItems.length} из ${MEGA_MAX}.${skipped.length ? ' Не взято: ' + skipped.join(', ') + '.' : ''}`);
 };
 $('bulkClear').onclick = () => {
   // Ничего не выбрано — «Отмена» выключает режим выбора, иначе — снимает выбор.
@@ -389,7 +394,7 @@ $$('[data-qs]', $('sub-items')).forEach((b) => (b.onclick = () => {
   invUi.multi = true;
   invUi.sel = new Set(chosen.map((x) => x.uid));
   if (!chosen.length) {
-    toast(mode === 'dup' ? 'Дубликатов нет. Коллекция уникальна.'
+    toast(mode === 'dup' ? 'Дубликатов нет. Всё в единственном экземпляре.'
       : mode === 'neg' ? 'Предметов с минусом нет.' : 'Под условие ничего не подходит.');
   }
   renderInvView();

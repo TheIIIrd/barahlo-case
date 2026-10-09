@@ -151,7 +151,7 @@ function needLabel(q, card) {
 // Пояснение к требованию: откуда брать.
 function needWhere(q, card) {
   if (q.card) return 'карта из коллекции — уйдёт в дело при успехе, при неудаче останется';
-  if (isCraftNeed(q)) return itemSeen(q.item) ? 'поделка Мастерской: подойдёт любой экземпляр, с любым износом' : 'загадка: эту поделку ты ещё не собирал — её делают на верстаке Мастерской';
+  if (isCraftNeed(q)) return itemSeen(q.item) ? 'поделка Мастерской: подойдёт любой экземпляр, с любым износом' : 'загадка: эта поделка ещё не собиралась — её делают на верстаке Мастерской';
   if (q.item) return itemSeen(q.item) ? 'особый предмет: подойдёт любой экземпляр, с любым износом' : 'загадка: этот предмет ещё не попадался';
   return `редкость «${RARITY[q.r].n}» из кейсов масти ${card.suit.sym} ${card.suit.name}: ` +
     card.suit.cases.map((id) => roomById(id).name).join(', ');
@@ -200,7 +200,7 @@ function whereHTML(card, row) {
   if (q.card) {
     const c = CARD_BY_ID.get(q.card);
     return `<div class="fwhere"><b>Где взять:</b> выковать ${cardTitle(c)} в Кузне${miss > 1 ? ` (ещё ${miss})` : ''}.
-      <button type="button" class="btn sm" data-wcard="${c.id}">⚒️ К рецепту</button></div>`;
+      <button type="button" class="btn sm" data-wcard="${c.id}">К рецепту →</button></div>`;
   }
   if (isCraftNeed(q)) {
     const rcp = RECIPES[CATALOG_BY_NAME.get(q.item).i];
@@ -220,12 +220,13 @@ function whereHTML(card, row) {
     .sort((a, b) => a.cost - b.cost).slice(0, 3);
   return `<div class="fwhere"><b>Где взять ещё ${miss}:</b>` + opts.map((o) => `
     <div class="fw-row"><span class="fw-ic" style="--cc:${o.c.color}">${o.c.ic}</span>
-      <span class="fw-t">${o.c.name}<small>${fmtPct(o.p * 100, o.p < 0.01 ? 2 : 1)} за открытие · ≈ ${o.opens} ${plural(o.opens, 'открытие', 'открытия', 'открытий')} · ~${fmtShort(o.cost)}</small></span>
+      <span class="fw-t">${o.c.name}<small>${fmtPct(o.p * 100, o.p < 0.01 ? 2 : 1)} за открытие · ≈ ${o.opens} ${plural(o.opens, 'открытие', 'открытия', 'открытий')} · ≈ ${fmtShort(o.cost)}</small></span>
       <button type="button" class="btn sm" data-wcase="${o.c.id}">К кейсу →</button></div>`).join('') + '</div>';
 }
 
 // «Что можно положить»: вкладка на каждое требование-предмет и все подходящие предметы инвентаря.
-const PICK_LIMIT = 120;
+const PICK_LIMIT = 120; // плиток «Что можно положить» за раз; дальше — «Показать ещё»
+let forgePick = { key: '', limit: PICK_LIMIT, order: null, n: -1 }; // другая карта или требование — снова с первых PICK_LIMIT
 function renderPick(card, plan) {
   const rows = plan.rows.map((r, i) => ({ r, i }));
   $('fPickBox').hidden = !recipeOpen(card);
@@ -286,23 +287,42 @@ function renderPick(card, plan) {
   const all = state.inv.filter((it) => !it.special && fitsNeed(it.lock ? Object.assign({}, it, { lock: false }) : it, q, card.suit));
   const why = (x) => (x.lock ? 'закреплён' : taken.has(x) ? 'занят: верстак, контракт или апгрейд' : elsewhere.has(x) ? 'уже лежит в другом слоте' : '');
   const namedFor = (x) => !q.item && FORGE_NAMED_SET.has(baseName(x));
-  all.sort((a, b) => inRow.has(b) - inRow.has(a) || !!why(a) - !!why(b) || a.price - b.price);
-  $('fPick').innerHTML = all.slice(0, PICK_LIMIT).map((x) => {
+  // Порядок: выбранные, потом доступные, потом занятые; внутри — по цене. Считаем его при открытии требования
+  // и когда меняется инвентарь, а пока выбираешь — держим: плитка под пальцем не уезжает в начало.
+  const pickKey = card.id + ':' + forgeTab;
+  if (forgePick.key !== pickKey) forgePick = { key: pickKey, limit: PICK_LIMIT, order: null, n: -1 };
+  if (!forgePick.order || forgePick.n !== state.inv.length) {
+    all.sort((a, b) => inRow.has(b) - inRow.has(a) || !!why(a) - !!why(b) || a.price - b.price);
+    forgePick.order = new Map(all.map((x, i) => [x, i]));
+    forgePick.n = state.inv.length;
+  } else {
+    const at = (x) => (forgePick.order.has(x) ? forgePick.order.get(x) : Infinity);
+    all.sort((a, b) => at(a) - at(b));
+  }
+  $('fPick').innerHTML = all.slice(0, forgePick.limit).map((x, j) => {
     const off = why(x);
     const on = inRow.has(x);
-    return `<button type="button" class="inv-item${on ? ' sel' : ''}${off ? ' dim' : ''}" style="--c:${RARITY[x.r].c}" data-uid="${x.uid}"${off ? ` data-why="${off}"` : ''}
+    // «Выпрыгивают» только первые плитки (как в выборе для контракта): сотни анимаций разом — лишняя работа.
+    return `<button type="button" class="inv-item${on ? ' sel' : ''}${off ? ' dim' : ''}" style="--c:${RARITY[x.r].c}${j > 8 ? ';animation:none' : ''}" data-uid="${x.uid}"${off ? ` data-why="${off}"` : ''}
         title="${x.name} · ${x.wear} · ${fmt(x.price)}${off ? ' — ' + off : on ? ' — в Кузне, нажми, чтобы убрать' : ' — нажми, чтобы положить'}${namedFor(x) ? ' · нужен по особому рецепту, Кузня берёт его последним' : ''}"${off ? ' aria-disabled="true"' : ''}>
-      ${x.lock ? '<span class="st" style="background:var(--muted)">🔒</span>' : namedFor(x) ? '<span class="st nm">🔎</span>' : x.stat ? '<span class="st">ST</span>' : ''}
+      ${x.lock ? '<span class="st" style="background:var(--muted)">🔒</span>' : namedFor(x) ? '<span class="st nm">🔎</span>' : x.stat ? '<span class="st">СЧ™</span>' : ''}
       <span class="ic">${x.ic}</span>${baseName(x)}<span class="p${x.price < 0 ? ' neg' : ''}">${fmt(x.price)}</span></button>`;
-  }).join('');
+  }).join('') + moreButtonHTML('fpMore', all.length - forgePick.limit, PICK_LIMIT, all.length);
+  if ($('fpMore')) {
+    $('fpMore').onclick = () => {
+      const from = forgePick.limit;
+      forgePick.limit += PICK_LIMIT;
+      showMore('fpMore', renderForge, $('fPick'), '.inv-item', from);
+    };
+  }
   $$('.inv-item', $('fPick')).forEach((b) => (b.onclick = () => {
     if (busy) return;
     if (b.classList.contains('dim')) { toast('Этот предмет не взять: ' + (b.dataset.why || 'он занят') + '.'); return; }
     forgeToggle(forgeTab, +b.dataset.uid);
   }));
-  const more = all.length - PICK_LIMIT;
-  $('fPickNote').textContent = !all.length ? (isCraftNeed(q) ? 'Такой поделки в инвентаре нет — собери её в Мастерской.' : 'В инвентаре таких предметов нет — открывай кейсы этой масти.')
-    : more > 0 ? `Показаны первые ${PICK_LIMIT} — ещё ${more} подходят. Сначала идут выбранные и самые дешёвые.`
+  const more = all.length - forgePick.limit;
+  $('fPickNote').textContent = !all.length ? (isCraftNeed(q) ? 'Такой поделки в инвентаре нет — собери её в Мастерской.' : 'В инвентаре таких предметов нет — открой кейсы этой масти.')
+    : more > 0 ? `Показаны первые ${forgePick.limit} из ${all.length}. Сначала идут выбранные и самые дешёвые.`
     : row.pinned.length || forgeSel.skip.size ? 'Нажми на выбранный предмет, чтобы Кузня взяла другой.' : 'Кузня выбрала самые дешёвые. Нажми на другой предмет, чтобы положить его.';
 }
 
@@ -418,7 +438,7 @@ function renderAnvilNow() {
   // Мультикрафт: сколько попыток за раз. Больше, чем хватает предметов, выбрать можно — слоты покажут нехватку.
   const maxMult = open ? forgeMaxMult(card) : 1;
   $('fMult').innerHTML = '<span class="lbl">Попыток:</span><span class="seg" role="group" aria-label="Попыток за раз">' + FORGE_MULTS.map((m) =>
-    `<button type="button" data-fmult="${m}" aria-pressed="${m === forgeMult}" title="${m > maxMult ? `Предметов хватает на ×${maxMult}` : m === 1 ? 'Одна попытка' : `${m} попытки одной карты разом, у каждой — свой набор предметов`}"${m > maxMult ? ' class="short"' : ''}>×${m}</button>`).join('') + '</span>' +
+    `<button type="button" data-fmult="${m}" aria-pressed="${m === forgeMult}" title="${m > maxMult ? `Предметов хватает на ×${maxMult}` : m === 1 ? 'Одна попытка' : `${m} ${plural(m, 'попытка', 'попытки', 'попыток')} одной карты разом, у каждой — свой набор предметов`}"${m > maxMult ? ' class="short"' : ''}>×${m}</button>`).join('') + '</span>' +
     (open ? `<span class="lbl fm-max">${maxMult > 1 ? `хватает на ×${maxMult}` : 'хватает на одну'}</span>` : '');
   $$('[data-fmult]', $('fMult')).forEach((b) => (b.onclick = () => {
     if (busy) return;
@@ -447,7 +467,7 @@ function renderAnvilNow() {
     const capped = k > 0 && forgeAddUsed(card, p) <= forgeAddUsed(card, steps[k - 1]);
     const off = capped || (k > 0 && cost.hi > state.bal);
     return `<button type="button" class="btn${p === forgeAdd ? ' primary' : ''}" data-fadd="${p}"${off ? ' disabled' : ''}>
-      ${p ? `+${p}% <small>${capped ? 'потолок' : money(cost)}</small>` : 'Без доплаты'}</button>`;
+      ${p ? `+${p}% <small>${capped ? '<span class="word">потолок</span>' : money(cost)}</small>` : 'Без доплаты'}</button>`;
   }).join('');
   $$('[data-fadd]', $('fAdd')).forEach((b) => (b.onclick = () => {
     if (busy) return;
@@ -469,8 +489,8 @@ function renderAnvilNow() {
   $('fHint').innerHTML = open
     ? `<span class="fchance">${bits.join('')}</span>` +
       (plan.mult > 1
-        ? `<span class="fburn">🔁 Кольца останавливаются по очереди: неудача добавляет следующим +${FORGE_FAIL_STEP}%, удача сбрасывает упорство. 🔥 Неудачная попытка сжигает свою доплату и ${burn} своего набора</span>`
-        : `<span class="fburn">🔥 Не повезёт — сгорят доплата и ${burn} предметов, карты останутся</span>`)
+        ? `<span class="fburn">Кольца останавливаются по очереди: неудача добавляет следующим +${FORGE_FAIL_STEP}%, удача сбрасывает упорство. Неудачная попытка сжигает свою доплату и ${burn} своего набора.</span>`
+        : `<span class="fburn">Не повезёт — сгорят доплата и ${burn} предметов, карты останутся.</span>`)
     : recipeStatus(card, forgePlan(card, 1)).text;
 
   const go = $('fGo');
@@ -607,11 +627,11 @@ $('fGo').onclick = async () => {
   if (document.activeElement === document.body) $('fGo').focus({ preventScroll: true }); // кнопка была выключена на время ковки
   const a = series[0];
   if (a.win) {
-    toast(`Выкована карта ${cardTitle(card)}!${cardCount(card.id) > 1 ? ` Теперь их ×${cardCount(card.id)}.` : ''}`, 3200, { important: card.rank >= 9 });
+    toast(`Выкована карта ${cardTitle(card)}!${cardCount(card.id) > 1 ? ` Теперь в коллекции ×${cardCount(card.id)}.` : ''}`, 3200, { important: card.rank >= 9 });
   } else {
-    const names = burnedAll.map((x) => x.name);
+    const names = burnedAll.map((x) => `«${baseName(x)}»`);
     toast(`Не выковалось. Сгорело: ${names.slice(0, 3).join(', ')}${names.length > 3 ? ` и ещё ${names.length - 3}` : ''}` +
-      `${cost > 0 ? `, доплата ${fmt(cost)}` : ''}.` +
+      `${cost > 0 ? `; доплата — ${fmt(cost)}` : ''}.` +
       (a.chance < FORGE_MAX ? ` Упорство: +${FORGE_FAIL_STEP}% к следующей попытке.` : ''), 4200);
   }
 };

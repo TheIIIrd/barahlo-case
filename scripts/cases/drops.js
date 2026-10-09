@@ -60,7 +60,7 @@ function showDrop(it, context, after) {
   $('dCtx').textContent = context || '';
   $('dRar').textContent = R.n;
   $('dIc').textContent = it.ic;
-  $('dName').innerHTML = baseName(it) + (it.stat ? `<span class="stat-badge">СчётЧих™ ×${STAT_TRAK_MULT}</span>` : '');
+  $('dName').innerHTML = baseName(it) + (it.stat ? `<span class="stat-badge">СЧ™ ×${NF.format(STAT_TRAK_MULT)}</span>` : '');
   $('dLore').textContent = it.lore + (it.price < 0 ? ' Отрицательная стоимость: чтобы избавиться, придётся доплатить.' : '');
   $('dWear').textContent = it.wear;
   $('dPrice').textContent = Math.abs(it.price) >= 1e9 ? fmtShort(it.price) : fmt(it.price);
@@ -98,7 +98,7 @@ function showDrop(it, context, after) {
     } else {
       state.earn = r2(state.earn + it.price);
       setBal(it.price);
-      toast(it.price < 0 ? `Выброшено. Утилизация стоила ${fmt(-it.price)}` : `Продано за ${fmt(it.price)}`);
+      toast(it.price < 0 ? `Выброшено. Утилизация — ${fmt(-it.price)}.` : `Продано за ${fmt(it.price)}.`);
     }
     renderStats();
     renderInventory();
@@ -172,7 +172,7 @@ function showMulti(won, { cost = 0, sorted = false, title = '', sub = '', note =
     } else {
       state.earn = r2(state.earn + total);
       setBal(total);
-      toast('Улов продан за ' + fmt(total));
+      toast(`Улов продан за ${fmt(total)}.`);
     }
     busy = false;
     save();

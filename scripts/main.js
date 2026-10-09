@@ -46,7 +46,7 @@ function renderAll() {
 }
 
 $('tagline').textContent =
-  `${CASES.length} ${plural(CASES.length, 'кейс', 'кейса', 'кейсов')}, музей, ` +
+  `${CASES.length} ${plural(CASES.length, 'кейс', 'кейса', 'кейсов')}, Музей, ` +
   `${RECIPES.length} ${plural(RECIPES.length, 'рецепт', 'рецепта', 'рецептов')}, ` +
   `${CATALOG.length} ${plural(CATALOG.length, 'бесполезная вещь', 'бесполезные вещи', 'бесполезных вещей')}, ` +
   `${CARDS.length} ${plural(CARDS.length, 'карта', 'карты', 'карт')} · шансы опубликованы ниже`;
@@ -77,7 +77,7 @@ try {
     console.error(e2);
     state = freshState();
     restoreNotes.length = 0;
-    restoreNotes.push('Ни сохранение, ни запасная копия не загрузились, игра начата заново');
+    restoreNotes.push('Ни сохранение, ни запасная копия не загрузились, игра начата заново.');
     firstRender();
   }
 }

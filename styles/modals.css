@@ -23,6 +23,9 @@
   padding: 24px 20px 20px;
   text-align: center;
   overflow: hidden;
+  /* clip, а не только hidden: лучи шире окна, и окно с hidden можно было прокрутить вбок (Tab, поиск по
+     странице, автотест) — содержимое уезжало влево, а рамка оставалась на месте. clip прокрутку запрещает. */
+  overflow: clip;
   animation: dropin .55s cubic-bezier(.2, 1.5, .4, 1);
 }
 .mbox.wide { width: min(640px, 100%); }
@@ -49,14 +52,14 @@
 .mbox > * { position: relative; }
 .mbox > .rays { position: absolute; }
 .mbox .ctx {
-  font-size: 12px;
+  font-size: var(--fs-s);
   color: var(--muted);
   margin-bottom: 2px;
 }
 .mbox .rar {
-  font-family: var(--f-mono);
-  font-size: 11px;
-  letter-spacing: .14em;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: .08em;
   text-transform: uppercase;
   color: var(--c);
 }
@@ -73,27 +76,27 @@
 .mbox h3 {
   font-family: var(--f-display);
   font-weight: 400;
-  font-size: 22px;
+  font-size: var(--fs-num);
   margin: 0;
   line-height: 1.2;
   text-wrap: balance;
 }
 .mbox .lore {
-  font-size: 13px;
+  font-size: var(--fs-m);
   color: var(--muted);
   margin: 6px auto 12px;
   max-width: 38ch;
 }
 .stat-badge {
   display: inline-block;
-  font-family: var(--f-mono);
-  font-size: 10px;
+  font-size: var(--fs-micro);
   padding: 1px 6px;
   border-radius: 4px;
   background: var(--accent2);
   color: #2a1600;
   margin-left: 6px;
   vertical-align: middle;
+  font-weight: 800;
 }
 .specs {
   display: grid;
@@ -109,24 +112,25 @@
   min-width: 0;
 }
 .specs .k {
-  font-size: 10px;
-  color: var(--muted);
-  text-transform: uppercase;
+  font-size: var(--fs-xs);
+  font-weight: 600;
   letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted);
 }
 .specs .v {
-  font-family: var(--f-mono);
-  font-size: 13px;
+  font-size: var(--fs-m);
   font-variant-numeric: tabular-nums;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.specs .v.num { font-family: var(--f-mono); }
 
 @media (max-width:480px) {
   .specs .v {
     white-space: normal;
-    font-size: 12px;
+    font-size: var(--fs-s);
     line-height: 1.3;
   }
 }
@@ -173,7 +177,7 @@
   background: var(--bg2);
   border-bottom: 3px solid var(--c);
   padding: 6px 3px;
-  font-size: 9.5px;
+  font-size: var(--fs-micro);
   line-height: 1.15;
   min-width: 0;
   animation: pop .4s cubic-bezier(.2, 1.6, .4, 1) backwards;
@@ -230,7 +234,7 @@
   top: 3px;
   right: 4px;
   font-family: var(--f-mono);
-  font-size: 10px;
+  font-size: var(--fs-micro);
   font-weight: 600;
   color: var(--accent);
 }
@@ -247,7 +251,7 @@
   gap: 4px 12px;
   margin-top: 6px;
   font-family: var(--f-mono);
-  font-size: 11px;
+  font-size: var(--fs-xs);
 }
 .mcount span {
   display: inline-flex;

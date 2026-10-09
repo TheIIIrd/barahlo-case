@@ -98,12 +98,12 @@ function loadState(saved) {
   if (Array.isArray(s.pending) && s.pending.length) {
     s.inv.push(...s.pending);
     const n = s.pending.length;
-    restoreNotes.push(`Действие прервалось: ${n} ${plural(n, 'предмет сохранён', 'предмета сохранены', 'предметов сохранено')} в инвентарь`);
+    restoreNotes.push(`Действие прервалось: ${n} ${plural(n, 'предмет возвращён', 'предмета возвращены', 'предметов возвращено')} в инвентарь.`);
     s.pending = [];
   }
   if (s.pendingBet > 0) {
     s.bal = r2(s.bal + s.pendingBet);
-    restoreNotes.push(`Раунд «Курса огурцов» прервался: ставка ${fmt(s.pendingBet)} возвращена`);
+    restoreNotes.push(`Раунд «Курса огурцов» прервался: ставка ${fmt(s.pendingBet)} возвращена.`);
     s.pendingBet = 0;
   }
   // Опыт за открытие, прерванное перезагрузкой: уровень пересчитается при следующем начислении.
@@ -182,10 +182,10 @@ function recoverBrokenSave(err) {
     const b = readJSON(BACKUP_KEY);
     if (!b || !b.save || typeof b.save.bal !== 'number') throw new Error('запасной копии нет');
     state = loadState(b.save);
-    restoreNotes.push('Сохранение не загрузилось, игра продолжена с запасной копии. Несработавшее можно скачать файлом в Инвентаре, под аналитикой');
+    restoreNotes.push('Сохранение не загрузилось, игра продолжена с запасной копии. Несработавшее можно скачать файлом в инвентаре, под аналитикой.');
   } catch (_) {
     state = freshState();
-    restoreNotes.push('Сохранение не загрузилось, игра начата заново. Несработавшее можно скачать файлом в Инвентаре, под аналитикой');
+    restoreNotes.push('Сохранение не загрузилось, игра начата заново. Несработавшее можно скачать файлом в инвентаре, под аналитикой.');
   }
 }
 
