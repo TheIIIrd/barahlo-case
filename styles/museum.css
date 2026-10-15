@@ -40,7 +40,7 @@
   flex: none;
 }
 .room .rt b {
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word; -webkit-hyphens: auto; hyphens: auto;
   hyphens: auto;
   font-size: var(--fs-m);
   line-height: 1.2;
@@ -177,11 +177,16 @@
   font-size: var(--fs-xs);
   font-weight: 600;
   letter-spacing: .08em;
+  line-height: 1.15;
   text-transform: uppercase;
   max-width: 100%;
-  white-space: nowrap; /* «Мусор средней руки» в две строки сдвигал карточку вниз */
-  overflow: hidden;
-  text-overflow: ellipsis;
+  /* «Мусор средней руки» и «★ Особо бесполезное» в узкой карточке — в две строки, а не «МУСОР СРЕДНЕЙ Р…».
+     Место под две строки — у всех табличек, чтобы карточки в ряду не съезжали. */
+  min-height: 2.3em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-wrap: balance;
   color: color-mix(in srgb, var(--c) 70%, #fff); /* мелкий текст: синий и фиолетовый светлее, чтобы читались */
 }
 .ex .btn {

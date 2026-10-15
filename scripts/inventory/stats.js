@@ -20,7 +20,7 @@ function renderStats() {
   $('sDebt').textContent = fmt(state.debt);
   $('sDebt').className = state.debt >= GRANNY_DEBT ? 'neg' : '';
   $('sForge').textContent = `${state.forged} / ${state.forgeLost}`;
-  $('sBest').textContent = state.best ? state.best.name + ' · ' + fmt(state.best.price) : '—';
+  $('sBest').innerHTML = state.best ? nameHTML(state.best) + ' · ' + fmt(state.best.price) : '—';
   renderDebt();
 
   const max = Math.max(1, ...state.rc);

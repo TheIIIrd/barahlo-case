@@ -28,6 +28,12 @@ for f in on_disk:
 for f in core:
     if f and not os.path.isfile(os.path.join(root, f)): errors.append(f'в CORE у sw.js лишний файл: {f}')
 if len(set(linked)) != len(linked): errors.append('в index.html файл подключён дважды')
+# Метка сборки: data-build у <html> и BUILD в main.js должны совпадать (иначе игра решит, что файлы из разных версий).
+mb = re.search(r'data-build="([^"]+)"', html)
+main = open(os.path.join(root, 'scripts', 'main.js'), encoding='utf-8').read()
+bb = re.search(r"const BUILD = '([^']+)'", main)
+if not mb or not bb or mb.group(1) != bb.group(1):
+    errors.append(f'метка сборки не совпадает: index.html {mb and mb.group(1)}, main.js {bb and bb.group(1)}')
 
 if errors:
     print('\n'.join(errors)); sys.exit(1)

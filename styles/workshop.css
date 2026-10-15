@@ -43,7 +43,7 @@
   font-size: var(--fs-micro);
   line-height: 1.2;
   text-align: center;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word; -webkit-hyphens: auto; hyphens: auto;
   cursor: pointer;
   animation: pop .3s cubic-bezier(.2, 1.6, .4, 1);
 }
@@ -244,12 +244,15 @@
 }
 
 @media (max-width:560px) {
+  /* Значок, название и число — тремя строками у всех трёх разделов одинаково
+     («Мастерская» не влезает в строку со значком, и раньше значок у неё один уезжал наверх). */
   .subnav button {
     font-size: var(--fs-m);
     padding: 8px 4px;
     gap: 3px;
     flex-direction: column;
   }
+  .subnav button .i { line-height: 1; }
   .subnav .cnt { font-size: var(--fs-micro); }
   .rcp { grid-template-columns: 40px minmax(0, 1fr); }
   .rcp .out { font-size: 28px; }
@@ -259,7 +262,6 @@
     height: 54px;
   }
   .reels.compact.x20 .card .ic { font-size: 20px; }
-  .reels.compact.x20 .card .t { display: none; }
   .reels.compact.x20 .reel-wrap { height: 64px; }
 }
 /* Телефон: стопки компактнее — по пять в ряд, без названия (оно в подсказке и в озвучке). */

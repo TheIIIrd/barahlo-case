@@ -92,7 +92,7 @@ $('loan').onclick = () => {
 
 $('repay').onclick = () => {
   if (busy) return; // во время продажи с доплатой баланс ещё не списан — иначе ушёл бы в минус
-  if (!state.debt) { toast('Долгов нет. Бабушка гордится тобой.'); return; }
+  if (!state.debt) { toast('Ты ничего не должен. Бабушка гордится тобой.'); return; }
   const pay = r2(Math.min(state.debt, state.bal));
   if (pay <= 0) { toast('Нечем отдавать. Бабушка поймёт. Наверное.'); return; }
   state.debt = r2(state.debt - pay);
@@ -114,14 +114,16 @@ function renderDebt() {
   loan.title = capped ? `Больше ${fmt(MAX_DEBT)} бабушка в долг не даёт` : `Бабушка даёт по ${fmt(LOAN)}, но не больше ${fmt(MAX_DEBT)} долга`;
 
   const b = $('repay');
+  // Долга нет: кнопка выглядит выключенной, но нажимается — бабушка гордится (как «Занять» на потолке долга).
+  b.disabled = false;
+  b.classList.toggle('nodebt', !state.debt);
+  b.setAttribute('aria-disabled', String(!state.debt));
   if (!state.debt) {
     b.innerHTML = '<span>Долгов нет</span>' + REPAY_SIZER;
-    b.disabled = true;
     b.title = '';
     return;
   }
   const atDoor = state.grannyDue && state.debt >= GRANNY_DEBT;
-  b.disabled = false;
   b.innerHTML = `<span>Вернуть ${fmtShort(state.debt)}</span>` + REPAY_SIZER +
     (atDoor ? '<span class="gdoor" aria-hidden="true">👵</span>' : '');
   b.title = atDoor ? 'Бабушка стоит у двери и сейчас зайдёт за долгом'

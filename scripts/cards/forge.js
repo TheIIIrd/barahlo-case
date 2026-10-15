@@ -65,7 +65,7 @@ function forgePlan(card, mult = forgeMult) {
   const sel = forgeSel.card === card.id ? forgeSel : null;
   const rows = rec.need.map((q, i) => {
     const need = needOf(q, mult);
-    if (q.card) return { q, need, have: Math.min(cardCount(q.card), need), items: [], pinned: [], blocked: 0 };
+    if (q.card) return { q, need, have: Math.min(cardFree(q.card), need), items: [], pinned: [], blocked: 0 };
     const free = (it) => !taken.has(it) && !used.has(it) && fitsNeed(it, q, card.suit);
     // Сначала то, что игрок положил сам (если оно всё ещё в инвентаре и подходит), потом — автоподбор.
     const pinned = sel ? (sel.pinned[i] || []).filter((it) => state.inv.includes(it) && free(it)).slice(0, need) : [];
@@ -79,8 +79,10 @@ function forgePlan(card, mult = forgeMult) {
       if (!best.has(k) || x.float < best.get(k).float) best.set(k, x);
     }
     best.forEach((x) => keep.add(x));
-    // Именной предмет чужого рецепта в «кучу» идёт последним: он нужен старшей карте.
-    const named = (x) => !q.item && FORGE_NAMED_SET.has(baseName(x));
+    // Именной предмет чужого рецепта в «кучу» идёт последним: он нужен старшей карте. Признак считаем
+    // один раз на предмет, а не в каждом сравнении сортировки (на 20 тыс. предметов это заметно).
+    const namedSet = q.item ? null : new Set(pool.filter((x) => FORGE_NAMED_SET.has(baseName(x))));
+    const named = (x) => (namedSet && namedSet.has(x) ? 1 : 0);
     pool.sort((a, b) => named(a) - named(b) || keep.has(a) - keep.has(b) || a.price - b.price);
     const items = [...pinned, ...pool.slice(0, need - pinned.length)];
     items.forEach((x) => used.add(x));
@@ -168,7 +170,7 @@ function renderSlots(card, plan) {
     const stack = r.need > 1 ? ' stack' : '';
     if (r.q.card) {
       return `<button type="button" class="fslot card${stack}${short ? ' short' : ''}" data-row="${ri}" style="--c:${needColor(r.q)}"
-          title="${label} — нужно ${r.need}, в коллекции ×${cardCount(r.q.card)}" aria-label="Карта ${label}: ${r.have} из ${r.need}"${ri === forgeTab ? ' aria-current="true"' : ''}>
+          title="${label} — нужно ${r.need}, в коллекции ×${cardCount(r.q.card)}${cardInBattle(r.q.card) ? `, в бою ×${cardInBattle(r.q.card)}` : ''}" aria-label="Карта ${label}: ${r.have} из ${r.need}"${ri === forgeTab ? ' aria-current="true"' : ''}>
         ${cardHTML(CARD_BY_ID.get(r.q.card), { size: 'xs', attrs: 'aria-hidden="true"' })}<span class="n" aria-hidden="true">${r.have}/${r.need}</span></button>`;
     }
     const x = r.items[0];
@@ -466,7 +468,7 @@ function renderAnvilNow() {
     // Шаг бесполезен, если шанс уже упёрся в потолок на предыдущем, или на него нет денег.
     const capped = k > 0 && forgeAddUsed(card, p) <= forgeAddUsed(card, steps[k - 1]);
     const off = capped || (k > 0 && cost.hi > state.bal);
-    return `<button type="button" class="btn${p === forgeAdd ? ' primary' : ''}" data-fadd="${p}"${off ? ' disabled' : ''}>
+    return `<button type="button" class="btn opt" data-fadd="${p}" aria-pressed="${p === forgeAdd}"${off ? ' disabled' : ''}>
       ${p ? `+${p}% <small>${capped ? '<span class="word">потолок</span>' : money(cost)}</small>` : 'Без доплаты'}</button>`;
   }).join('');
   $$('[data-fadd]', $('fAdd')).forEach((b) => (b.onclick = () => {
@@ -544,8 +546,7 @@ $('fGo').onclick = async () => {
       a.set.items.forEach(removeItem);
       for (const q of plan.rec.need) {
         if (!q.card) continue;
-        state.cards[q.card] = cardCount(q.card) - q.n;
-        if (state.cards[q.card] <= 0) delete state.cards[q.card];
+        spendCards(q.card, q.n);
       }
       state.cards[card.id] = cardCount(card.id) + 1;
       state.cardsEver[card.id] = true;
@@ -571,43 +572,47 @@ $('fGo').onclick = async () => {
   resetForgeSel();
   save(); // исход уже записан; инвентарь и статистику перерисуем после колеса — не раскрывать результат заранее
 
-  if (mult === 1) {
-    const a = series[0];
-    forgeNeedleAngle = Math.ceil(forgeNeedleAngle / 360) * 360 + 360 * 6 + forgeLanding(a.chance, a.win);
-    $('fNeedle').style.transform = `rotate(${forgeNeedleAngle}deg)`;
-    let ticks = 0;
-    const ticker = setInterval(() => tone(820 - ticks++ * 12, 0.02, 'square', 0.03), 90);
-    await sleep(reducedMotion ? 100 : 4300);
-    clearInterval(ticker);
-  } else {
-    // Все стрелки крутятся разом и останавливаются по очереди, снаружи внутрь. Когда кольцо остановилось,
-    // у следующих дуга меняется на их настоящий шанс (упорство после неудачи, сброс после удачи).
-    renderWheel(series.map((a, k) => (k === 0 ? a.chance : series[0].chance)), mult);
-    const rings = $$('.fring', $('fWheel'));
-    const first = reducedMotion ? 150 : 2600;
-    const gap = reducedMotion ? 80 : 650;
-    rings.forEach((r, k) => {
-      const a = series[k];
-      ringAngles[k] = Math.ceil((ringAngles[k] || 0) / 360) * 360 + 360 * (5 + k) + forgeLanding(a.chance, a.win);
-      const nd = r.nextElementSibling;
-      nd.style.transitionDuration = first + k * gap + 'ms';
-      nd.style.transform = `rotate(${ringAngles[k]}deg)`;
-    });
-    let ticks = 0;
-    const ticker = setInterval(() => tone(820 - (ticks++ % 40) * 10, 0.02, 'square', 0.025), 110);
-    await sleep(first);
-    for (let k = 0; k < mult; k++) {
-      const a = series[k];
-      rings[k].classList.add(a.win ? 'won' : 'lost');
-      tone(a.win ? 880 : 220, 0.08, a.win ? 'triangle' : 'sawtooth', 0.05);
-      if (k + 1 < mult) rings.slice(k + 1).forEach((r, j) => r.style.setProperty('--ch', series[k + 1].chance + '%'));
-      if (k + 1 < mult) await sleep(gap);
+  // Колесо — только картинка; что бы ни случилось в анимации, занятость снимаем (иначе игра встала бы до перезагрузки).
+  try {
+    if (mult === 1) {
+      const a = series[0];
+      forgeNeedleAngle = Math.ceil(forgeNeedleAngle / 360) * 360 + 360 * 6 + forgeLanding(a.chance, a.win);
+      $('fNeedle').style.transform = `rotate(${forgeNeedleAngle}deg)`;
+      let ticks = 0;
+      const ticker = setInterval(() => tone(820 - ticks++ * 12, 0.02, 'square', 0.03), 90);
+      await sleep(reducedMotion ? 100 : 4300);
+      clearInterval(ticker);
+    } else {
+      // Все стрелки крутятся разом и останавливаются по очереди, снаружи внутрь. Когда кольцо остановилось,
+      // у следующих дуга меняется на их настоящий шанс (упорство после неудачи, сброс после удачи).
+      renderWheel(series.map((a, k) => (k === 0 ? a.chance : series[0].chance)), mult);
+      const rings = $$('.fring', $('fWheel'));
+      const first = reducedMotion ? 150 : 2600;
+      const gap = reducedMotion ? 80 : 650;
+      rings.forEach((r, k) => {
+        const a = series[k];
+        ringAngles[k] = Math.ceil((ringAngles[k] || 0) / 360) * 360 + 360 * (5 + k) + forgeLanding(a.chance, a.win);
+        const nd = r.nextElementSibling;
+        nd.style.transitionDuration = first + k * gap + 'ms';
+        nd.style.transform = `rotate(${ringAngles[k]}deg)`;
+      });
+      let ticks = 0;
+      const ticker = setInterval(() => tone(820 - (ticks++ % 40) * 10, 0.02, 'square', 0.025), 110);
+      await sleep(first);
+      for (let k = 0; k < mult; k++) {
+        const a = series[k];
+        rings[k].classList.add(a.win ? 'won' : 'lost');
+        tone(a.win ? 880 : 220, 0.08, a.win ? 'triangle' : 'sawtooth', 0.05);
+        if (k + 1 < mult) rings.slice(k + 1).forEach((r, j) => r.style.setProperty('--ch', series[k + 1].chance + '%'));
+        if (k + 1 < mult) await sleep(gap);
+      }
+      clearInterval(ticker);
+      await sleep(reducedMotion ? 50 : 500);
     }
-    clearInterval(ticker);
-    await sleep(reducedMotion ? 50 : 500);
+  } finally {
+    busy = false;
   }
   releaseXP();
-  busy = false;
   renderInventory();
   renderStats();
   renderCards();
@@ -624,7 +629,7 @@ $('fGo').onclick = async () => {
     shake();
   }
   if (mult > 1) { showForgeResult(card, series, cost); return; }
-  if (document.activeElement === document.body) $('fGo').focus({ preventScroll: true }); // кнопка была выключена на время ковки
+  focusBack($('fGo'), $$('#fAdd button'), $$('#fPick button')); // кнопка была выключена на время ковки, а после неудачи может остаться выключенной
   const a = series[0];
   if (a.win) {
     toast(`Выкована карта ${cardTitle(card)}!${cardCount(card.id) > 1 ? ` Теперь в коллекции ×${cardCount(card.id)}.` : ''}`, 3200, { important: card.rank >= 9 });
@@ -650,4 +655,4 @@ function showForgeResult(card, series, cost) {
   $('forgeRes').hidden = false;
   $('frOk').focus({ preventScroll: true });
 }
-$('frOk').onclick = () => { $('forgeRes').hidden = true; };
+$('frOk').onclick = () => { $('forgeRes').hidden = true; focusBack($('fGo'), $$('#fAdd button'), $$('#fPick button')); };

@@ -44,6 +44,12 @@
   font-weight: 600;
 }
 .tile .v .ti { font-family: var(--f-body); font-size: .9em; }
+.tile .v .ps { display: none; }
+.tile .v .u { font-family: var(--f-body); } /* слово — не моноширинным */
+@media (max-width: 400px) {
+  .tile .v .pl { display: none; }
+  .tile .v .ps { display: inline; }
+}
 .tile .s {
   font-size: var(--fs-s);
   color: var(--muted);
@@ -205,7 +211,7 @@
 }
 .icard .nm {
   position: relative;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word; -webkit-hyphens: auto; hyphens: auto;
   hyphens: auto;
   font-size: var(--fs-xs);
   font-weight: 600;
@@ -227,9 +233,12 @@
   position: relative;
   font-size: var(--fs-micro);
   color: var(--muted);
-  white-space: nowrap;
+  /* В две строки на любой ширине: «Найдено на помойке», а не «Найдено на п…». */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-height: 1.2;
   overflow: hidden;
-  text-overflow: ellipsis;
   max-width: 100%;
   padding-inline: 13px;
   box-sizing: border-box;
@@ -336,8 +345,16 @@
   margin: 0 0 12px;
 }
 .detail .specs { margin-bottom: 12px; }
+/* Пояснение «СчётЧих™» — во всю ширину, в цвет значка. */
+.detail .specs .st-note {
+  grid-column: 1 / -1;
+  background: color-mix(in srgb, var(--accent2) 14%, var(--bg2));
+  border: 1px solid color-mix(in srgb, var(--accent2) 45%, transparent);
+}
+.detail .specs .st-note .k { color: var(--accent2); }
+.detail .specs .st-note .v { font-size: var(--fs-s); }
 /* В узкой панели — в две строки, а не «Найдено на пом…». */
-.detail .specs .v { white-space: normal; overflow-wrap: anywhere; line-height: 1.3; font-size: var(--fs-m); }
+.detail .specs .v { white-space: normal; overflow-wrap: break-word; -webkit-hyphens: auto; hyphens: auto; line-height: 1.3; font-size: var(--fs-m); }
 .detail .acts {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -534,4 +551,13 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+/* «Начать жизнь заново» взведена: предупреждающий цвет; ширина не прыгает при смене текста. */
+#resetAll { min-width: 170px; }
+#resetAll.armed { border-color: var(--bad); color: var(--bad); background: color-mix(in srgb, var(--bad) 12%, var(--panel2)); }
+
+/* Планшет: шторка не во всю ширину — кнопки действий не растягиваются на 700+ px. */
+@media (min-width: 600px) and (max-width: 860px) {
+  .detail { left: calc(50% - 280px); right: calc(50% - 280px); }
 }

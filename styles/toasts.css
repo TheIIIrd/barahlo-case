@@ -2,7 +2,8 @@
 #toasts {
   position: fixed;
   left: 50%;
-  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  /* --dock — высота того, что прижато к низу экрана (панель выбора, полоса контракта); меряет toend.js. */
+  bottom: calc(20px + var(--dock, 0px) + env(safe-area-inset-bottom, 0px));
   transform: translateX(-50%);
   z-index: 80;
   display: flex;
@@ -41,7 +42,7 @@ body:has(.modal:not([hidden])) #toasts {
 /* Кнопка «В самый низ» / «Наверх» (scripts/core/toend.js). Видна только на длинных страницах. */
 .toend {
   position: fixed;
-  right: calc(14px + env(safe-area-inset-right, 0px));
+  right: calc(var(--right, 14px) + env(safe-area-inset-right, 0px));
   bottom: calc(16px + var(--lift, 0px) + env(safe-area-inset-bottom, 0px));
   z-index: 54;
   width: 46px;

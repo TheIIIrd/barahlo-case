@@ -63,7 +63,7 @@ function renderUpgradeNow() {
   if (upgradeStake) {
     stakeBox.className = 'uslot f';
     stakeBox.style.setProperty('--c', RARITY[upgradeStake.r].c);
-    stakeBox.innerHTML = `<span class="k">Ставка</span><span class="ic">${upgradeStake.ic}</span><span class="nm">${upgradeStake.name}</span><span class="pr">${fmt(upgradeStake.price)}</span>`;
+    stakeBox.innerHTML = `<span class="k">Ставка</span><span class="ic">${upgradeStake.ic}</span><span class="nm">${nameHTML(upgradeStake)}</span><span class="pr">${fmt(upgradeStake.price)}</span>`;
   } else {
     stakeBox.className = 'uslot';
     stakeBox.innerHTML = '<span class="k">Ставка</span><span class="empty">Выбери предмет в инвентаре ниже</span>';
@@ -88,7 +88,7 @@ function renderUpgradeNow() {
     ? `${fmtPct(chance * 100, chance < 0.01 ? 2 : chance < 0.1 ? 1 : 0)}<small>шанс успеха</small>`
     : '—<small>шанс</small>';
   $('mults').innerHTML = UPGRADE_MULTS
-    .map((m) => `<button class="btn${m === upgradeMult ? ' primary' : ''}" type="button" data-m="${m}">×${NF.format(m)}</button>`).join('');
+    .map((m) => `<button class="btn opt" type="button" data-m="${m}" aria-pressed="${m === upgradeMult}">×${NF.format(m)}</button>`).join('');
   $$('button', $('mults')).forEach((b) => (b.onclick = () => {
     if (busy) return;
     upgradeMult = +b.dataset.m;
@@ -165,6 +165,7 @@ $('uGo').onclick = async () => {
     showDrop(prize, `Апгрейд ×${NF.format(mult)} удался!`, () => {
       busy = false;
       renderUpgrade();
+      focusBack($$('#inv .inv-item:not(.dim)')); // ставки больше нет — «Апгрейд» выключена
     });
   } else {
     sad();
@@ -174,5 +175,6 @@ $('uGo').onclick = async () => {
     renderUpgrade();
     renderInventory();
     renderStats();
+    focusBack($$('#inv .inv-item:not(.dim)'));
   }
 };

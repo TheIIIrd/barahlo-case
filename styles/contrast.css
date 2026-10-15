@@ -26,7 +26,7 @@
 :root.hc .rcp { outline-color: color-mix(in srgb, var(--c, var(--line)) 50%, var(--line)); } /* рецепт: полоска слева */
 /* Состояния — одна рамка своего цвета, без серого кольца снаружи и серой линии внутри. */
 :root.hc :is(.tab[aria-selected="true"], .room.done) { outline-color: var(--accent); }
-:root.hc :is(.btn.primary:not(:disabled), .btn.tgl[aria-pressed="true"]) { outline-color: var(--accent); }
+:root.hc :is(.btn.primary:not(:disabled), .btn.tgl[aria-pressed="true"], .btn.opt[aria-pressed="true"]) { outline-color: var(--accent); }
 :root.hc .case.tier:not([aria-pressed="true"]):not(:focus-visible) { outline-color: color-mix(in srgb, var(--cc) 55%, var(--line)); }
 :root.hc .icard.sel { outline-color: var(--accent); border-bottom-color: var(--accent); box-shadow: none; }
 :root.hc .chip[aria-pressed="true"]:not(:focus-visible) { outline-color: var(--c, var(--accent)); } /* фокус — всегда оранжевый */
@@ -45,7 +45,7 @@
 /* Выключенный чип быстрого заполнения — как и кнопка ниже: пунктир вместо полупрозрачности. */
 :root.hc .cfill .chip:disabled { opacity: 1; border-style: dashed; color: var(--muted); }
 /* Выключенная кнопка: тёмный текст на полупрозрачном оранжевом не читался — пунктир и светлый текст. */
-:root.hc .btn:disabled {
+:root.hc .btn:disabled, :root.hc #repay.nodebt {
   opacity: 1;
   background: transparent;
   color: var(--muted);

@@ -93,8 +93,13 @@ function renderInvViewNow() {
   $('tV').className = 'v' + (total < 0 ? ' neg' : '');
   const best = all.reduce((a, x) => (!a || x.price > a.price ? x : a), null);
   // Иконка и пробел — не моноширинным: моно-пробел широкий, и на 360 цена не влезала.
-  $('tB').innerHTML = best ? `<span class="ti">${best.ic} </span>${fmtShort(best.price)}` : '—';
-  $('tBs').textContent = best ? best.name : '—';
+  // От 100 тысяч на узком телефоне сумма с иконкой не влезает — там показываем «280 тыс ₽» (полная — в подсказке).
+  const longBest = best && Math.abs(best.price) >= 1e5 && Math.abs(best.price) < 999500; // «1 000 тыс» не пишем
+  $('tB').innerHTML = best ? `<span class="ti">${best.ic} </span>` + (longBest
+    ? `<span class="pl">${fmtShort(best.price)}</span><span class="ps">${NF.format(Math.round(best.price / 1000))}<span class="u">\u00a0тыс</span>\u00a0₽</span>`
+    : fmtShort(best.price)) : '—';
+  $('tB').title = best ? fmt(best.price) : '';
+  $('tBs').innerHTML = best ? nameHTMLPre(best) : '—';
   const negatives = all.filter((x) => x.price < 0);
   $('tM').textContent = negatives.length;
   $('tM').className = 'v' + (negatives.length ? ' neg' : '');
@@ -224,7 +229,7 @@ function renderItemCard() {
     <button class="btn sm close" type="button" id="dClose" aria-label="Закрыть" title="Закрыть">✕</button>
     <div class="hero"><div class="rays"></div><span class="ic">${it.ic}</span></div>
     <div class="rar">${R.n}</div>
-    <h3>${baseName(it)}${it.stat ? `<span class="stat-badge">СЧ™ ×${NF.format(STAT_TRAK_MULT)}</span>` : ''}</h3>
+    <h3>${nameHTML(it, true)}</h3>
     <p class="lore">${it.lore || ''}</p>
     <div class="acts">
       ${museumButtonHTML(it)}
@@ -234,6 +239,7 @@ function renderItemCard() {
       <button class="btn wide" type="button" id="dtCon" ${it.r >= 6 && !contractMega ? 'disabled' : ''}>${contractMega ? '⚡ В мегаконтракт' : 'В контракт'}</button>
     </div>
     <div class="specs">
+      ${it.stat ? `<div class="st-note"><div class="k">СчётЧих™</div><div class="v">Редкая версия предмета со счётчиком — стоит в ${NF.format(STAT_TRAK_MULT)} раза дороже. Попадается примерно в одном дропе из десяти.</div></div>` : ''}
       <div><div class="k">Цена</div><div class="v num${it.price < 0 ? ' neg' : ''}">${fmt(it.price)}</div></div>
       <div><div class="k">Состояние</div><div class="v">${it.wear}</div></div>
       <div><div class="k">Из кейса</div><div class="v">${caseName(it.caseId)}</div></div>
@@ -249,10 +255,11 @@ function renderItemCard() {
     ${restoreBlockHTML(it)}`;
 
   $('dClose').onclick = closeItemCardView;
-  $('dtSell').onclick = (e) => sellItems([it], $('inv2').querySelector(`.icard[data-u="${it.uid}"]`) || e.target);
+  $('dtSell').onclick = (e) => sellItems([it], $('inv2').querySelector(`.icard[data-u="${it.uid}"]`) || e.target, true);
   if ($('dtResto')) $('dtResto').onclick = () => restore(it);
   if ($('dtMus')) $('dtMus').onclick = () => donate(it, true);
   $('dtLock').onclick = () => {
+    if (busy) return; // посреди продажи: иначе закрепили бы уже уходящий предмет
     it.lock = !it.lock;
     invUi.sel.delete(it.uid);
     save();
@@ -297,7 +304,7 @@ function renderItemCard() {
 function renderRecent() {
   const box = $('recent');
   const last = state.inv.slice(-12).reverse();
-  $('goInv').textContent = state.inv.length ? `Весь инвентарь · ${state.inv.length} шт.` : 'Весь инвентарь';
+  $('goInv').textContent = state.inv.length ? `Весь инвентарь · ${state.inv.length} ${plural(state.inv.length, 'предмет', 'предмета', 'предметов')}` : 'Весь инвентарь';
   box.innerHTML = last.length
     ? last.map((x) => itemCardHTML(x, 'recent')).join('')
     : '<span class="empty">Здесь появится то, что выпадет из кейсов.</span>';
@@ -311,9 +318,10 @@ function renderRecent() {
 }
 
 // Продажа (или утилизация, если сумма отрицательная).
-async function sellItems(list, sourceEl) {
+async function sellItems(list, sourceEl, fromCard = false) {
   if (busy) return;
-  list = list.filter((x) => state.inv.includes(x));
+  // Массовая продажа закреплённое не берёт никогда; предмет из его карточки — можно, его выбрали явно.
+  list = list.filter((x) => state.inv.includes(x) && (fromCard || !x.lock));
   if (!list.length) return;
   const v = r2(sum(list, (x) => x.price));
   if (!canPay(v)) { noMoney(v); return; }
@@ -325,15 +333,28 @@ async function sellItems(list, sourceEl) {
   if (list.length > 5 && v > 0) setTimeout(() => tone(1500, 0.12, 'sine', 0.06), 90);
   await sleep(list.length > 1 ? 300 : 200);
 
+  // Предметы, разложенные по контракту, апгрейду или верстаку, продаются (их выбрали явно) — но говорим об этом.
+  const taken = takenItems();
+  const away = list.filter((x) => taken.has(x));
+  const moved = list.length === 1
+    ? (away.length ? ` Убран ${releaseItem(list[0])}.` : '')
+    : away.length ? ` ${away.length} из них ${plural(away.length, 'лежал', 'лежали', 'лежали')} в контракте, апгрейде или на верстаке.` : '';
+  // Куда поставить фокус после продажи: на соседа проданной плитки (кнопки карточки исчезнут вместе с ней).
+  const at = $$('.icard', $('inv2')).findIndex((b) => +b.dataset.u === list[0].uid);
   list.forEach(removeItem);
   state.earn = r2(state.earn + v);
   busy = false;
+  // Кнопки карточки уходят вместе с ней: иначе перерисовка поставила бы фокус на «ближайшую» кнопку
+  // где-то внизу («Загрузить»), а не на соседнюю плитку.
+  if ($('detail').contains(document.activeElement)) document.activeElement.blur();
   setBal(v);
   renderAll();
+  const tiles = $$('.icard', $('inv2'));
+  focusBack(list.length === 1 ? [tiles[at], tiles[at - 1]] : [], $('bulkSell'), tiles);
 
   const one = `«${baseName(list[0])}»`;
-  if (list.length === 1) toast(v < 0 ? `Выброшено: ${one}. Утилизация — ${fmt(-v)}.` : `Продано: ${one} за ${fmt(v)}.`);
-  else toast(v < 0 ? `Выброшено ${list.length} ${plural(list.length, 'предмет', 'предмета', 'предметов')}. Утилизация — ${fmt(-v)}.` : `Продано ${list.length} ${plural(list.length, 'предмет', 'предмета', 'предметов')} за ${fmt(v)}.`);
+  if (list.length === 1) toast((v < 0 ? `Выброшено: ${one}. Утилизация — ${fmt(-v)}.` : `Продано: ${one} за ${fmt(v)}.`) + moved);
+  else toast((v < 0 ? `Выброшено ${list.length} ${plural(list.length, 'предмет', 'предмета', 'предметов')}. Утилизация — ${fmt(-v)}.` : `Продано ${list.length} ${plural(list.length, 'предмет', 'предмета', 'предметов')} за ${fmt(v)}.`) + moved);
 }
 $('bulkSell').onclick = (e) => sellItems(selectedItems(), e.target);
 // Выбранное — в мегаконтракт: включаем рубильник и переходим в «Контракт».
@@ -342,8 +363,7 @@ $('bulkMega').onclick = () => {
   const sel = selectedItems();
   const taken = new Set([...bench, upgradeStake].filter(Boolean)); // то, что уже в контракте, — оставляем
   const ok = sel.filter((x) => !x.lock && !taken.has(x));
-  if (!contractMega) contractItems = [];
-  contractMega = true;
+  contractMega = true; // уже набранное в обычный контракт остаётся: мегаконтракт берёт любую редкость
   const room = MEGA_MAX - contractItems.length;
   const add = ok.filter((x) => !contractItems.includes(x)).slice(0, Math.max(0, room));
   contractItems.push(...add);
@@ -394,7 +414,7 @@ $$('[data-qs]', $('sub-items')).forEach((b) => (b.onclick = () => {
   invUi.multi = true;
   invUi.sel = new Set(chosen.map((x) => x.uid));
   if (!chosen.length) {
-    toast(mode === 'dup' ? 'Дубликатов нет. Всё в единственном экземпляре.'
+    toast(mode === 'dup' ? 'Дубликатов нет. Коллекция уникальна.'
       : mode === 'neg' ? 'Предметов с минусом нет.' : 'Под условие ничего не подходит.');
   }
   renderInvView();
@@ -403,13 +423,17 @@ $$('[data-qs]', $('sub-items')).forEach((b) => (b.onclick = () => {
 // Сброс прогресса: нужно нажать дважды за 3 секунды.
 let resetArmedAt = 0;
 $('resetAll').onclick = () => {
-  if (busy) return;
-  if (crash.state !== 'idle') { toast('Дождись конца раунда «Курса огурцов».'); return; }
+  if (savesBlocked()) return; // анимация, раунд «Курса огурцов» или игра сохранена в другой вкладке
   const btn = $('resetAll');
   if (Date.now() - resetArmedAt > 3000) {
     resetArmedAt = Date.now();
     btn.textContent = 'Точно? Нажми ещё раз';
-    setTimeout(() => (btn.textContent = 'Начать жизнь заново'), 3000);
+    btn.classList.add('armed');
+    setTimeout(() => {
+      if (Date.now() - resetArmedAt < 3000) return; // взвели заново — ждём своего таймера
+      btn.textContent = 'Начать жизнь заново';
+      btn.classList.remove('armed');
+    }, 3000);
     return;
   }
   resetArmedAt = 0; // следующий сброс — снова с подтверждением
@@ -418,10 +442,12 @@ $('resetAll').onclick = () => {
   state = freshState();
   contractItems = [];
   upgradeStake = null;
+  bench = [];
   invUi.sel.clear();
   invUi.open = null;
   save();
   btn.textContent = 'Начать жизнь заново';
+  btn.classList.remove('armed');
   renderAll();
   renderSaves();
   toast('Новая жизнь. Старые носки забыты. Передумаешь — «Вернуть прежнее» под аналитикой.', 3600);

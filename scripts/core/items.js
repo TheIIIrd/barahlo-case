@@ -4,6 +4,16 @@
 'use strict';
 
 const baseName = (it) => it.name.replace(STAT_TRAK, '');
+// СчётЧих™ — значком «СЧ™» после названия везде, где название стоит заголовком или в плитке;
+// полным словом — в предложениях, уведомлениях и подсказках.
+// У state.best флага stat нет — узнаём по названию.
+const isStatItem = (it) => it.stat ?? it.name.startsWith(STAT_TRAK);
+const statTip = () => `СчётЧих™: редкая версия предмета, стоит в ${NF.format(STAT_TRAK_MULT)} раза дороже`;
+const statBadgeHTML = (mult, pre) =>
+  `<span class="stat-badge${pre ? ' pre' : ''}" title="${statTip()}">СЧ™${mult ? ' ×' + NF.format(STAT_TRAK_MULT) : ''}</span>`;
+const nameHTML = (it, mult) => baseName(it) + (isStatItem(it) ? statBadgeHTML(mult) : '');
+// Для подписей в одну-две строки с многоточием: значок впереди, иначе его срежет вместе с хвостом названия.
+const nameHTMLPre = (it) => (isStatItem(it) ? statBadgeHTML(false, true) : '') + baseName(it);
 
 // Удача от уровня: прибавка к весу хороших редкостей. 10-й ≈ +2%, 20-й ≈ +5%, 30-й — +10%,
 // 40-й — +15%, 50-й и выше — +20%. До 30-го кривая плавно разгоняется и на стыке идёт ровно по LUCK_STEP.
@@ -22,9 +32,9 @@ function buffLeft(c) {
 }
 
 // Вес редкости r в кейсе c с учётом удачи и баффа.
-function rarityWeight(c, r) {
+function rarityWeight(c, r, luck = levelLuck()) {
   let w = RARITY[r].w;
-  if (r >= LUCK_FROM) w *= 1 + levelLuck();
+  if (r >= LUCK_FROM) w *= 1 + luck;
   if (r >= BUFF_FROM && buffLeft(c) > 0) w *= BUFF_MULT;
   return w;
 }
@@ -36,6 +46,15 @@ function chanceOf(c, i) {
   const present = [...new Set(c.items.map((x) => x[0]))];
   const totalWeight = sum(present, (k) => rarityWeight(c, k));
   return (rarityWeight(c, r) / sameRarity / totalWeight) * 100;
+}
+
+// Удача умножает вес, а не шанс: шанс редких растёт чуть меньше, чем на «+N%».
+// Возвращает суммарный шанс «Засекреченного» и выше в кейсе c — с удачей и без, в процентах.
+function luckEffect(c) {
+  const present = [...new Set(c.items.map((x) => x[0]))];
+  const share = (luck) => sum(present.filter((r) => r >= LUCK_FROM), (r) => rarityWeight(c, r, luck)) /
+    sum(present, (r) => rarityWeight(c, r, luck)) * 100;
+  return { now: share(levelLuck()), base: share(0) };
 }
 
 // Шансы всех предметов кейса разом: для серии бросков считаем один раз.
@@ -100,4 +119,5 @@ function removeItem(it) {
   if (invUi.open === it.uid) invUi.open = null;
   contractItems = contractItems.filter((x) => x !== it);
   if (upgradeStake === it) upgradeStake = null;
+  bench = bench.filter((x) => x !== it);
 }

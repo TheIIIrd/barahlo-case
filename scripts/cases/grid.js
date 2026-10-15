@@ -52,14 +52,23 @@ function caseIconHTML(c) {
   return `<div class="${cls}" style="--cc:${c.color}"><span class="stk"><span class="e">${c.ic}</span></span></div>`;
 }
 
+/* Метки в правом верхнем углу плитки. Первая строка — скидка Музея и вид кейса (FREE, ЭЛИТА…, VIP),
+   вторая — подарочные кейсы. Раньше показывалась одна метка: подарок прятал ЭЛИТУ, а скидка у дорогих
+   кейсов не показывалась вовсе. */
 function caseTagHTML(c) {
   const gifts = state.tokens[c.id] || 0;
-  if (gifts) return `<span class="tag gift">🎁×${gifts}</span>`;
-  if (c.free) return `<span class="tag">FREE ×${freeCharges()}</span>`;
-  if (c.tier) return `<span class="tag elite">${ELITE_LABELS[c.tier]}</span>`;
-  if (caseDiscount(c)) return `<span class="tag done">🏛 −${caseDiscount(c)}%</span>`;
-  if (c.price >= 1000) return '<span class="tag lux">VIP</span>';
-  return '';
+  const off = caseDiscount(c);
+  const kind = c.free ? `<span class="tag">FREE ×${freeCharges()}</span>`
+    : c.tier ? `<span class="tag elite">${ELITE_LABELS[c.tier]}</span>`
+    : c.price >= 1000 ? '<span class="tag lux">VIP</span>' : '';
+  const gift = gifts ? `<span class="tag gift" title="Подарочные кейсы: откроются бесплатно">🎁×${gifts}</span>` : '';
+  const sale = off ? `<span class="tag done" title="Скидка Музея">🏛 −${off}%</span>` : '';
+  // Подарок (он короче) — в первой строке рядом с видом кейса, скидка — второй строкой.
+  // Без подарка и вида скидка поднимается наверх.
+  const top = gift + kind;
+  const rows = top ? [top, sale] : [sale];
+  const html = rows.filter(Boolean).map((r) => `<span class="row">${r}</span>`).join('');
+  return html ? `<span class="tags">${html}</span>` : '';
 }
 
 function renderCases() {
@@ -73,7 +82,7 @@ function renderCasesNow() {
     const discounted = !c.free && price < c.price;
     const priceHTML = c.free
       ? '<span class="word">Бесплатно</span>'
-      : (discounted && !c.tier ? '<s>' + fmtShort(c.price) + '</s>' : '') + fmtShort(price);
+      : (discounted ? '<s>' + fmtShort(c.price) + '</s>' : '') + fmtShort(price);
     const left = buffLeft(c);
     return `
       <button class="case${c.tier ? ' tier' : ''}${left ? ' buffed' : ''}" type="button" data-id="${c.id}"

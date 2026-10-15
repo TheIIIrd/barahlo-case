@@ -61,6 +61,21 @@ const CRAFT_FOR_CARD = new Map(CARDS.flatMap((c) => {
 
 // Коллекция игрока: state.cards — сколько копий сейчас, state.cardsEver — какие карты были хоть раз.
 const cardCount = (id) => state.cards[id] || 0;
+// Ранения (с 1.15.0): state.hurt[id] — сколько копий карты ранено в боях; вторая гибель раненой копии её стирает.
+const cardHurt = (id) => Math.min(state.hurt[id] || 0, cardCount(id));
+// Сколько копий карты сейчас в идущем бою: их не тратит Кузня (одна карта — одно место).
+const cardInBattle = (id) => (state.battle ? state.battle.mine.filter((x) => x.id === id).length : 0);
+const cardFree = (id) => Math.max(0, cardCount(id) - cardInBattle(id));
+// Потратить копии (Кузня): первыми уходят раненые — но только свободные: раненые копии в бою остаются ранеными.
+function spendCards(id, n) {
+  const hurtInBattle = state.battle ? state.battle.mine.filter((x) => x.id === id && x.hurt).length : 0;
+  const hurtFree = Math.max(0, cardHurt(id) - hurtInBattle);
+  state.cards[id] = cardCount(id) - n;
+  if (state.hurt[id]) state.hurt[id] -= Math.min(n, hurtFree);
+  if (state.cards[id] <= 0) delete state.cards[id];
+  if (!state.hurt[id] || !state.cards[id]) delete state.hurt[id];
+  deckNormalize(); // потраченной копии больше нет и в колоде (deck.js; вызывается только по нажатию в Кузне)
+}
 const cardKnown = (id) => !!state.cardsEver[id];
 const albumCount = () => CARDS.filter((c) => cardKnown(c.id)).length;
 const suitDone = (suit) => CARDS.every((c) => c.suit !== suit || cardKnown(c.id));

@@ -1,5 +1,5 @@
 /* Карты: лицо карты, Кузня, альбом коллекции */
-.subnav.cards-nav { grid-template-columns: repeat(2, 1fr); } /* .subnav из inventory.css подключается позже */
+.subnav.cards-nav { grid-template-columns: repeat(3, 1fr); } /* .subnav из inventory.css подключается позже */
 
 /* Карта. --sc — цвет масти, --rc — цвет достоинства (как у редкостей предметов). */
 .pcard {
@@ -417,6 +417,7 @@ button.fslot:focus-visible { outline: 2px solid var(--accent); }
 .asuit h3 i { font-style: normal; color: var(--sc); }
 .asuit h3 small { font-family: var(--f-body); font-size: var(--fs-s); color: var(--muted); }
 .asuit h3 .cnt { margin-left: auto; font-family: var(--f-mono); font-size: var(--fs-s); color: var(--muted); }
+.asuit h3 .cnt .word { font-family: var(--f-body); } /* слова — не моноширинным, только числа */
 .arow {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
@@ -463,7 +464,6 @@ button.fslot:focus-visible { outline: 2px solid var(--accent); }
 }
 /* На телефоне масть — несколько рядов миниатюр (листаем вниз), подробности — в шторке. */
 @media (max-width: 560px) {
-  .subnav.cards-nav button { flex-direction: row; }
   .arow { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
   .arow .pcard { padding: 16px 2px 4px; border-radius: 8px; justify-content: center; }
   .arow .pcard .pc-corner { font-size: var(--fs-xs); top: 3px; left: 4px; }
@@ -493,4 +493,9 @@ button.fslot:focus-visible { outline: 2px solid var(--accent); }
   #fWheel.multi.thin { --t: 7px; }
   #fWheel.multi .pct { font-size: 24px; }
   .fcard .pcard { width: 120px; }
+}
+
+/* Планшет: шторка не во всю ширину — кнопки действий не растягиваются на 700+ px. */
+@media (min-width: 600px) and (max-width: 860px) {
+  .cdetail { left: calc(50% - 280px); right: calc(50% - 280px); }
 }

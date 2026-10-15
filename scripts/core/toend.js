@@ -31,6 +31,19 @@ function updateToEnd() {
     if (r.height && r.top < vh && r.bottom > vh - 40) lift = Math.max(lift, vh - r.top);
   }
   toEnd.style.setProperty('--lift', Math.round(lift) + 'px');
+  document.documentElement.style.setProperty('--dock', Math.round(lift) + 'px'); // уведомления — тоже над панелью
+  // Липкая карточка справа (предмет в инвентаре, карта в коллекции) доходит до края экрана —
+  // кнопка встаёт левее неё, а не на «Продать за …». Сетка под кнопкой листается, карточка — нет.
+  const size = 46, gap = 14;
+  const bottom = vh - 16 - lift;
+  let right = gap;
+  const vw = document.documentElement.clientWidth; // без полосы прокрутки: кнопка стоит от края содержимого
+  for (const el of $$('.detail, .cdetail')) {
+    const r = el.getBoundingClientRect();
+    if (!r.width || r.left >= vw || r.right <= vw - gap - size || r.top >= bottom || r.bottom <= bottom - size) continue;
+    right = Math.max(right, Math.round(vw - r.left + 8));
+  }
+  toEnd.style.setProperty('--right', right + 'px');
   toEnd.classList.toggle('lifted', lift > 0); // у поднятой отступ от «чёлки» уже учтён высотой полосы
   toEnd.classList.toggle('on', !!dir);
   if (!dir || dir === toEndDir) return;
@@ -46,7 +59,9 @@ addEventListener('resize', scheduleToEnd);
 // Панель выбора и липкая полоса выезжают с анимацией — перемеряем, когда она закончилась.
 document.addEventListener('animationend', scheduleToEnd);
 document.addEventListener('transitionend', scheduleToEnd);
-new ResizeObserver(scheduleToEnd).observe(document.body); // страница выросла или стала короче (список, вкладка)
+const toEndRO = new ResizeObserver(scheduleToEnd);
+toEndRO.observe(document.body); // страница выросла или стала короче (список, вкладка)
+$$('.detail, .cdetail').forEach((el) => toEndRO.observe(el)); // карточку другого предмета — другой высоты
 toEnd.onclick = () => {
   scrollTo({ top: toEndDir === 'up' ? 0 : document.documentElement.scrollHeight, behavior: reducedMotion ? 'auto' : 'smooth' });
 };

@@ -3,7 +3,7 @@
    ========================================================================== */
 'use strict';
 
-const MODALS = ['drop', 'multi', 'granny', 'ask', 'elsewhere', 'forgeRes'];
+const MODALS = ['drop', 'multi', 'granny', 'ask', 'elsewhere', 'forgeRes', 'btEnd'];
 const anyModalOpen = () => MODALS.some((id) => !$(id).hidden);
 
 // Пока открыто окно, страница под ним неактивна: ни мышью, ни Tab до неё не добраться.
@@ -60,7 +60,7 @@ function showDrop(it, context, after) {
   $('dCtx').textContent = context || '';
   $('dRar').textContent = R.n;
   $('dIc').textContent = it.ic;
-  $('dName').innerHTML = baseName(it) + (it.stat ? `<span class="stat-badge">СЧ™ ×${NF.format(STAT_TRAK_MULT)}</span>` : '');
+  $('dName').innerHTML = nameHTML(it, true);
   $('dLore').textContent = it.lore + (it.price < 0 ? ' Отрицательная стоимость: чтобы избавиться, придётся доплатить.' : '');
   $('dWear').textContent = it.wear;
   $('dPrice').textContent = Math.abs(it.price) >= 1e9 ? fmtShort(it.price) : fmt(it.price);
@@ -86,6 +86,7 @@ function showDrop(it, context, after) {
   }
   fanfare(it.r);
 
+  const opener = document.activeElement; // после окна фокус вернётся сюда (или на открытую вкладку)
   let closed = false; // защита от двойного нажатия
   const finish = (keep) => {
     if (closed) return;
@@ -103,6 +104,7 @@ function showDrop(it, context, after) {
     renderStats();
     renderInventory();
     if (after) after();
+    focusBack(opener);
   };
   $('dKeep').onclick = () => finish(true);
   $('dSell').onclick = () => finish(false);
@@ -136,13 +138,13 @@ function showMulti(won, { cost = 0, sorted = false, title = '', sub = '', note =
 
   $('mTitle').textContent = title || `Улов: ${won.length} ${plural(won.length, 'предмет', 'предмета', 'предметов')}`;
   const counts = RARITY.map((r, k) => [r, won.filter((x) => x.r === k).length]).filter(([, n]) => n).reverse();
-  $('mSub').innerHTML = (sub || `Лучший: <b>${best.name}</b> · всего на ${fmtShort(total)} при затратах ${fmtShort(cost)}`) +
+  $('mSub').innerHTML = (sub || `Лучший: <b>${nameHTML(best)}</b> · всего на ${fmtShort(total)} при затратах ${fmtShort(cost)}`) +
     (many ? '<span class="mcount">' + counts.map(([r, n]) => `<span style="--c:${r.c}"><i></i>${n}</span>`).join('') + '</span>' : '') + note;
   const step = shown.length > 1 ? MULTI_CASCADE_MS / (shown.length - 1) : 0;
   $('mGrid').innerHTML = shown.map(({ x, n, price }, i) => `
     <div style="--c:${RARITY[x.r].c};animation-delay:${Math.round(i * step)}ms" title="${x.name}${n > 1 ? ' ×' + n : ''} · ${fmt(price)}">
       ${n > 1 ? `<span class="cnt">×${n}</span>` : ''}
-      <span class="ic">${x.ic}</span><span class="nm">${x.name}</span>
+      <span class="ic">${x.ic}</span><span class="nm">${nameHTMLPre(x)}</span>
       <span class="p${price < 0 ? ' neg' : ''}"><span class="pl">${fmtShort(price)}</span><span class="ps">${slotMoney(price)}</span></span>
     </div>`).join('');
   $('mGrid').scrollTop = 0;
@@ -160,6 +162,7 @@ function showMulti(won, { cost = 0, sorted = false, title = '', sub = '', note =
   if (best.r >= 4) shake();
   fanfare(best.r);
 
+  const opener = document.activeElement;
   let closed = false;
   const finish = (keep) => {
     if (closed) return;
@@ -180,6 +183,7 @@ function showMulti(won, { cost = 0, sorted = false, title = '', sub = '', note =
     renderInventory();
     updateOpenButton();
     if (after) after();
+    focusBack(opener);
   };
   $('mKeep').onclick = () => finish(true);
   $('mSell').onclick = () => finish(false);

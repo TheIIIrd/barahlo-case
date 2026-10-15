@@ -23,6 +23,7 @@ document.addEventListener('keydown', (e) => {
   else if (!$('granny').hidden) $('gOk').click();
   else if (!$('ask').hidden) $('aNo').click();
   else if (!$('forgeRes').hidden) $('frOk').click();
+  else if (!$('btEnd').hidden && !$('beOk').disabled) $('beOk').click();
 });
 
 /* ==========================================================================
@@ -65,11 +66,36 @@ function firstRender() {
   renderArena();
   renderSaves();
 }
+/* Страница и скрипты из разных версий: сервис-воркер новой версии включился посреди загрузки, и к старой
+   странице пришли новые скрипты (или наоборот). Игра на такой смеси падает, и сохранение отложилось бы как
+   сломанное — хотя оно цело. Поэтому не рисуем, а один раз перезагружаемся: тогда всё придёт из одного кэша.
+   BUILD — та же метка, что data-build у <html> в index.html (tools/check_site.py сверяет их). */
+const BUILD = '1.16.2';
+const buildMismatch = document.documentElement.dataset.build !== BUILD;
+{
+  let retried = false;
+  try {
+    retried = sessionStorage.getItem('junkcase_build_retry') === '1';
+    if (buildMismatch && !retried) sessionStorage.setItem('junkcase_build_retry', '1');
+    if (!buildMismatch) sessionStorage.removeItem('junkcase_build_retry');
+  } catch (_) { retried = true; } // без sessionStorage не рискуем бесконечной перезагрузкой
+  if (buildMismatch && !retried) {
+    location.reload();
+    throw new Error('Файлы игры из разных версий — перезагрузка'); // дальше main.js не выполняется
+  }
+}
 try {
   firstRender();
 } catch (e) {
+  // Файлы разных версий и перезагрузка не помогла — сохранение не трогаем: оно цело, сломана сама страница.
+  if (buildMismatch) {
+    document.documentElement.classList.add('ready');
+    toast('Файлы игры из разных версий. Закрой все вкладки игры и открой её снова — прогресс цел.', 10000, { important: true });
+    throw e;
+  }
   // Сохранение загрузилось, но игра на нём падает — откладываем его и берём запасную копию.
   recoverBrokenSave(e);
+  btCheckLoaded(); // бой и колоду запасной копии проверяем так же, как основного сохранения
   try {
     firstRender();
   } catch (e2) {
@@ -92,8 +118,12 @@ setInterval(grannyDoor, 250);
 
 if (restoreNotes.length) {
   save();
-  setTimeout(() => toast(restoreNotes.join('. ') + '.', 5000, { important: true }), 600);
+  setTimeout(() => toast(restoreNotes.join(' '), 5000, { important: true }), 600);
 }
 
-// Всё загружено и нарисовано — включаем клики (до этого их гасит styles/base.css).
+// Вкладка после перезапуска всегда «Кейсы» — прокрутку прежней страницы (длинного инвентаря) не восстанавливаем,
+// иначе после загрузки сохранения игра открывалась посередине.
+if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+
+// Всё загружено и нарисовано — показываем игру и включаем клики (до этого их прячет styles/base.css).
 document.documentElement.classList.add('ready');
