@@ -89,6 +89,7 @@
 }
 .stat-badge {
   display: inline-block;
+  font-family: var(--f-body); /* значок — не число: и в моноширинной строке («Лучший дроп») шрифтом игры */
   font-size: var(--fs-micro);
   padding: 1px 6px;
   border-radius: 4px;
@@ -98,6 +99,7 @@
   vertical-align: middle;
   font-weight: 800;
 }
+.stat-badge.pre { margin: 0 5px 0 0; vertical-align: 1px; }
 .specs {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -160,7 +162,6 @@
   padding: 10px 16px;
   flex: 1 1 170px;
 }
-.granny .mbtns .btn { flex: 0 0 auto; }
 .multi-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
@@ -171,14 +172,16 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
+  gap: 2px;
   min-height: 92px;
   border-radius: 8px;
   background: var(--bg2);
   border-bottom: 3px solid var(--c);
-  padding: 6px 3px;
+  padding: 6px 5px; /* название не прилипает к краям плитки */
   font-size: var(--fs-micro);
   line-height: 1.15;
+  text-align: center;
   min-width: 0;
   animation: pop .4s cubic-bezier(.2, 1.6, .4, 1) backwards;
 }
@@ -188,6 +191,7 @@
 }
 .multi-grid .p {
   display: block;
+  margin-top: auto; /* цены — по нижнему краю во всём ряду, как бы ни переносилось название */
   font-family: var(--f-mono);
   color: var(--good);
   white-space: nowrap;
@@ -274,3 +278,24 @@
   --line: #71839c;
   --muted: #b6c1cf;
 }
+
+/* Сохранение не записалось: полоса над игрой, пока запись снова не удастся (state.js, saveNow). */
+.savefail {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px 12px;
+  margin-bottom: 10px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--bad);
+  background: color-mix(in srgb, var(--bad) 20%, var(--panel));
+  font-size: var(--fs-s);
+  font-weight: 600;
+  text-align: center;
+}
+.savefail[hidden] { display: none; }

@@ -75,21 +75,31 @@ function donate(it, fromCard) {
     return;
   }
 
+  // Сдают именно этот предмет (из карточки) — он мог лежать в контракте, на ставке или на верстаке.
+  const from = releaseItem(it, 'museum');
+  const moved = from ? ` Убран ${from}.` : '';
+  const at = $$('.icard', $('inv2')).findIndex((b) => +b.dataset.u === it.uid);
+  const hallAt = $$('[data-don],[data-swap]', $('hall')).findIndex((b) => +(b.dataset.don || b.dataset.swap) === it.uid);
   removeItem(it);
   state.museum[key] = it;
   if (old) {
     state.inv.push(old);
-    toast(`Экспонат заменён. Старый (износ ${fmtWear(old.float)}) вернулся в инвентарь.`, 3000);
+    toast(`Экспонат заменён. Старый (износ ${fmtWear(old.float)}) вернулся в инвентарь.${moved}`, 3000);
   } else {
-    toast(`«${baseName(it)}» теперь в Музее. Посетители в восторге.`);
+    toast(`«${baseName(it)}» теперь в Музее. Посетители в восторге.${moved}`);
   }
   tone(1000, 0.12, 'triangle', 0.07);
   checkRoom(roomById(it.caseId));
   museumHall = it.caseId;
   if (fromCard) invUi.open = null;
+  if (fromCard && $('detail').contains(document.activeElement)) document.activeElement.blur(); // см. sellItems
   save();
   renderAll();
   flashExhibit(key);
+  // Нажатая кнопка исчезла вместе с карточкой или строкой зала — фокус на соседа.
+  const tiles = $$('.icard', $('inv2'));
+  const hall = $$('[data-don],[data-swap]', $('hall'));
+  focusBack(fromCard ? [tiles[at], tiles[at - 1]] : [hall[hallAt], hall[hallAt - 1], $('donAll')], tiles);
 }
 
 function buyExhibit(c, i) {
@@ -122,13 +132,14 @@ function buyExhibit(c, i) {
 function donateAll(cid) {
   if (busy) return;
   const rooms = cid ? [roomById(cid)] : ROOMS;
+  const taken = takenItems(); // разложенное по контракту, апгрейду и верстаку не трогаем, как и закреплённое
   let n = 0;
   for (const c of rooms) {
     c.items.forEach((_, i) => {
       const key = museumKey(c.id, i);
       const ex = state.museum[key];
       const best = state.inv
-        .filter((x) => !x.lock && x.caseId === c.id && idxOf(x) === i && (!ex || x.float < ex.float))
+        .filter((x) => !x.lock && !taken.has(x) && x.caseId === c.id && idxOf(x) === i && (!ex || x.float < ex.float))
         .sort((a, b) => a.float - b.float)[0];
       if (!best) return;
       removeItem(best);
@@ -139,9 +150,9 @@ function donateAll(cid) {
   }
   if (n) {
     tone(1000, 0.12, 'triangle', 0.07);
-    toast(`В Музей ${plural(n, 'сдан', 'сдано', 'сдано')} ${n} ${plural(n, 'экспонат', 'экспоната', 'экспонатов')}. Закреплённые остались на месте.`);
+    toast(`В Музей ${plural(n, 'сдан', 'сдано', 'сдано')} ${n} ${plural(n, 'экспонат', 'экспоната', 'экспонатов')}. Закреплённое и разложенное по контракту, апгрейду и верстаку осталось на месте.`);
   } else {
-    toast('Подходящих предметов нет. Закреплённые не сдаются.');
+    toast('Подходящих предметов нет. Закреплённое и разложенное по контракту, апгрейду и верстаку не сдаётся.');
   }
   // После итога: если зал перешёл на новый уровень, его поздравление важнее и заменит итог.
   rooms.forEach((c) => checkRoom(c, rooms.length > 1));
@@ -154,7 +165,7 @@ function museumButtonHTML(it) {
   if (i < 0 || it.lock) return ''; // закреплённое музей не предлагает
   const ex = state.museum[museumKey(it.caseId, i)];
   if (!ex) return '<button class="btn wide" type="button" id="dtMus">🏛 Сдать в Музей</button>';
-  if (it.float < ex.float) return '<button class="btn wide" type="button" id="dtMus">🏛 Заменить экспонат в Музее (износ лучше)</button>';
+  if (it.float < ex.float) return '<button class="btn wide" type="button" id="dtMus">🏛 Заменить экспонат (износ лучше)</button>';
   return '';
 }
 
@@ -227,6 +238,7 @@ function renderHall(c) {
     <span class="perk${level >= 1 ? ' on' : ''}">${level >= 1 ? '✓' : '○'} Половина зала (${Math.ceil(c.items.length / 2)}): ${halfPerk}</span>
     <span class="perk${level >= 2 ? ' on' : ''}">${level >= 2 ? '✓' : '○'} Весь зал (${c.items.length}): ${fullPerk}</span>`;
 
+  const taken = takenItems(); // как и в «Сдать всё подходящее»: разложенное в других местах не предлагаем
   const exhibitsHTML = c.items.map((x, i) => {
     const key = museumKey(c.id, i);
     const ex = state.museum[key];
@@ -234,7 +246,7 @@ function renderHall(c) {
 
     if (ex) {
       const better = state.inv
-        .filter((y) => !y.lock && y.caseId === c.id && idxOf(y) === i && y.float < ex.float)
+        .filter((y) => !y.lock && !taken.has(y) && y.caseId === c.id && idxOf(y) === i && y.float < ex.float)
         .sort((a, b) => a.float - b.float)[0];
       const ribbon = ex.stat ? '<span class="rib" style="background:var(--accent2);color:#2a1600">СЧ™</span>'
         : ex.bought ? '<span class="rib" style="background:var(--muted)">куплен</span>' : '';
@@ -249,7 +261,7 @@ function renderHall(c) {
     }
 
     const own = state.inv
-      .filter((y) => !y.lock && y.caseId === c.id && idxOf(y) === i)
+      .filter((y) => !y.lock && !taken.has(y) && y.caseId === c.id && idxOf(y) === i)
       .sort((a, b) => a.float - b.float);
     const meta = c.craft
       ? (state.recipes[RECIPES[i].id] ? 'рецепт известен' : 'рецепт не открыт')

@@ -94,3 +94,17 @@ body {
 
 /* Пока не загрузились все скрипты, клики гасим: обработчики ещё не готовы. */
 :root:not(.ready) body { pointer-events: none; }
+/* И саму игру не показываем: до первой отрисовки в разметке стоят заглушки («Баланс: 100,00 ₽», «Бомж»),
+   и при перезапуске (загрузка сохранения, «Вернуть прежнее») казалось, что прогресс пропал.
+   Если скрипт упал и .ready не появился — через 4 секунды страница всё равно проявится. */
+:root:not(.ready) .wrap { visibility: hidden; animation: reveal 0s 4s forwards; }
+@keyframes reveal { to { visibility: visible; } }
+
+/* Выбранный вариант в ряду (множитель апгрейда, доплата Кузни): подсвечен, но тише главной кнопки,
+   чтобы «⬆️ Апгрейд» и «⚒️ Ковать» оставались самыми заметными. */
+.btn.opt[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 20%, var(--panel2));
+  color: var(--fg);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}

@@ -200,8 +200,9 @@ function renderMega() {
   contractItems.forEach((x) => { if (x.price > 0) byR[x.r] += x.price; });
   const tot = sum(byR, (v) => v);
   $('mgMix').innerHTML = tot > 0 ? byR.map((v, r) => (v ? `<i style="--c:${RARITY[r].c};width:${(v / tot) * 100}%"></i>` : '')).join('') : '';
-  // Кейс-цель: только те, где при таком вложении есть честный набор результатов.
-  if (megaTarget && !megaTargetOk(roomById(megaTarget), value)) megaTarget = '';
+  // Кейс-цель: доступны те, где при таком вложении есть честный набор результатов. Выбранную цель не
+  // сбрасываем, когда она временно недоступна (сняли пару предметов — стало меньше 30): прогноз
+  // объяснит, почему подписать нельзя, а вернёшь предметы — цель на месте.
   // В подписи — настоящий средний возврат: на огромных суммах каталог беднеет, и он бывает ниже обещанного.
   const meanPct = (t, k) => {
     const o = megaOdds(value, t);
@@ -410,6 +411,13 @@ $('cGo').onclick = async () => {
   if (contractMega) { signMega(); return; }
   contractItems = contractItems.filter((x) => !x.lock && state.inv.includes(x));
   if (contractItems.length !== 10) { renderContract(); return; }
+  // Набирали в мегаконтракте и щёлкнули рубильником — в обычный идут только 10 одной редкости, без ★.
+  const r0 = contractItems[0].r;
+  if (contractItems.some((x) => x.r !== r0 || x.r >= 6)) {
+    toast('Обычный контракт берёт 10 предметов одной редкости, без особо бесполезных.');
+    renderContract();
+    return;
+  }
   busy = true;
   $('cGo').disabled = true;
   updateCBar();
@@ -454,6 +462,7 @@ $('cGo').onclick = async () => {
     busy = false;
     renderContract();
     renderPicker();
+    focusBack($('cAuto'), $$('#inv .inv-item:not(.dim)')); // «Подписать» выключена: слоты пусты
   });
 };
 
@@ -508,5 +517,6 @@ async function signMega() {
     busy = false;
     renderContract();
     renderPicker();
+    focusBack($('cAuto'), $$('#inv .inv-item:not(.dim)')); // «Подписать» выключена: слоты пусты
   });
 }

@@ -1,0 +1,253 @@
+/* ==========================================================================
+   Бои (с 1.15.0): Картотека с колодой, экран соперника, стол, итог боя
+   ========================================================================== */
+
+/* ===== Картотека: колода над альбомом ===== */
+.deckp { margin-bottom: 14px; display: flex; flex-direction: column; gap: 12px; }
+.deckp h2 { margin: 0; }
+.dslots { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 8px; padding: 12px; border-radius: 12px; background: var(--bg2); }
+.dslots .pcard { width: 100%; cursor: pointer; padding: 18px 3px 6px; }
+.dslots .pcard .pc-ic { font-size: 28px; }
+.dslots .pcard .pc-nm { font-size: var(--fs-micro); }
+.dslots .pcard:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.dslot { all: unset; box-sizing: border-box; aspect-ratio: 5 / 7; border-radius: 12px; border: 2px dashed var(--line); display: flex; align-items: center; justify-content: center;
+  color: var(--muted); font: 400 var(--fs-h) var(--f-display); background: color-mix(in srgb, var(--bg2) 70%, transparent); cursor: pointer; }
+.dslot:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.drow { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.dsum { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.dsum .chip { cursor: default; }
+.dline { display: none; font-size: var(--fs-s); color: var(--muted); font-variant-numeric: tabular-nums; }
+.dacts { display: flex; gap: 8px; align-items: center; justify-content: flex-end; flex-wrap: wrap; }
+.dnote { margin: 0; font-size: var(--fs-s); color: var(--muted); }
+
+/* Метки на картах: ранена (🩹, рамка пунктиром) и «в колоде» (оранжевая галочка снизу) */
+.pcard .pc-hurt { position: absolute; top: 20px; right: 4px; font-size: 13px; line-height: 1; filter: drop-shadow(0 1px 2px #000); }
+.pcard.hurt { border-style: dashed; }
+.pcard .pc-in { position: absolute; left: 50%; bottom: -7px; transform: translateX(-50%); width: 16px; height: 16px; border-radius: 50%;
+  background: var(--accent); color: #2a1600; font: 800 10px/16px var(--f-body); text-align: center; box-shadow: 0 0 0 2px var(--panel); }
+.arow .pcard .pc-hurt { top: auto; bottom: 3px; left: 3px; right: auto; font-size: 11px; }
+.cdetail .cwound { color: var(--bad); }
+.cdetail .cbtns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; }
+.cdetail .cbtns .btn:only-child { grid-column: 1 / -1; }
+
+/* ===== Экран соперника до боя ===== */
+.prebattle { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.foe-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.foe-ava { width: 54px; height: 54px; border-radius: 14px; background: var(--panel2); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; font-size: 30px; flex: none; }
+.foe-t { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.foe-t b { font-family: var(--f-display); font-weight: 400; font-size: var(--fs-title); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } /* длинный ник — в одну строку с многоточием (полностью — в подсказке), а не с переносом посреди слова */
+.foe-t .chips .chip { cursor: default; }
+.foe-deck, .me-deck { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 6px; padding: 10px; border-radius: 12px; background: var(--bg2); margin-bottom: 12px; }
+.foe-deck .pcard, .me-deck .pcard { width: 100%; }
+.foe-deck .pcard .pc-corner { top: 3px; left: 4px; }
+.pre-tiles { display: grid; grid-template-columns: 1.3fr 1fr; gap: 10px; }
+.pre-tiles .tile .s { white-space: normal; line-height: 1.35; margin-top: 6px; }
+.rew { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
+.rew-ic { width: 52px; height: 52px; flex: none; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 30px;
+  background: color-mix(in srgb, var(--cc) 35%, var(--bg2)); border: 1px solid color-mix(in srgb, var(--cc) 60%, var(--line)); }
+.rew b { display: block; font-family: var(--f-display); font-weight: 400; font-size: var(--fs-l); }
+.rew small { color: var(--muted); font-size: var(--fs-s); }
+.pme .pbtns { display: grid; grid-template-columns: 1fr; gap: 8px; margin-bottom: 8px; }
+.pme .go { width: 100%; padding: 14px; font-size: var(--fs-l); }
+.howto { margin-top: 12px; font-size: var(--fs-s); color: var(--muted); }
+.howto summary { cursor: pointer; font-weight: 800; color: var(--fg); font-size: var(--fs-m); }
+.howto p { margin: 6px 0 0; }
+.btlock { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 28px 16px; }
+.btlock .ic { font-size: 44px; }
+.btlock p { margin: 0; color: var(--muted); max-width: 52ch; }
+
+/* ===== Стол ===== */
+.bt { max-width: 760px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 12px; }
+.bt[hidden] { display: none; }
+.bt-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.bt-head h2 { font-family: var(--f-display); font-weight: 400; font-size: var(--fs-h); margin: 0; }
+.bt-head small { color: var(--muted); font-size: var(--fs-s); flex: 1 1 220px; min-width: 0; } /* не помещается — уходит строкой ниже, а не столбиком в 3 слова */
+.bt-head .turnpill { font-size: var(--fs-xs); font-weight: 800; color: var(--bad); border: 1px solid color-mix(in srgb, var(--bad) 60%, transparent); border-radius: 99px; padding: 1px 8px; margin-right: 4px; }
+
+/* Весы: градиентная полоса и бегунок (--v — перевес игрока от −8 до 8) */
+.bsc { display: flex; flex-direction: column; gap: 6px; }
+.bsc .trk { position: relative; height: 14px; border-radius: 99px; border: 1px solid var(--line);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--bad) 55%, var(--bg2)), var(--bg2) 42%, var(--bg2) 58%, color-mix(in srgb, var(--good) 55%, var(--bg2))); }
+.bsc .trk::before { content: ""; position: absolute; left: 50%; top: -5px; bottom: -5px; width: 2px; margin-left: -1px; background: var(--muted); border-radius: 1px; }
+.bsc .knob { position: absolute; top: -6px; width: 14px; height: 24px; margin-left: -7px; border-radius: 7px; left: calc(50% + var(--v, 0) / 8 * 50%);
+  background: var(--good); box-shadow: 0 0 0 3px color-mix(in srgb, var(--good) 25%, transparent); transition: left .35s ease, background .35s; }
+.bsc .knob.neg { background: var(--bad); box-shadow: 0 0 0 3px color-mix(in srgb, var(--bad) 25%, transparent); }
+.bsc .lbl { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: var(--fs-s); color: var(--muted); font-variant-numeric: tabular-nums; }
+.bsc .lbl b { font-weight: 800; color: var(--good); text-align: center; }
+.bsc .lbl b.neg { color: var(--bad); }
+.bsc .lbl b.zero { color: var(--muted); }
+.bsc .lbl .foe { color: color-mix(in srgb, var(--bad) 70%, var(--muted)); white-space: nowrap; }
+.bsc .lbl .me { color: color-mix(in srgb, var(--good) 70%, var(--muted)); white-space: nowrap; }
+
+.bt-table { padding: 12px; }
+#btBoard:focus, #beBox:focus { outline: none; } /* фокус на столе — только пока идёт анимация хода */
+.btable { background: var(--bg2); border-radius: 12px; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+.btable .brow { display: grid; grid-template-columns: repeat(4, minmax(0, 112px)); justify-content: center; gap: 12px; }
+.btable .bmid { height: 1px; background: var(--line); margin: 2px 0; }
+.bcell { position: relative; aspect-ratio: 5 / 7; }
+.bslot { all: unset; box-sizing: border-box; width: 100%; height: 100%; border-radius: 12px; border: 2px dashed var(--line); display: flex; align-items: center; justify-content: center;
+  color: var(--muted); font-size: var(--fs-s); background: color-mix(in srgb, var(--bg2) 70%, transparent); }
+.bslot.can { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); cursor: pointer; }
+.bslot:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Карта на столе: та же .pcard, вместо цены — атака и здоровье крупнее */
+.pcard.bd { width: 100%; height: 100%; padding: 22px 6px 8px; }
+.pcard.bd .pc-ic { font-size: 34px; }
+.pcard .pc-st { display: flex; gap: 8px; font-family: var(--f-mono); font-size: var(--fs-m); font-weight: 600; white-space: nowrap; }
+.pcard .pc-st .hurt, .pcard .pc-st .weak { color: var(--bad); }
+.pcard .pc-st .up { color: var(--good); }
+.pcard .pc-zz { font-family: var(--f-mono); font-size: var(--fs-xs); font-weight: 600; color: var(--r1); }
+/* Справа сверху у карты стола: цена, под ней 🩹 и zZ */
+.pcard .pc-tr { position: absolute; top: 5px; right: 6px; display: flex; flex-direction: column; align-items: flex-end; gap: 3px; line-height: 1; }
+.pcard .pc-tr .pc-cost { font-family: var(--f-mono); font-size: var(--fs-xs); font-weight: 600; color: var(--accent); }
+.pcard .pc-tr .pc-hurt { position: static; }
+.pcard .pc-st i { font-style: normal; font-size: var(--fs-xs); color: var(--muted); }
+/* ⚔️/❤️ у всех карт стола и руки на одной высоте: название — место на 2 строки, свойство — строка, даже пустая */
+.pcard.bd, .bhand .pcard { justify-content: flex-start; }
+.pcard.bd .pc-ic, .bhand .pcard .pc-ic { flex: none; }
+.pcard.bd .pc-nm, .bhand .pcard .pc-nm { min-height: 2.3em; text-align: center; }
+.pcard.bd .pc-st, .bhand .pcard .pc-st { margin-top: auto; }
+.pcard.bd .pc-sig, .bhand .pcard .pc-sig { flex: none; height: 1.4em; line-height: 1.4em; }
+.pcard.pk { --sc: var(--muted); --rc: var(--line); }
+.pcard .pc-sig { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bcell.mine .pcard, .bcell.foe .pcard { cursor: pointer; }
+.bcell .pcard:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.bt.sacmode .bcell.mine .pcard:not(:focus-visible) { outline: 2px dashed var(--accent); outline-offset: 2px; } /* у карты в фокусе — обычная рамка фокуса */
+
+/* Анимации событий (снимаются вместе со следующей перерисовкой стола) */
+.bcell.fx-play .pcard { animation: btPop .3s cubic-bezier(.2, 1.5, .4, 1); }
+@keyframes btPop { from { transform: scale(.6); opacity: 0; } }
+.bcell.fx-strike.foe .pcard { animation: btStrikeDown .32s ease; }
+.bcell.fx-strike.mine .pcard { animation: btStrikeUp .32s ease; }
+@keyframes btStrikeDown { 50% { transform: translateY(14px); box-shadow: 0 0 0 2px var(--bad); } }
+@keyframes btStrikeUp { 50% { transform: translateY(-14px); box-shadow: 0 0 0 2px var(--good); } }
+.bcell.fx-dmg .pcard { animation: btShake .3s ease; }
+@keyframes btShake { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+.bcell .fxn { position: absolute; left: 50%; top: 32%; transform: translate(-50%, -50%); z-index: 2; pointer-events: none; font: 600 var(--fs-l) var(--f-mono);
+  color: #fff; background: var(--bad); border-radius: 99px; padding: 2px 9px; box-shadow: 0 4px 12px rgba(0, 0, 0, .5); animation: btFloat .6s ease forwards; white-space: nowrap; }
+.bcell .fxn.good { background: var(--good); color: #062612; }
+.bcell .fxn.info { background: var(--panel2); color: var(--fg); border: 1px solid var(--line); }
+@keyframes btFloat { from { opacity: 0; transform: translate(-50%, -20%); } 30% { opacity: 1; } to { opacity: 1; transform: translate(-50%, -70%); } }
+.bcell.fx-die .pcard { animation: btDie .35s ease forwards; }
+@keyframes btDie { to { opacity: 0; transform: scale(.7) rotate(-6deg); } }
+
+/* Рука: карты-карточки; цена — плашкой справа сверху, как «×2» в коллекции */
+.bhand { display: flex; gap: 10px; justify-content: center; padding: 10px 4px 4px; flex-wrap: wrap; min-height: 20px; }
+.bhand .pcard { width: 104px; flex: none; cursor: pointer; }
+.bhand .pcard .pc-n { font-size: var(--fs-s); }
+.bhand .pcard.picked { outline: 2px solid var(--accent); outline-offset: 2px; transform: translateY(-8px); }
+.bhand .pcard.no { opacity: .45; }
+.bhand .pcard:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.bhand .pcard.fx-draw { animation: btPop .3s cubic-bezier(.2, 1.5, .4, 1); }
+/* Строка подсказки — постоянной высоты: длинное описание карты не двигает кнопки и стопки ниже.
+   Высота — под самый длинный реальный текст (замер всех карт: на ПК 2 строки, на телефоне 4, на 320px — 5);
+   если когда-нибудь не влезет — многоточие, а целиком текст по-прежнему читает экранный диктор. */
+.bhint { --lines: 2; text-align: center; font-size: var(--fs-s); line-height: 1.4; color: var(--muted); margin: 0;
+  height: calc(var(--lines) * 1.4em); overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: var(--lines); }
+@media (max-width: 560px) { .bhint { --lines: 4; } }
+@media (max-width: 340px) { .bhint { --lines: 5; } }
+
+/* Нижний ряд: мелочь, колода и пакеты, главная кнопка, запчасти */
+.bbot { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; padding-top: 6px; }
+.bbot .coin { display: flex; flex-direction: column; line-height: 1.15; margin-right: 4px; }
+.bbot .coin .k { font-size: var(--fs-xs); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.bbot .coin .v { font-family: var(--f-mono); font-weight: 600; font-size: var(--fs-num); }
+.bpl { all: unset; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: var(--fs-xs); color: var(--muted); cursor: pointer; border-radius: 10px; }
+.bpl:disabled { cursor: default; }
+.bpl:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.bpl .bmini { width: 46px; height: 62px; padding: 0; aspect-ratio: auto; border-radius: 8px; border-width: 1.5px; --sc: var(--muted);
+  box-shadow: 3px -3px 0 -1px #263244, 6px -6px 0 -2px #1d2734; }
+.bpl .bmini .pc-ic { font-family: var(--f-mono); font-size: var(--fs-l); font-weight: 600; color: var(--fg); }
+.bpl.want .bmini { border-style: solid; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent), 3px -3px 0 -1px #263244; }
+.bpl.want { color: var(--accent); }
+.bpl:disabled .bmini { opacity: .5; }
+.bbot .btn.primary { flex: 1; padding: 14px; font-size: var(--fs-l); }
+.bbot .sac { padding: 13px 16px; }
+.bbot .sac[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, var(--panel2)); }
+.bbot .sac .short { display: none; }
+
+/* ===== Окно итога боя ===== */
+#btEnd .reels { margin: 12px 0 8px; display: flex; flex-direction: column; gap: 6px; }
+#btEnd .reels:empty { display: none; }
+.multi-grid.be-grid { display: flex; flex-wrap: wrap; justify-content: center; } /* 1–3 плитки — по центру окна, в один ряд */
+.multi-grid.be-grid > div { flex: 1 1 80px; max-width: 150px; min-width: 0; }
+.be-grid:empty { display: none; }
+.be-grid .cardres { border-bottom-color: var(--accent); }
+.be-grid .cardres .p { color: var(--accent); }
+.reel .card.cardwin { outline: 2px solid var(--accent); outline-offset: -2px; }
+.losses { text-align: left; background: var(--bg2); border-radius: 12px; padding: 10px 12px; margin: 10px 0 14px; display: flex; flex-direction: column; gap: 8px; }
+.losses .k { font-size: var(--fs-xs); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.losses .lrow { display: flex; align-items: center; gap: 10px; font-size: var(--fs-s); color: var(--muted); }
+.losses .lrow b { color: var(--fg); font-weight: 800; }
+.losses .pcard { width: 36px; flex: none; }
+.losses .none { font-size: var(--fs-s); color: var(--muted); }
+
+@media (max-width: 860px) { .prebattle { grid-template-columns: 1fr; } }
+
+/* ===== Телефон: своя компоновка — больше места картам ===== */
+@media (max-width: 560px) {
+  .dslots { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; padding: 8px; }
+  .dslots .pcard, .foe-deck .pcard, .me-deck .pcard { padding: 15px 2px 4px; border-radius: 8px; }
+  .dslots .pcard :is(.pc-nm, .pc-stats, .pc-sig) { display: none; }
+  .dslots .pcard .pc-ic { font-size: 26px; }
+  .dslots .pcard .pc-corner { font-size: var(--fs-xs); top: 3px; left: 4px; }
+  .dslots .pcard .pc-corner i { font-size: var(--fs-micro); }
+  .dslot { border-radius: 8px; }
+  .dsum { display: none; }
+  .dline { display: block; }
+  .deckp .drow { flex-direction: column; align-items: stretch; }
+  .deckp .dacts { display: grid; grid-template-columns: 1fr 2fr; }
+  .foe-deck, .me-deck { grid-template-columns: repeat(5, minmax(0, 1fr)); padding: 8px; }
+  .pfoe .foe-deck, .pre-tiles .tile.lose { display: none; }
+  .pre-tiles { grid-template-columns: 1fr; }
+
+  .bt { gap: 8px; }
+  .bt-head h2 { font-size: var(--fs-l); }
+  .bt-table { padding: 0; border: 0; background: none; }
+  .btable { padding: 8px; gap: 8px; }
+  .btable .brow { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+  .pcard.bd { padding: 18px 3px 6px; border-radius: 10px; }
+  .pcard.bd .pc-nm { display: none; }
+  .pcard.bd .pc-ic { font-size: 30px; }
+  .pcard.bd .pc-st, .bhand .pcard .pc-st { gap: 5px; font-size: var(--fs-s); }
+  .pcard.bd .pc-corner, .bhand .pcard .pc-corner { top: 4px; left: 5px; font-size: var(--fs-m); }
+  .pcard.bd .pc-corner i, .bhand .pcard .pc-corner i { font-size: var(--fs-xs); }
+  .pcard.bd .pc-sig { font-size: var(--fs-micro); letter-spacing: 0; }
+  .bslot { border-radius: 10px; }
+  .bhand { justify-content: flex-start; gap: 6px; padding: 12px 0 4px; overflow-x: auto; flex-wrap: nowrap; scrollbar-width: none; }
+  .bhand .pcard { width: 80px; padding: 20px 3px 6px; border-radius: 10px; }
+  .bhand .pcard .pc-nm { display: none; }
+  .bhand .pcard .pc-ic { font-size: 30px; }
+  .bhand .pcard .pc-n { top: 4px; right: 5px; font-size: var(--fs-m); }
+  .bhand .pcard .pc-sig { font-size: var(--fs-micro); letter-spacing: 0; }
+  .bbot { gap: 8px; }
+  .bbot .coin .k { font-size: var(--fs-micro); }
+  .bbot .coin .v { font-size: var(--fs-l); }
+  .bpl .bmini { width: 38px; height: 52px; border-radius: 7px; box-shadow: 2px -2px 0 -1px #263244; }
+  .bpl .bmini .pc-ic { font-size: var(--fs-m); }
+  .bpl { font-size: var(--fs-micro); }
+  .bbot .sac { margin-left: auto; padding: 8px 10px; font-size: var(--fs-l); line-height: 1; order: 4; }
+  .bbot .sac .long { display: none; }
+  .bbot .sac .short { display: inline; }
+  .bbot .btn.primary { flex: 1 0 100%; order: 5; padding: 13px 12px; }
+}
+
+@media (max-width: 560px) {
+  .pcard .pc-tr { top: 4px; right: 4px; gap: 2px; }
+  .pcard .pc-tr .pc-cost { font-size: var(--fs-micro); }
+  .pcard.bd .pc-st i { font-size: var(--fs-micro); }
+}
+@media (max-width: 560px) { .bhand .pcard .pc-hurt { top: 26px; right: 4px; } }
+
+/* Рука на телефоне листается вбок; пока карты помещаются — по центру (auto-отступы не мешают прокрутке, в отличие от center) */
+@media (max-width: 560px) {
+  .bhand > .pcard:first-child { margin-left: auto; }
+  .bhand > .pcard:last-child { margin-right: auto; }
+}
+
+/* Шапка боя на телефоне: имя и «Сдаться» в строку (длинное имя — с многоточием), сведения о сопернике — строкой ниже */
+@media (max-width: 560px) {
+  .bt-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 10px; row-gap: 2px; }
+  .bt-head h2 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bt-head small { grid-column: 1 / -1; grid-row: 2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } /* одна строка: значок «ходит соперник» не сдвигает стол */
+}

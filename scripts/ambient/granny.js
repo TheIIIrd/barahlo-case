@@ -39,7 +39,7 @@ function grannyVisit() {
   } else {
     const flavor = pick([
       'Сказала, что в её время кейсов не было.', 'Оставила тарелку супа.', 'Перекрестила монитор.',
-      'Пообещала вернуться.', 'Спросила, когда ты уже остепенишься.',
+      'Пообещала вернуться.', 'Спросила, когда ты уже женишься.',
     ]);
     text = parts.join(' ') + ' ' + (state.debt ? `Осталось ${fmt(state.debt)}.` : 'Долг погашен.') + ' ' + flavor;
   }
@@ -57,12 +57,25 @@ $('gOk').onclick = () => ($('granny').hidden = true);
    Тогда эта вкладка перестаёт сохранять и просит обновиться: прогресс не затрётся молча.
    Фоновые таймеры (заряды, бафф, решение бабушки) в скрытой вкладке не пишут, чтобы она
    не перехватывала игру у вкладки, в которой играют. */
-addEventListener('storage', (e) => {
-  if (e.storageArea !== localStorage || (e.key !== SAVE_KEY && e.key !== null)) return;
+function lockElsewhere() {
   saveLocked = true;
   $('elsewhere').hidden = false;
   $('eReload').focus({ preventScroll: true });
+}
+addEventListener('storage', (e) => {
+  if (e.storageArea !== localStorage || (e.key !== SAVE_KEY && e.key !== null)) return;
+  lockElsewhere();
 });
+/* Страница, вернувшаяся из кэша «назад/вперёд» или из долгого сна, событие storage могла пропустить.
+   Поэтому при возвращении сверяем сохранение с тем, что эта вкладка записала последним. */
+function checkForeignSave() {
+  if (saveLocked) return;
+  let raw = null;
+  try { raw = localStorage.getItem(SAVE_KEY); } catch (_) { return; }
+  if (raw !== null && raw !== lastWritten) lockElsewhere();
+}
+addEventListener('pageshow', (e) => { if (e.persisted) checkForeignSave(); });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) checkForeignSave(); });
 $('eReload').onclick = () => location.reload();
 
 // Раз в 20 секунд (GRANNY_CHECK_MS) при долге от 150 ₽ бабушка с шансом 28% решает прийти.

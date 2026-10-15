@@ -15,12 +15,17 @@ let upgradeMult = 2;
 
 /* Предмет лежит только в одном месте: верстак, контракт или ставка апгрейда. Кладём в новое место —
    убираем из прежнего и говорим об этом, чтобы одно действие не съело то, что показано в другом. */
-function claimItem(it, place) {
+// Убрать предмет отовсюду, кроме place; вернуть, откуда убрали («из контракта»), или ''.
+function releaseItem(it, place) {
   const from = [];
   if (place !== 'bench' && bench.includes(it)) { bench = bench.filter((x) => x !== it); from.push('с верстака'); }
   if (place !== 'contract' && contractItems.includes(it)) { contractItems = contractItems.filter((x) => x !== it); from.push('из контракта'); }
   if (place !== 'upgrade' && upgradeStake === it) { upgradeStake = null; from.push('со ставки апгрейда'); }
-  if (from.length) toast(`Предмет «${baseName(it)}» переложен ${from.join(' и ')}.`, 2600);
+  return from.join(' и ');
+}
+function claimItem(it, place) {
+  const from = releaseItem(it, place);
+  if (from) toast(`Предмет «${baseName(it)}» переложен ${from}.`, 2600);
 }
 let upgradeAdd = 0; // доплата деньгами к ставке апгрейда
 
@@ -39,6 +44,20 @@ let pickLimit = LIST_PAGE;
 let pickFar = [];
 const resetPickPage = () => { pickLimit = LIST_PAGE; pickFar = []; };
 $('sort').onchange = () => { resetPickPage(); renderPicker(); };
+
+/* Можно ли сейчас выбрать предмет x (уже выбранный — снять можно всегда). Одно правило и для
+   тусклых плиток, и для нажатия: плитка могла остаться яркой с прошлой отрисовки (рубильник,
+   закрепили на другой вкладке), поэтому клик проверяет заново, а не верит классу. */
+function pickBlocked(x) {
+  if (tab === 'contract') {
+    if (contractItems.includes(x)) return false;
+    if (x.lock) return true;
+    if (contractMega) return contractItems.length >= MEGA_MAX;
+    const rarity = contractItems.length ? contractItems[0].r : null;
+    return x.r >= 6 || (rarity !== null && x.r !== rarity) || contractItems.length >= 10;
+  }
+  return x.price <= 0 || x.lock;
+}
 
 function renderPicker() {
   const fk = focusKey($('picker'));
@@ -63,7 +82,6 @@ function renderPickerNow() {
     return;
   }
 
-  const rarity = contractItems.length ? contractItems[0].r : null;
   const list = pickerList();
   const shown = list.slice(0, pickLimit);
   // Выбранные, что лежат дальше показанного (например, «Дешёвое» взяло их из конца списка), — отдельно в конце:
@@ -78,16 +96,8 @@ function renderPickerNow() {
   const extra = pickFar;
   const tile = (x, k) => {
     let cls = 'inv-item';
-    if (tab === 'contract' && contractMega) {
-      if (chosen.has(x)) cls += ' sel';
-      else if (x.lock || contractItems.length >= MEGA_MAX) cls += ' dim';
-    } else if (tab === 'contract') {
-      if (chosen.has(x)) cls += ' sel';
-      else if (x.lock || x.r >= 6 || (rarity !== null && x.r !== rarity) || contractItems.length >= 10) cls += ' dim';
-    } else {
-      if (upgradeStake === x) cls += ' sel';
-      if (x.price <= 0 || x.lock) cls += ' dim';
-    }
+    if (chosen.has(x)) cls += ' sel';
+    if (pickBlocked(x)) cls += ' dim';
     return `
       <button class="${cls}" type="button" data-u="${x.uid}"${cls.includes(' dim') ? ' aria-disabled="true"' : ''}
         style="--c:${RARITY[x.r].c};${k > 8 ? 'animation:none' : ''}" title="${x.name} · ${x.wear}">
@@ -115,7 +125,10 @@ function renderPickerNow() {
 function pickerClick(it, el) {
   if (!it || busy) return;
   if (tab === 'contract') {
-    if (el.classList.contains('dim')) return;
+    if (pickBlocked(it)) {
+      if (!el.classList.contains('dim')) renderPicker(); // плитка устарела — показываем как есть
+      return;
+    }
     const i = contractItems.indexOf(it);
     if (i >= 0) contractItems.splice(i, 1);
     else {

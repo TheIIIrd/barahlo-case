@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ru">
+<html lang="ru" data-build="1.16.2">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -27,6 +27,7 @@
 <link rel="stylesheet" href="styles/upgrade.css">
 <link rel="stylesheet" href="styles/crash.css">
 <link rel="stylesheet" href="styles/cards.css">
+<link rel="stylesheet" href="styles/battle.css">
 <link rel="stylesheet" href="styles/inventory.css">
 <link rel="stylesheet" href="styles/workshop.css">
 <link rel="stylesheet" href="styles/museum.css">
@@ -40,6 +41,10 @@
 <body>
 <canvas id="fx" aria-hidden="true"></canvas>
 <div class="wrap" id="wrap">
+  <div class="savefail" id="saveFail" role="alert" hidden>
+    <span>⚠️ Прогресс не сохраняется: браузеру не хватает места.</span>
+    <button class="btn sm" id="saveFailOut" type="button">💾 Скачать файлом</button>
+  </div>
   <header>
     <div class="brand">
       <div class="logo" aria-hidden="true">📦</div>
@@ -100,9 +105,9 @@
   <!-- INVENTORY -->
   <section class="view" id="v-inventory" role="tabpanel" hidden>
     <nav class="subnav" role="tablist" aria-label="Разделы инвентаря">
-      <button type="button" role="tab" data-sub="items" aria-selected="true">🎒 Вещи<span class="cnt" id="subItemsN">0</span></button>
-      <button type="button" role="tab" data-sub="museum" aria-selected="false">🏛 Музей<span class="cnt" id="tabMusN">0</span></button>
-      <button type="button" role="tab" data-sub="craft" aria-selected="false">🔨 Мастерская<span class="cnt" id="subCraftN">0</span></button>
+      <button type="button" role="tab" data-sub="items" aria-selected="true"><span class="i">🎒</span> <span>Вещи</span><span class="cnt" id="subItemsN">0</span></button>
+      <button type="button" role="tab" data-sub="museum" aria-selected="false"><span class="i">🏛</span> <span>Музей</span><span class="cnt" id="tabMusN">0</span></button>
+      <button type="button" role="tab" data-sub="craft" aria-selected="false"><span class="i">🔨</span> <span>Мастерская</span><span class="cnt" id="subCraftN">0</span></button>
     </nav>
     <div class="sub" id="sub-items">
     <div class="tiles">
@@ -258,7 +263,7 @@
   <!-- UPGRADE -->
   <section class="view panel" id="v-upgrade" role="tabpanel" hidden>
     <h2>Апгрейд <small>рискни вещью ради вещи подороже</small></h2>
-    <p class="lead">Выбери предмет в инвентаре и множитель. Чем выше множитель, тем меньше шанс. Не повезло — предмет сгорает.</p>
+    <p class="lead">Выбери предмет в инвентаре и множитель. Чем выше множитель, тем меньше шанс. Проиграл — предмет сгорает.</p>
     <div class="upg">
       <div class="uslot" id="uStake"><span class="k">Ставка</span><span class="empty">Выбери предмет в инвентаре ниже</span></div>
       <div class="wheel" id="wheel"><div class="needle" id="needle"></div><div class="pct" id="uPct">—<small>шанс</small></div></div>
@@ -299,8 +304,9 @@
   <!-- CARDS -->
   <section class="view" id="v-cards" role="tabpanel" hidden>
     <nav class="subnav cards-nav" role="tablist" aria-label="Разделы карт">
-      <button type="button" role="tab" data-csub="forge" aria-selected="true">⚒️ Кузня</button>
-      <button type="button" role="tab" data-csub="album" aria-selected="false">🃏 Коллекция<span class="cnt" id="albumN">0/52</span></button>
+      <button type="button" role="tab" data-csub="forge" aria-selected="true"><span class="i">⚒️</span> <span>Кузня</span></button>
+      <button type="button" role="tab" data-csub="album" aria-selected="false"><span class="i">🗂️</span> <span>Картотека</span><span class="cnt" id="albumN">0/52</span></button>
+      <button type="button" role="tab" data-csub="battle" aria-selected="false"><span class="i">⚔️</span> <span>Бои</span><span class="cnt" id="btN">0</span></button>
     </nav>
 
     <div class="sub" id="csub-forge">
@@ -340,9 +346,40 @@
         <div class="tile"><div class="k">Бонус Кузни</div><div class="v" id="aB">+0%</div><div class="s">к шансу всех рецептов</div></div>
         <div class="tile"><div class="k">Звание</div><div class="v" id="aT">—</div><div class="s">за всю колоду</div></div>
       </div>
+      <div class="panel deckp" id="deckPanel"></div>
       <div class="albumlayout">
         <div class="album" id="album"></div>
         <aside class="cdetail" id="aDetail" aria-label="Карта из коллекции"></aside>
+      </div>
+    </div>
+
+    <!-- Бои (с 1.15.0): экран соперника до боя и сам бой -->
+    <div class="sub" id="csub-battle" hidden>
+      <div id="btPre"></div>
+      <div class="bt" id="btBoard" tabindex="-1" hidden>
+        <div class="bt-head">
+          <h2 id="btName">Соперник</h2>
+          <small id="btInfo"></small>
+          <button class="btn sm" id="btGiveUp" type="button">Сдаться</button>
+        </div>
+        <div class="bsc" id="btScale" role="img" aria-label="Весы">
+          <div class="trk"><div class="knob" id="btKnob"></div></div>
+          <div class="lbl"><span class="foe">бот · 8</span><b id="btLead">поровну</b><span class="me">8 · ты</span></div>
+        </div>
+        <div class="panel bt-table"><div class="btable">
+          <div class="brow" id="btFoeRow" role="group" aria-label="Карты соперника"></div>
+          <div class="bmid"></div>
+          <div class="brow" id="btMeRow" role="group" aria-label="Твои карты на столе"></div>
+        </div></div>
+        <div class="bhand" id="btHand" role="group" aria-label="Твоя рука"></div>
+        <p class="bhint" id="btHint" aria-live="polite"></p>
+        <div class="bbot">
+          <div class="coin"><span class="k">мелочь</span><span class="v" id="btCoins">🪙0/5</span></div>
+          <button class="bpl" id="btDeck" type="button" aria-label="Взять карту из колоды"><span class="pcard back bmini"><span class="pc-ic" id="btDeckN">0</span></span>колода</button>
+          <button class="bpl" id="btPack" type="button" aria-label="Взять пакет"><span class="pcard back bmini"><span class="pc-ic" id="btPackN">0</span></span>пакеты</button>
+          <button class="btn primary" id="btEndTurn" type="button">⚔️ Закончить ход</button>
+          <button class="btn sac" id="btSac" type="button" aria-pressed="false" title="Сдать на запчасти: убрать свою карту со стола за +1 мелочь"><span class="long">Сдать на запчасти</span><span class="short" aria-hidden="true">🔧</span></button>
+        </div>
       </div>
     </div>
   </section>
@@ -408,6 +445,24 @@
   </div>
 </div>
 
+<div class="modal" id="btEnd" hidden role="dialog" aria-modal="true" aria-labelledby="beTitle">
+  <div class="mbox wide" id="beBox" tabindex="-1">
+    <div class="rays"></div>
+    <div class="ctx" id="beCtx"></div>
+    <div class="rar" id="beRar"></div>
+    <div class="big" id="beIc" hidden></div>
+    <h3 id="beTitle"></h3>
+    <p class="lore" id="beSub"></p>
+    <div class="reels compact" id="beReels"></div>
+    <div class="multi-grid be-grid" id="beGrid"></div>
+    <div class="losses" id="beLoss"></div>
+    <div class="mbtns">
+      <button class="btn primary" id="beOk" type="button">Забрать</button>
+      <button class="btn" id="beAlt" type="button">🗂️ В Картотеку</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal" id="ask" hidden role="alertdialog" aria-modal="true" aria-labelledby="aTitle">
   <div class="mbox" style="--c:var(--accent)">
     <div class="big" id="aIcon">💾</div>
@@ -415,6 +470,7 @@
     <p class="lore" id="aText"></p>
     <div class="mbtns">
       <button class="btn primary" id="aOk" type="button">Да</button>
+      <button class="btn" id="aAlt" type="button" hidden></button>
       <button class="btn" id="aNo" type="button">Отмена</button>
     </div>
   </div>
@@ -475,6 +531,9 @@
 <script src="scripts/cards/catalog.js"></script>
 <script src="scripts/cards/forge.js"></script>
 <script src="scripts/cards/collection.js"></script>
+<script src="scripts/battle/engine.js"></script>
+<script src="scripts/battle/deck.js"></script>
+<script src="scripts/battle/ui.js"></script>
 <script src="scripts/ambient/granny.js"></script>
 <script src="scripts/ambient/feed.js"></script>
 <script src="scripts/main.js"></script>

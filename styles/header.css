@@ -84,9 +84,16 @@ header {
 }
 .lvl > div:last-child { min-width: 0; }
 .lvl .t {
+  display: flex;
+  min-width: 0;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+}
+.lvl .t .tt { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.lvl .t .ts { flex: none; margin-left: .3em; color: var(--accent); }
+.lvl .t .ts .short { display: none; }
+@media (max-width: 420px) {
+  .lvl .t .ts .full { display: none; }
+  .lvl .t .ts .short { display: inline; }
 }
 .lvl .n {
   flex: none;
@@ -156,6 +163,7 @@ header {
 }
 /* Долг упёрся в потолок: кнопка остаётся нажимаемой — бабушка объяснит, почему не даёт. */
 #loan.capped { opacity: .5; }
+#repay.nodebt { opacity: .45; } /* долга нет: выглядит выключенной, но нажимается — бабушка гордится */
 .btn:hover:not(:disabled) {
   border-color: var(--accent);
   color: var(--accent);

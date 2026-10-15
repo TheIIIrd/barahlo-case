@@ -7,6 +7,12 @@
    миграцией): loadState дотягивает старые сохранения до текущей версии, а сохранение из более новой
    версии игры (откатились на старую) не грузит — откладывает, как сломанное, чтобы не испортить. */
 const SAVE_VERSION = 2;
+/* Какие версии формата эта игра умеет читать. 1.15.0 писала 3, хотя поля боёв (deck, hurt, battle, btNext, btWins,
+   btLosses) только добавились и особой миграции не требуют. Из-за тройки 1.14.1 (второе окно, старая копия игры,
+   откат) считала такое сохранение «из будущего» и откладывала весь прогресс. С 1.15.1 снова пишем 2 — старая версия
+   читает его и сохраняет новые поля как есть, — а 3 по-прежнему читаем. Поднимать SAVE_VERSION — только для
+   несовместимых изменений. */
+const SAVE_READABLE = 3;
 
 const freshState = () => ({
   v: SAVE_VERSION,
@@ -21,6 +27,9 @@ const freshState = () => ({
   buffs: {}, contrast: false,
   pending: [], pendingBet: 0, pendingXp: 0, grannyDue: false,
   cards: {}, cardsEver: {}, forgeFails: {}, forged: 0, forgeLost: 0,
+  // Бои (с 1.15.0): колода (id карт, одна карта до 2 раз), ранения { id: сколько копий ранено }, идущий бой,
+  // следующий соперник (выбран заранее и не меняется) и счёт побед и поражений.
+  deck: [], hurt: {}, battle: null, btNext: null, btWins: 0, btLosses: 0,
 });
 
 /* Сохранение. Название, иконку, описание и состояние износа у обычных предметов не пишем:
@@ -34,22 +43,29 @@ function saveReplacer(key, value) {
   const c = ROOM_BY_ID.get(this.caseId);
   return c && this.idx >= 0 && this.idx < c.items.length ? undefined : value;
 }
-let saveWarned = false;
+let saveWarned = false; // предупредили о нехватке места; сбрасывается, как только запись снова удалась
 let saveLocked = false; // игру сохранила другая вкладка — эта больше не пишет, чтобы не затереть
+// Что эта вкладка последним прочитала или записала под SAVE_KEY. Не совпадает с хранилищем —
+// значит, писала другая вкладка (granny.js сверяет при возвращении на страницу).
+let lastWritten = null;
+try { lastWritten = localStorage.getItem(SAVE_KEY); } catch (_) { /* хранилище недоступно */ }
 /* Записать строку сохранения. Если места нет — текущая игра важнее отложенного сохранения и
    запасной копии: их сначала отдаём файлами (stashToFile в scripts/inventory/saves.js), потом
    убираем из браузера. Возвращает true — записано, 'freed' — записано ценой копий, false — не влезло. */
 function writeSave(json) {
   try {
     localStorage.setItem(SAVE_KEY, json);
+    lastWritten = json;
     return true;
   } catch (_) { /* места нет — освобождаем ниже */ }
-  for (const key of [BROKEN_KEY, BACKUP_KEY]) {
+  // Сначала то, что ценно меньше всего: отложенные (на этой версии они всё равно не грузятся), потом копии.
+  for (const key of [BROKEN2_KEY, BROKEN_KEY, BACKUP_OLD_KEY, BACKUP_KEY]) {
     try {
       if (localStorage.getItem(key) === null) continue;
       if (typeof stashToFile === 'function') stashToFile(key);
       localStorage.removeItem(key);
       localStorage.setItem(SAVE_KEY, json);
+      lastWritten = json;
       return 'freed';
     } catch (_) { /* не помогло — пробуем дальше */ }
   }
@@ -68,33 +84,46 @@ function saveNow() {
   saveQueued = false;
   if (saveLocked) return;
   const done = writeSave(JSON.stringify(state, saveReplacer));
+  // Пока запись не удаётся, над игрой висит полоса с кнопкой «Скачать файлом»: тост легко пропустить.
+  const bar = document.getElementById('saveFail');
+  if (bar) bar.hidden = !!done;
+  if (done) saveWarned = false; // снова сломается — снова предупредим
   if (done === 'freed') {
     if (typeof renderSaves === 'function') renderSaves();
     if (typeof toast === 'function') toast('Браузеру не хватало места: запасная копия прогресса скачана файлом и убрана из браузера.', 5000, { important: true });
   } else if (!done && !saveWarned && typeof toast === 'function') {
     saveWarned = true;
-    toast('Не получилось сохранить прогресс: браузеру не хватает места. Продай или выброси часть инвентаря.', 6000, { important: true });
+    toast('Не получилось сохранить прогресс: браузеру не хватает места. Скачай прогресс файлом, потом продай или выброси часть инвентаря.', 6000, { important: true });
   }
 }
 
-// Восстанавливаем то, что не пишется в сохранение: название, иконку, описание и износ.
+/* Восстанавливаем то, что не пишется в сохранение: название, иконку, описание и износ.
+   У предмета из каталога текст всегда берём из каталога (save() его и так не пишет — для честного сохранения это
+   то же самое), а текст особых предметов очищаем от разметки: он попадает в innerHTML, а localStorage общий для
+   всех страниц сайта (на <user>.github.io — для всех проектов пользователя). Так же чистит файлы cleanImported. */
+const plainText = (x) => (typeof x === 'string' ? x.replace(/[<>&"'`]/g, '') : x);
 function hydrate(it) {
   if (!it || typeof it !== 'object') return;
   const c = ROOMS.find((x) => x.id === it.caseId);
-  const row = c && typeof it.idx === 'number' ? c.items[it.idx] : null;
-  if (it.name === undefined && row) it.name = (it.stat ? STAT_TRAK : '') + row[2];
-  if (it.ic === undefined && row) it.ic = row[1];
-  if (it.lore === undefined && row) it.lore = row[3];
+  const row = c && Number.isInteger(it.idx) ? c.items[it.idx] : null;
+  if (row) {
+    if (it.stat === undefined && typeof it.name === 'string' && it.name.startsWith(STAT_TRAK)) it.stat = true; // старые записи
+    it.name = (it.stat ? STAT_TRAK : '') + row[2];
+    it.ic = row[1];
+    it.lore = row[3];
+    if (typeof it.float === 'number') it.wear = wearOf(it.float);
+  }
   if (it.wear === undefined && typeof it.float === 'number') it.wear = wearOf(it.float);
+  for (const k of ['name', 'ic', 'lore', 'wear']) it[k] = plainText(it[k]);
 }
 
 // Загрузка сохранения: восстановление после прерванных действий и миграция старых версий.
 // Что восстановили — пишем в restoreNotes, это покажется после запуска (main.js).
 const restoreNotes = [];
 function loadState(saved) {
-  if (Number.isInteger(saved.v) && saved.v > SAVE_VERSION) throw new Error('Сохранение из более новой версии игры: ' + saved.v);
+  if (Number.isInteger(saved.v) && saved.v > SAVE_READABLE) throw new Error('Сохранение из более новой версии игры: ' + saved.v);
   const s = Object.assign(freshState(), saved);
-  s.v = SAVE_VERSION; // 1 — всё, что до 1.9.0 (поля v не было)
+  s.v = SAVE_VERSION; // 1 — всё, что до 1.9.0 (поля v не было); 3 (1.15.0) читается как 2
   if (Array.isArray(s.pending) && s.pending.length) {
     s.inv.push(...s.pending);
     const n = s.pending.length;
@@ -127,10 +156,16 @@ function loadState(saved) {
     else delete s.buffs[id];
   }
   s.museumDone ||= {};
-  // Карты (с 1.8.0): сколько копий, какие были хоть раз, неудачи подряд по рецептам.
-  for (const k of ['cards', 'cardsEver', 'forgeFails']) {
+  // Карты (с 1.8.0): сколько копий, какие были хоть раз, неудачи подряд по рецептам; ранения (с 1.15.0).
+  for (const k of ['cards', 'cardsEver', 'forgeFails', 'hurt']) {
     if (!s[k] || typeof s[k] !== 'object' || Array.isArray(s[k])) s[k] = {};
   }
+  // Бои (с 1.15.0). Здесь — только типы: id карт и сам бой проверяются в scripts/battle/deck.js, когда каталог
+  // карт уже загружен.
+  if (!Array.isArray(s.deck)) s.deck = [];
+  if (!s.battle || typeof s.battle !== 'object' || Array.isArray(s.battle)) s.battle = null;
+  if (!s.btNext || typeof s.btNext !== 'object' || Array.isArray(s.btNext)) s.btNext = null;
+  for (const k of ['btWins', 'btLosses']) s[k] = Number.isInteger(s[k]) && s[k] >= 0 ? s[k] : 0;
   // Сначала недостающие поля (износ, цена-основа), потом индекс в каталоге и текст из каталога.
   const fix = (x) => {
     if (typeof x.float !== 'number') x.float = 0.5;
@@ -152,15 +187,16 @@ function loadState(saved) {
     }
   };
   // Номера предметов: счётчик — выше всех уже выданных; нет номера или он повторяется (испорченный файл) —
-  // выдаём новый, иначе выбор и продажа задели бы сразу два предмета.
-  s.uid = s.inv.reduce((m, x) => (Number.isInteger(x.uid) && x.uid >= m ? x.uid + 1 : m), Math.max(1, Math.floor(s.uid) || 1));
+  // выдаём новый, иначе выбор и продажа задели бы сразу два предмета. Экспонаты Музея считаем тоже:
+  // заменённый экспонат возвращается в инвентарь со своим номером.
+  const numbered = [...s.inv, ...Object.values(s.museum)];
+  s.uid = numbered.reduce((m, x) => (Number.isInteger(x.uid) && x.uid >= m ? x.uid + 1 : m), Math.max(1, Math.floor(s.uid) || 1));
   const seenUid = new Set();
-  s.inv.forEach((x) => {
+  numbered.forEach((x) => {
     fix(x);
     if (!Number.isInteger(x.uid) || x.uid < 1 || seenUid.has(x.uid)) x.uid = s.uid++;
     seenUid.add(x.uid);
   });
-  Object.values(s.museum).forEach(fix);
   s.inv.forEach(hydrate);
   Object.values(s.museum).forEach(hydrate);
   hydrate(s.best);
@@ -176,17 +212,29 @@ const readJSON = (key) => {
    Зовётся и отсюда, и из main.js, если сломалась первая отрисовка. */
 function recoverBrokenSave(err) {
   console.error(err);
-  try { localStorage.setItem(BROKEN_KEY, localStorage.getItem(SAVE_KEY)); } catch (_) { /* не влезло — что ж */ }
-  restoreNotes.length = 0;
+  let kept = false;
   try {
-    const b = readJSON(BACKUP_KEY);
-    if (!b || !b.save || typeof b.save.bal !== 'number') throw new Error('запасной копии нет');
-    state = loadState(b.save);
-    restoreNotes.push('Сохранение не загрузилось, игра продолжена с запасной копии. Несработавшее можно скачать файлом в инвентаре, под аналитикой.');
-  } catch (_) {
-    state = freshState();
-    restoreNotes.push('Сохранение не загрузилось, игра начата заново. Несработавшее можно скачать файлом в инвентаре, под аналитикой.');
+    const raw = localStorage.getItem(SAVE_KEY);
+    const first = localStorage.getItem(BROKEN_KEY);
+    // Сохранения нет (упала отрисовка новой игры) — откладывать нечего. Уже отложенное не затираем:
+    // первое обычно и есть настоящий прогресс, а второе (сыгранное с копии) кладём рядом.
+    if (raw !== null && first === null) localStorage.setItem(BROKEN_KEY, raw);
+    else if (raw !== null && first !== raw) localStorage.setItem(BROKEN2_KEY, raw);
+    kept = raw !== null;
+  } catch (_) { /* не влезло — что ж */ }
+  restoreNotes.length = 0;
+  const tail = kept ? ' Несработавшее можно скачать файлом в инвентаре, под аналитикой.' : '';
+  for (const key of [BACKUP_KEY, BACKUP_OLD_KEY]) {
+    const b = readJSON(key);
+    if (!b || !b.save || typeof b.save.bal !== 'number') continue;
+    try {
+      state = loadState(b.save);
+      restoreNotes.push('Сохранение не загрузилось, игра продолжена с запасной копии.' + tail);
+      return;
+    } catch (e) { console.error(e); }
   }
+  state = freshState();
+  restoreNotes.push('Сохранение не загрузилось, игра начата заново.' + tail);
 }
 
 let state = freshState();

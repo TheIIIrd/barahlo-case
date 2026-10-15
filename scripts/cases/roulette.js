@@ -4,7 +4,7 @@
 'use strict';
 
 const reelCardHTML = (it) =>
-  `<div class="card" style="--c:${RARITY[it.r].c}"><span class="ic">${it.ic}</span><span class="t">${it.name}</span></div>`;
+  `<div class="card" style="--c:${RARITY[it.r].c}"><span class="ic">${it.ic}</span><span class="t">${nameHTMLPre(it)}</span></div>`;
 
 // Лёгкая карточка для ленты рулетки (без цены и износа).
 function stub(c, i) {
@@ -20,7 +20,7 @@ function renderIdleReels(n) {
   box.classList.toggle('compact', n > 1 && n < 100);
   box.classList.toggle('x20', n === 20);
   box.classList.toggle('boxgrid', n === 100);
-  box.classList.remove('opening');
+  box.classList.remove('opening', 'settled');
   if (n === 100) {
     box.innerHTML = boxGridHTML();
     return;
@@ -35,12 +35,20 @@ function renderIdleReels(n) {
   $$('.reel', box).forEach((r) => (r.style.transform = `translateX(${-Math.floor(rnd() * 600)}px)`));
 }
 
+// Подсказка к удаче: честно — что именно растёт и какой шанс в этом кейсе на деле.
+function luckTip(c, luck) {
+  const e = luckEffect(c);
+  const head = `Удача от уровня: вес «${RARITY[LUCK_FROM].n}» и выше +${luck}%`;
+  if (!c.items.some((x) => x[0] >= LUCK_FROM)) return head + ', но в этом кейсе таких нет';
+  return `${head}. В этом кейсе их шанс — ${fmtPct(e.now)} вместо ${fmtPct(e.base)}`;
+}
+
 // Легенда редкостей и содержимое кейса с текущими шансами (с удачей и баффом).
 function renderContents() {
   const c = currentCase;
   const luck = Math.round(levelLuck() * 100);
   $('legend').innerHTML = RARITY.map((r) => `<span><i style="--c:${r.c}"></i>${r.n}</span>`).join('') +
-    (luck ? `<span class="luck" title="Удача растёт с уровнем: «${RARITY[LUCK_FROM].n}» и выше выпадает чаще">🍀 удача +${luck}%</span>` : '');
+    (luck ? `<span class="luck" title="${luckTip(c, luck)}">🍀 удача +${luck}%</span>` : '');
   const chances = chancesOf(c);
   $('contents').innerHTML = c.items.map((x, i) => `
     <div class="mini" style="--c:${RARITY[x[0]].c}">
@@ -162,7 +170,12 @@ async function spinReel(wrap, strip, winIndex, duration, withTicks) {
     }
     requestAnimationFrame(frame);
   });
-  reel.children[winIndex].classList.add('win');
+  // Пять вспышек выигрыша — один раз: снятый класс не даст им повториться при возвращении на вкладку.
+  const win = reel.children[winIndex];
+  win.classList.add('win');
+  const off = (e) => { if (e.target === win) win.classList.remove('win'); };
+  win.addEventListener('animationend', off);
+  win.addEventListener('animationcancel', off);
 }
 
 async function openCases() {
@@ -248,7 +261,7 @@ async function openCases() {
 // ×100: коробки вскрываются диагональной волной, редкие вспыхивают своим цветом.
 async function boxWave(won, fast) {
   const grid = $('reels');
-  grid.classList.remove('opening');
+  grid.classList.remove('opening', 'settled');
   grid.innerHTML = boxGridHTML();
   const step = reducedMotion ? 0 : fast ? 22 : 70;
   $$('.bx', grid).forEach((cell, i) => {
@@ -263,5 +276,9 @@ async function boxWave(won, fast) {
   grid.classList.add('opening');
   for (let d = 0; d < 19; d++) setTimeout(() => tone(500 + d * 40, 0.02, 'square', 0.03), d * step);
   await sleep(18 * step + 420);
+  // Вспышки редких отыграли — гасим их, иначе они повторятся, когда вкладка снова станет видимой.
+  // Сетку могли уже перерисовать (следующее открытие) — тогда не трогаем.
+  const cells = grid.firstElementChild;
+  setTimeout(() => { if (grid.firstElementChild === cells) grid.classList.add('settled'); }, 800);
 }
 $('open').onclick = openCases;

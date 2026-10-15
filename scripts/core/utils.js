@@ -15,6 +15,11 @@ function rnd() {
 const pick = (arr) => arr[Math.floor(rnd() * arr.length)];
 const r2 = (n) => Math.round(n * 100) / 100 || 0;
 const sleep = (ms) => new Promise((r) => setTimeout(r, reducedMotion ? Math.min(ms, 60) : ms));
+// Анимация с занятостью: пока идёт fn, остальные действия ждут (busy); снимается и при ошибке внутри.
+async function withBusy(fn) {
+  busy = true;
+  try { return await fn(); } finally { busy = false; }
+}
 const sum = (arr, f) => arr.reduce((a, x) => a + f(x), 0);
 
 // Русское множественное число: plural(5, 'предмет', 'предмета', 'предметов') → «предметов».
@@ -28,8 +33,14 @@ function plural(n, one, few, many) {
 
 // Деньги: полная сумма с копейками.
 // Форматтеры создаём один раз: toLocaleString на каждый вызов заметно тормозил большие списки (5000 предметов).
-const NF_MONEY = new Intl.NumberFormat('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const NF = new Intl.NumberFormat('ru-RU');
+// Минус — настоящий «−», а не дефис: так же, как в скидках («−10%»). Intl для ru-RU ставит дефис.
+const minusSign = (s) => s.replace('-', '−');
+const ruFormat = (opts) => {
+  const f = new Intl.NumberFormat('ru-RU', opts);
+  return { format: (n) => minusSign(f.format(n)) };
+};
+const NF_MONEY = ruFormat({ minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const NF = ruFormat();
 const fmt = (n) => NF_MONEY.format(r2(n)) + '\u00a0₽'; // ₽ не уезжает на новую строку
 
 // Деньги кратко: «1,5 млрд ₽» для больших сумм, иначе полная.
@@ -66,6 +77,14 @@ function focusKey(root) {
   }
   return { root, sel, idx: $$(FOCUSABLE, root).indexOf(a) };
 }
+/* Фокус потерялся (кнопку перерисовали, выключили или спрятали вместе с окном) — ставим его на первый
+   доступный из кандидатов, а если ни один не годится — на открытую вкладку. Есть фокус — не трогаем. */
+function focusBack(...cands) {
+  const a = document.activeElement;
+  if (a && a !== document.body && canFocus(a) && !a.closest('[hidden]')) return;
+  const el = cands.flat().find(canFocus) || $$('.tabs .tab').find((t) => t.getAttribute('aria-selected') === 'true');
+  if (el) el.focus({ preventScroll: true });
+}
 function restoreFocus(key) {
   if (!key || (document.activeElement && document.activeElement !== document.body && document.activeElement.isConnected)) return;
   let el = key.sel ? $$(key.sel, key.root).find(canFocus) : null;
@@ -83,14 +102,14 @@ function restoreFocus(key) {
 const slotMoney = (v) => {
   const a = Math.abs(v);
   // «10,9 млрд» не влезает в узкую стопку — от десяти единиц без дробной части: «11 млрд».
-  if (a >= 1e6) return fmtShort(v).replace(/\u00a0₽$/, '').replace(/^(-?\d{2,}),(\d)/, (m, i, d) => String(Math.round(+`${i}.${d}`)));
+  if (a >= 1e6) return fmtShort(v).replace(/\u00a0₽$/, '').replace(/^(−?)(\d{2,}),(\d)/, (m, s, i, d) => s + String(Math.round(+`${i}.${d}`)));
   if (a >= 1e4) return NF.format(Math.round(v / 1e3)) + '\u00a0тыс';
   if (a >= 100) return NF.format(Math.round(v)) + '\u00a0₽';
   return fmt(v);
 };
 
 // Проценты с русской запятой: 2,35%.
-const fmtPct = (x, digits = 2) => x.toLocaleString('ru-RU', { minimumFractionDigits: digits, maximumFractionDigits: digits }) + '%';
+const fmtPct = (x, digits = 2) => minusSign(x.toLocaleString('ru-RU', { minimumFractionDigits: digits, maximumFractionDigits: digits })) + '%';
 
 // Числа — с русской запятой, как деньги и проценты: износ 0,6655, множитель ×2,47.
 const fmtFloat = (fl) => (fl < 1e-9 ? fl.toExponential(3) : fl.toFixed(10)).replace('.', ',');
@@ -100,10 +119,16 @@ const fmtWear = (fl) => (fl < 1e-4 ? fl.toExponential(2) : fl.toPrecision(4)).re
 const fmtX = (m) => '×' + NF_MONEY.format(m);
 
 // Перезапуск CSS-анимации на элементе.
-function replay(el, cls) {
+// Класс снимается сам через ms: иначе он остаётся на элементе, и браузер заново проигрывает
+// анимацию, когда скрытая вкладка снова показывается (Мастерская тряслась при возвращении).
+// Таймер, а не animationend: у «forged» анимируется потомок, а при reduced motion анимации нет вовсе.
+function replay(el, cls, ms = 1200) {
   el.classList.remove(cls);
   void el.offsetWidth;
   el.classList.add(cls);
+  const timers = (el._replay ||= {});
+  clearTimeout(timers[cls]);
+  timers[cls] = setTimeout(() => el.classList.remove(cls), ms);
 }
 
 // «Показать ещё N · всего M» в конце сетки, если показано не всё.

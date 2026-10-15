@@ -3,8 +3,8 @@
    ========================================================================== */
 'use strict';
 
-// Опыт до следующего уровня: 90 × уровень^1,65.
-const xpNeed = (lvl) => Math.round(90 * Math.pow(lvl, 1.65));
+// Опыт до следующего уровня: 90 × уровень^XP_CURVE (2,2 с 1.16.0; было 1,85, до 1.14.0 — 1,65).
+const xpNeed = (lvl) => Math.round(90 * Math.pow(lvl, XP_CURVE));
 const LVL_SANE = 100000; // выше — только испорченное сохранение
 
 // Опыт за предмет растёт с его ценой плавно (по порядку величины), без раннего потолка:
@@ -70,10 +70,15 @@ function levelUp() {
 
 function renderLevel() {
   $('lvlN').textContent = state.lvl;
-  $('lvlT').textContent = titleOf(state.lvl);
+  // Звёзды после 30-го — отдельно и не сжимаются: на узком телефоне многоточие съедает хвост названия, а не их.
+  const [name, stars] = titleOf(state.lvl).split(' ★');
+  // На узком телефоне пять звёзд съедали название — там звёзды числом: «★5».
+  const n = stars === undefined ? 0 : stars.length + 1;
+  $('lvlT').innerHTML = `<span class="tt">${name}</span>` +
+    (n ? ` <span class="ts" aria-label="звёзд: ${n}"><span class="full">${'★'.repeat(n)}</span><span class="short">★${n}</span></span>` : '');
   $('lvlX').textContent = `${state.xp} / ${xpNeed(state.lvl)} XP`;
   $('lvlRing').style.setProperty('--p', (state.xp / xpNeed(state.lvl)) * 100 + '%');
   const luck = Math.round(levelLuck() * 100);
   $('lvl').title = 'Уровень растёт за открытия, контракты, апгрейды и краш' +
-    (luck ? `. Удача +${luck}%: «${RARITY[LUCK_FROM].n}» и выше выпадает чаще` : '. С каждым уровнем растёт удача');
+    (luck ? `. Удача: +${luck}% к весу «${RARITY[LUCK_FROM].n}» и выше` : '. С каждым уровнем растёт удача');
 }

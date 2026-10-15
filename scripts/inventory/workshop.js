@@ -386,5 +386,6 @@ async function doCraft(list) {
   showDrop(result, firstTime ? 'Новый рецепт!' : 'Мастерская', () => {
     busy = false;
     renderAll();
+    focusBack($$('#bPick button'), $$('#sub-craft button')); // верстак пуст — «Собрать» выключена
   });
 }

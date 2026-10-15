@@ -346,7 +346,6 @@
 .cbar .t .g { color: var(--good); }
 .cbar .btn { flex: none; }
 body.cbar-on .wrap { padding-bottom: 90px; }
-@media (min-width: 561px) { body.cbar-on #toasts { bottom: calc(86px + env(safe-area-inset-bottom, 0px)); } }
 
 /* Сетка мегаконтракта: до 100 мелких слотов. */
 .mega .slots { grid-template-columns: repeat(auto-fill, minmax(34px, 1fr)); gap: 4px; }

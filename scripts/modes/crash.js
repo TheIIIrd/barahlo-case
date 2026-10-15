@@ -104,7 +104,7 @@ function updateCrashButton() {
     hint.textContent = 'новый раунд через секунду';
     btn.disabled = true;
   } else if (crash.state === 'wait' || crash.state === 'run') {
-    label.textContent = crash.state === 'wait' ? 'ЗАСОЛКА…' : 'ИДЁТ РАУНД';
+    label.textContent = crash.state === 'wait' ? 'ЗАСАЛИВАЕМ…' : 'ИДЁТ РАУНД';
     hint.textContent = crash.cashed ? 'выигрыш забран' : 'ставка принята';
     btn.disabled = true;
   } else {
@@ -202,7 +202,7 @@ function crashBoom() {
   drawCrash();
   updateCrashButton();
   setCrashLabel(fmtX(crash.cp),
-    crash.cashed ? 'Банка взорвалась, но выигрыш уже забран' : 'Банка взорвалась',
+    crash.cashed ? 'Банка взорвалась, но ты успел' : 'Банка взорвалась',
     crash.cashed ? 'var(--good)' : 'var(--bad)');
   if (!crash.cashed) {
     state.pendingBet = 0;

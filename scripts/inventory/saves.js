@@ -9,7 +9,9 @@
    правки и «чуть-чуть подкрутить» — да.
 
    Перед загрузкой чужого файла и перед «Начать жизнь заново» текущий прогресс уходит в
-   запасную копию (localStorage, ключ BACKUP_KEY). Кнопка «Вернуть прежнее» меняет их местами. */
+   запасную копию (localStorage, ключ BACKUP_KEY), а прежняя копия — в BACKUP_OLD_KEY: две загрузки
+   подряд не теряют исходный прогресс. Нетронутую новую игру не копируем — затёрли бы настоящую копию.
+   Кнопка «Вернуть прежнее» меняет текущий прогресс и копию местами (или берёт копию постарше). */
 const SAVE_FILE_TAG = 'KSB1:';
 const SAVE_FILE_SALT = 'барахло-не-трогать';
 
@@ -87,16 +89,16 @@ function itemLooksValid(it) {
 }
 function saveLooksValid(s) {
   if (!isObj(s) || !isNum(s.bal) || !Array.isArray(s.inv)) return false;
-  if (s.v !== undefined && !(Number.isInteger(s.v) && s.v >= 1 && s.v <= SAVE_VERSION)) return false; // из новой версии игры — не грузим
+  if (s.v !== undefined && !(Number.isInteger(s.v) && s.v >= 1 && s.v <= SAVE_READABLE)) return false; // из новой версии игры — не грузим
   for (const k of ['debt', 'uid', 'opened', 'spent', 'earn', 'xp', 'lvl', 'freeStore', 'freeTick', 'contracts', 'upgrades',
-    'crafts', 'crashNet', 'museumSpent', 'restos', 'restoSpent', 'pendingBet', 'pendingXp', 'forged', 'forgeLost']) {
+    'crafts', 'crashNet', 'museumSpent', 'restos', 'restoSpent', 'pendingBet', 'pendingXp', 'forged', 'forgeLost', 'btWins', 'btLosses']) {
     if (!optNum(s[k])) return false;
   }
   if ((s.debt || 0) < 0 || (s.pendingBet || 0) < 0 || (s.pendingXp || 0) < 0 || (s.xp || 0) < 0) return false;
   if (s.lvl !== undefined && !(Number.isInteger(s.lvl) && s.lvl >= 1 && s.lvl <= LVL_SANE)) return false;
   // Опыт с запасом на одно прерванное действие, но не «бесконечный»: иначе подсчёт уровней повесил бы игру.
   if ((s.xp || 0) > xpNeed(s.lvl || 1) * 10 + 1e6 || (s.pendingXp || 0) > 1e6) return false;
-  for (const k of ['tokens', 'recipes', 'museum', 'museumHalf', 'museumDone', 'buffs', 'cards', 'cardsEver', 'forgeFails']) {
+  for (const k of ['tokens', 'recipes', 'museum', 'museumHalf', 'museumDone', 'buffs', 'cards', 'cardsEver', 'forgeFails', 'hurt']) {
     if (s[k] !== undefined && !isObj(s[k])) return false;
   }
   for (const k of ['rc', 'chist']) {
@@ -104,16 +106,20 @@ function saveLooksValid(s) {
   }
   if (s.rc !== undefined && s.rc.length !== RARITY.length) return false;
   const counts = (o) => !o || Object.values(o).every((n) => Number.isInteger(n) && n >= 0);
-  if (!counts(s.tokens) || !counts(s.cards) || !counts(s.forgeFails)) return false;
-  for (const k of ['forged', 'forgeLost']) {
+  if (!counts(s.tokens) || !counts(s.cards) || !counts(s.forgeFails) || !counts(s.hurt)) return false;
+  for (const k of ['forged', 'forgeLost', 'btWins', 'btLosses']) {
     if (s[k] !== undefined && !(Number.isInteger(s[k]) && s[k] >= 0)) return false;
   }
   if (s.cardsEver && !Object.values(s.cardsEver).every((v) => v === true)) return false;
   if (s.cards && !Object.keys(s.cards).every((id) => s.cardsEver && s.cardsEver[id])) return false;
   // Карты — только существующие: id попадают в разметку.
-  for (const k of ['cards', 'cardsEver', 'forgeFails']) {
+  for (const k of ['cards', 'cardsEver', 'forgeFails', 'hurt']) {
     if (s[k] && !Object.keys(s[k]).every((id) => CARD_BY_ID.has(id))) return false;
   }
+  // Бои (с 1.15.0): колода — id карт, сам бой и следующий соперник — по своим проверкам (scripts/battle).
+  if (s.deck !== undefined && !(Array.isArray(s.deck) && s.deck.length <= BT.DECK && s.deck.every((id) => CARD_BY_ID.has(id)))) return false;
+  if (s.battle !== undefined && s.battle !== null && !btLooksValid(s.battle)) return false;
+  if (s.btNext !== undefined && s.btNext !== null && !btNextLooksValid(s.btNext)) return false;
   if (s.best !== undefined && s.best !== null && !(isObj(s.best) && isNum(s.best.price) && isPlainText(s.best.name))) return false;
   if (s.pending !== undefined && !(Array.isArray(s.pending) && s.pending.every(itemLooksValid))) return false;
   // Экспонат лежит под ключом «кейс|индекс» своего же предмета.
@@ -168,19 +174,37 @@ function downloadText(name, text) {
 }
 const saveFileName = () => `kejsy-s-barahlom-${new Date().toISOString().slice(0, 10)}.txt`;
 
-function readBackup() {
+function readBackup(key = BACKUP_KEY) {
   try {
-    const b = JSON.parse(localStorage.getItem(BACKUP_KEY) || 'null');
+    const b = JSON.parse(localStorage.getItem(key) || 'null');
     return b && saveLooksValid(b.save) ? b : null;
   } catch (_) { return null; }
 }
 
-// Убрать текущий прогресс в запасную копию. Не влезло в память браузера — отдаём файлом.
-function backupCurrent() {
+/* Убрать текущий прогресс в запасную копию. rotate — прежняя копия сдвигается в BACKUP_OLD_KEY
+   (загрузка, сброс, «взять постарше»); без него копия просто заменяется (обмен «Вернуть прежнее»:
+   прежняя копия как раз становится текущей игрой). Не влезло в память браузера — отдаём файлом. */
+function backupCurrent(rotate = true) {
+  if (isFreshGame()) return true; // копировать нечего, а настоящую копию затёрли бы
+  const save = currentSave();
+  let prevOld = null, shifted = false;
   try {
-    localStorage.setItem(BACKUP_KEY, JSON.stringify({ at: Date.now(), save: currentSave() }));
+    const last = rotate ? readBackup() : null;
+    if (last && JSON.stringify(last.save) === JSON.stringify(save)) return true; // эта игра уже в копии
+    if (last) {
+      prevOld = localStorage.getItem(BACKUP_OLD_KEY);
+      localStorage.setItem(BACKUP_OLD_KEY, localStorage.getItem(BACKUP_KEY));
+      shifted = true;
+    }
+    localStorage.setItem(BACKUP_KEY, JSON.stringify({ at: Date.now(), save }));
     return true;
   } catch (_) {
+    // Сдвиг уже затёр копию постарше, а новая не легла — возвращаем ту на место, не вышло — тоже файлом.
+    if (shifted && prevOld) {
+      try { localStorage.setItem(BACKUP_OLD_KEY, prevOld); } catch (_) {
+        try { downloadText(saveFileName(), encodeSave(JSON.parse(prevOld).save)); } catch (_) { /* битая — нечего спасать */ }
+      }
+    }
     downloadText(saveFileName(), encodeSave(currentSave()));
     toast('Запасной копии не хватило места в браузере — она скачана файлом.', 4000, { important: true });
     return false;
@@ -196,33 +220,48 @@ function writeSaveAndReload(save) {
     return;
   }
   saveLocked = true;
+  reloading = true;
+  busy = true; // до перезагрузки ничего не нажать: всё равно не сохранится
   // Пришлось отдать запасную копию файлом — даём скачиванию начаться до перезагрузки.
   const delay = done === 'freed' ? 1500 : 0;
   if (delay) toast('Места в браузере мало: запасная копия скачана файлом.', delay + 1000, { important: true });
-  setTimeout(() => location.reload(), delay);
+  else toast('Сохранение загружается…', 3000);
+  // Два кадра на то, чтобы окно «Точно?» закрылось на экране: иначе оно висело до самой перезагрузки.
+  // В скрытой вкладке кадров нет — тогда перезапускает запасной таймер.
+  let gone = false;
+  const go = () => { if (!gone) { gone = true; location.reload(); } };
+  requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(go, delay)));
+  setTimeout(go, delay + 500);
 }
 
 // Окно «Точно?». Возвращает обещание: true — согласился, false — передумал.
-function ask({ icon, title, html, ok }) {
+// alt — третья кнопка (необязательная): тогда обещание вернёт 'alt'.
+function ask({ icon, title, html, ok, alt }) {
   return new Promise((resolve) => {
     $('aIcon').textContent = icon;
     $('aTitle').textContent = title;
     $('aText').innerHTML = html;
     $('aOk').textContent = ok;
+    $('aAlt').hidden = !alt;
+    $('aAlt').textContent = alt || '';
     $('ask').hidden = false;
     $('aNo').focus({ preventScroll: true });
     const done = (yes) => {
       $('ask').hidden = true;
-      $('aOk').onclick = $('aNo').onclick = null;
+      $('aOk').onclick = $('aNo').onclick = $('aAlt').onclick = null;
       resolve(yes);
     };
     $('aOk').onclick = () => done(true);
+    $('aAlt').onclick = () => done('alt');
     $('aNo').onclick = () => done(false);
   });
 }
 
 // Пока идёт анимация или раунд «Курса огурцов», с сохранениями не играем.
+let reloading = false; // игра уже перезапускается с новым сохранением
 function savesBlocked() {
+  if (reloading) return true;
+  if (saveLocked) { $('elsewhere').hidden = false; return true; } // в памяти устаревшая игра — её не копируем
   if (busy) { toast('Дождись конца анимации.'); return true; }
   if (crash.state !== 'idle') { toast('Дождись конца раунда «Курса огурцов».'); return true; }
   return false;
@@ -232,6 +271,13 @@ $('saveOut').onclick = () => {
   if (savesBlocked()) return;
   downloadText(saveFileName(), encodeSave(currentSave()));
   toast('Файл сохранения скачан. Загрузить его можно здесь же, на любом устройстве.', 3200);
+};
+
+// Из полосы «Прогресс не сохраняется» — скачать можно даже посреди анимации: недоигранное
+// (pending) лежит в сохранении и вернётся при загрузке.
+$('saveFailOut').onclick = () => {
+  downloadText(saveFileName(), encodeSave(currentSave()));
+  toast('Файл сохранения скачан. Освободи место: продай или выброси часть инвентаря.', 4200);
 };
 
 $('saveIn').onclick = () => {
@@ -256,8 +302,10 @@ $('saveFile').onchange = async () => {
     icon: '📂',
     title: 'Загрузить сохранение?',
     html: `В файле${loaded.at ? ' от ' + fmtDate(loaded.at) : ''}: <b>${saveSummary(loaded.save)}</b>.<br><br>` +
-      `Сейчас у тебя ${saveSummary(currentSave())}. Этот прогресс не пропадёт: он станет запасной копией, ` +
-      'и его можно будет вернуть кнопкой «Вернуть прежнее».',
+      (isFreshGame()
+        ? 'Текущая игра только начата — запасная копия останется прежней.'
+        : `Сейчас у тебя ${saveSummary(currentSave())}. Этот прогресс не пропадёт: он станет запасной копией, ` +
+          'и его можно будет вернуть кнопкой «Вернуть прежнее».'),
     ok: 'Загрузить',
   });
   if (!yes || savesBlocked()) return;
@@ -267,18 +315,30 @@ $('saveFile').onchange = async () => {
 
 $('saveBack').onclick = async () => {
   if (savesBlocked()) return;
-  const b = readBackup();
+  // Последняя копия могла уйти файлом (кончилось место) — тогда главной считаем ту, что постарше.
+  const old = readBackup(BACKUP_OLD_KEY);
+  const b = readBackup() || old;
   if (!b) { renderSaves(); return; }
+  // Копия постарше, совпадающая с текущей игрой (её только что вернули), — не предлагаем.
+  const older = b !== old && old && JSON.stringify(old.save) !== JSON.stringify(currentSave()) ? old : null;
+  const now = isFreshGame()
+    ? 'Текущая игра только начата, копировать её не нужно.'
+    : `Текущий прогресс (${saveSummary(currentSave())}) станет запасной копией — передумаешь, вернёшь обратно.`;
   const yes = await ask({
     icon: '↩️',
     title: 'Вернуть прежний прогресс?',
-    html: `Запасная копия от ${fmtDate(b.at)}: <b>${saveSummary(b.save)}</b>.<br><br>` +
-      `Текущий прогресс (${saveSummary(currentSave())}) станет запасной копией — передумаешь, вернёшь обратно.`,
+    html: `Запасная копия от ${fmtDate(b.at)}: <b>${saveSummary(b.save)}</b>.<br>` +
+      (older ? `Есть и копия постарше, от ${fmtDate(older.at)}: <b>${saveSummary(older.save)}</b>.<br>` : '') +
+      '<br>' + now,
     ok: 'Вернуть',
+    alt: older ? 'Взять постарше' : '',
   });
   if (!yes || savesBlocked()) return;
-  backupCurrent();
-  writeSaveAndReload(b.save);
+  const pick = yes === 'alt' ? older : b;
+  // Обмен с последней копией — без сдвига (она и становится игрой); копия постарше — со сдвигом, чтобы
+  // последняя копия не пропала.
+  backupCurrent(pick !== b || b === old);
+  writeSaveAndReload(pick.save);
 };
 
 // Отдать файлом то, что лежит в браузере под ключом key: запасную копию или отложенное сохранение.
@@ -287,15 +347,18 @@ function stashToFile(key) {
   if (raw === null) return;
   let data = null;
   try { data = JSON.parse(raw); } catch (_) { /* не JSON — отдадим как есть */ }
-  const save = key === BACKUP_KEY && data ? data.save : data;
-  const name = saveFileName().replace('.txt', key === BROKEN_KEY ? '-otlozhennoe.txt' : '-kopiya.txt');
+  const save = (key === BACKUP_KEY || key === BACKUP_OLD_KEY) && data ? data.save : data;
+  const suffix = { [BROKEN_KEY]: '-otlozhennoe', [BROKEN2_KEY]: '-otlozhennoe-2', [BACKUP_KEY]: '-kopiya', [BACKUP_OLD_KEY]: '-kopiya-2' }[key];
+  const name = saveFileName().replace('.txt', suffix + '.txt');
   downloadText(name, save ? encodeSave(save) : raw);
 }
 
 // Сохранение, на котором игра не запустилась (state.js), — отдаём файлом и убираем из браузера.
 $('saveBroken').onclick = () => {
-  stashToFile(BROKEN_KEY);
-  try { localStorage.removeItem(BROKEN_KEY); } catch (_) { /* ничего */ }
+  for (const key of [BROKEN_KEY, BROKEN2_KEY]) {
+    stashToFile(key);
+    try { localStorage.removeItem(key); } catch (_) { /* ничего */ }
+  }
   renderSaves();
   toast('Несработавшее сохранение скачано. Загрузить его можно будет снова, когда игру обновят.', 4200);
 };
@@ -304,8 +367,8 @@ $('saveBroken').onclick = () => {
 // есть отложенное сохранение. Меняются они редко (сброс, загрузка, запуск), поэтому проверяем не на
 // каждой отрисовке, а при запуске (main.js) и после этих действий.
 function renderSaves() {
-  $('saveBack').hidden = !readBackup();
+  $('saveBack').hidden = !readBackup() && !readBackup(BACKUP_OLD_KEY);
   let broken = false;
-  try { broken = localStorage.getItem(BROKEN_KEY) !== null; } catch (_) { /* хранилище недоступно */ }
+  try { broken = localStorage.getItem(BROKEN_KEY) !== null || localStorage.getItem(BROKEN2_KEY) !== null; } catch (_) { /* хранилище недоступно */ }
   $('saveBroken').hidden = !broken;
 }
