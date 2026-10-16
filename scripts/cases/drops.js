@@ -77,15 +77,6 @@ function showDrop(it, context, after) {
   void box.offsetWidth;
   box.style.animation = '';
 
-  const r = box.getBoundingClientRect();
-  burst(r.left + r.width / 2, r.top + 130, [R.hex, '#ffffff', R.hex, '#ffb02e'], [30, 40, 60, 90, 140, 220, 400][it.r]);
-  if (it.r >= 4) shake();
-  if (it.r === 6) {
-    setTimeout(() => burst(innerWidth * 0.2, innerHeight * 0.3, ['#ffd23f', '#fff3b0'], 200), 250);
-    setTimeout(() => burst(innerWidth * 0.8, innerHeight * 0.3, ['#ffd23f', '#fff3b0'], 200), 450);
-  }
-  fanfare(it.r);
-
   const opener = document.activeElement; // после окна фокус вернётся сюда (или на открытую вкладку)
   let closed = false; // защита от двойного нажатия
   const finish = (keep) => {
@@ -109,6 +100,17 @@ function showDrop(it, context, after) {
   $('dKeep').onclick = () => finish(true);
   $('dSell').onclick = () => finish(false);
   $('dKeep').focus({ preventScroll: true });
+  // Эффекты — после того, как кнопки окна подключены: сбой эффекта не оставит окно с мёртвыми кнопками.
+  try {
+    const r = box.getBoundingClientRect();
+    burst(r.left + r.width / 2, r.top + 130, [R.hex, '#ffffff', R.hex, '#ffb02e'], [30, 40, 60, 90, 140, 220, 400][it.r]);
+    if (it.r >= 4) shake();
+    if (it.r === 6) {
+      setTimeout(() => burst(innerWidth * 0.2, innerHeight * 0.3, ['#ffd23f', '#fff3b0'], 200), 250);
+      setTimeout(() => burst(innerWidth * 0.8, innerHeight * 0.3, ['#ffd23f', '#fff3b0'], 200), 450);
+    }
+    fanfare(it.r);
+  } catch (e) { console.error(e); }
 }
 
 // Окно улова. cost — сколько потрачено; sorted — лучшие сверху (для ×100);
@@ -155,12 +157,6 @@ function showMulti(won, { cost = 0, sorted = false, title = '', sub = '', note =
   box.style.animation = 'none';
   void box.offsetWidth;
   box.style.animation = '';
-  calmScroll($('multi'), Math.max(MODAL_IN_MS, MULTI_CASCADE_MS + CARD_POP_MS) + 100);
-
-  const r = box.getBoundingClientRect();
-  burst(r.left + r.width / 2, r.top + 60, [R.hex, '#ffffff', '#ffb02e'], [60, 80, 110, 150, 200, 300, 450][best.r]);
-  if (best.r >= 4) shake();
-  fanfare(best.r);
 
   const opener = document.activeElement;
   let closed = false;
@@ -188,4 +184,12 @@ function showMulti(won, { cost = 0, sorted = false, title = '', sub = '', note =
   $('mKeep').onclick = () => finish(true);
   $('mSell').onclick = () => finish(false);
   $('mKeep').focus({ preventScroll: true });
+  // Эффекты — после того, как кнопки окна подключены (см. showDrop).
+  try {
+    calmScroll($('multi'), Math.max(MODAL_IN_MS, MULTI_CASCADE_MS + CARD_POP_MS) + 100);
+    const r = box.getBoundingClientRect();
+    burst(r.left + r.width / 2, r.top + 60, [R.hex, '#ffffff', '#ffb02e'], [60, 80, 110, 150, 200, 300, 450][best.r]);
+    if (best.r >= 4) shake();
+    fanfare(best.r);
+  } catch (e) { console.error(e); }
 }

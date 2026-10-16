@@ -26,9 +26,11 @@ function levelLuck() {
 }
 
 // Сколько мс осталось баффу кейса (0 — баффа нет): меньшее из «по часам» и «по секундомеру».
+// Потолок остатка — длина баффа: у баффа за ×20/×100 — BUFF_MS, у баффа за победу в бою (max: BUFF_MS_WIN) — свой.
+const buffCap = (b) => (b && b.max === BUFF_MS_WIN ? BUFF_MS_WIN : BUFF_MS);
 function buffLeft(c) {
   const b = state.buffs[c.id];
-  return b ? Math.max(0, Math.min(b.left, b.until - Date.now(), BUFF_MS)) : 0;
+  return b ? Math.max(0, Math.min(b.left, b.until - Date.now(), buffCap(b))) : 0;
 }
 
 // Вес редкости r в кейсе c с учётом удачи и баффа.

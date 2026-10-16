@@ -273,14 +273,14 @@
   .bstack .q { top: -8px; right: -6px; min-width: 20px; height: 20px; font-size: var(--fs-xs); line-height: 20px; padding: 0 4px; }
   .bstack.many { box-shadow: 2px -2px 0 -1px #263244, 4px -4px 0 -2px #1d2734; }
 }
-.rooms .room.craftroom {
+.rooms .room.craftroom, .rooms .room.glory { /* Зал славы (с 1.20.0) — строкой во всю ширину, как Мастерская */
   grid-column: 1/-1;
   flex-direction: row;
   align-items: center;
   gap: 14px;
   border-style: dashed;
 }
-.rooms .room.craftroom .bar { flex: 1; }
-.rooms .room.craftroom .cnt { gap: 10px; }
+.rooms .room:is(.craftroom, .glory) .bar { flex: 1; }
+.rooms .room:is(.craftroom, .glory) .cnt { gap: 10px; }
 /* Вид целиком на верстаке — тусклая плитка «×0» на своём месте. */
 #bPick .inv-item .p.off { color: var(--muted); }

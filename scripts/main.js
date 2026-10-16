@@ -10,8 +10,12 @@
 
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape' || !$('elsewhere').hidden) return;
-  if (albumPick && tab === 'cards' && !anyModalOpen()) {
+  if (albumPick && tab === 'cards' && cardsSub === 'album' && !anyModalOpen()) {
     closeAlbumCard();
+    return;
+  }
+  if (btPrePick !== null && tab === 'cards' && cardsSub === 'battle' && !state.battle && !anyModalOpen()) {
+    closeBtPreCard();
     return;
   }
   if (invUi.open && !anyModalOpen()) {
@@ -55,9 +59,16 @@ $('tagline').textContent =
 
 for (let i = 0; i < 10; i++) feedPush();
 (function feedLoop() {
-  feedPush();
+  if (!document.hidden) feedPush(); // в скрытой вкладке лента стоит: незачем перерисовывать то, чего не видно
   setTimeout(feedLoop, 900 + Math.random() * 2600);
 })();
+
+// Новая версия игры установилась (service worker сменился) — эта вкладка ещё на старой: говорим, что она включится
+// после перезагрузки. Первая установка (контроллера ещё не было) — молчим.
+if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+  navigator.serviceWorker.addEventListener('controllerchange', () =>
+    toast('Загружена новая версия игры. Она включится после перезагрузки страницы.', 6000, { important: true }), { once: true });
+}
 
 // Залы, набравшие половину до 1.4.0, отмечаем без праздника — поздравление только за новые.
 function firstRender() {
@@ -70,7 +81,7 @@ function firstRender() {
    странице пришли новые скрипты (или наоборот). Игра на такой смеси падает, и сохранение отложилось бы как
    сломанное — хотя оно цело. Поэтому не рисуем, а один раз перезагружаемся: тогда всё придёт из одного кэша.
    BUILD — та же метка, что data-build у <html> в index.html (tools/check_site.py сверяет их). */
-const BUILD = '1.16.2';
+const BUILD = '1.21.3';
 const buildMismatch = document.documentElement.dataset.build !== BUILD;
 {
   let retried = false;

@@ -7,7 +7,7 @@
 
    Новый файл в styles/ или scripts/ нужно добавить и в index.html, и в CORE ниже —
    tools/check_site.py (он же запускается при деплое) проверит, что ничего не забыто. */
-const CACHE = 'junkcase-v42';
+const CACHE = 'junkcase-v50';
 const CORE = [
   './',
   './index.html',
@@ -41,6 +41,7 @@ const CORE = [
   './scripts/data/recipes.js',
   './scripts/data/nicks.js',
   './scripts/data/cards.js',
+  './scripts/data/medals.js',
   './scripts/core/config.js',
   './scripts/core/utils.js',
   './scripts/core/catalog.js',

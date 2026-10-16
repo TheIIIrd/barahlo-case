@@ -17,6 +17,10 @@
 }
 
 @media (max-width:860px) {
+  /* Шесть вкладок в строку не влезают уже на 780px, а прокрутка вбок не видна — две ровные строки по три.
+     minmax(0, …): колонка не шире своей трети, даже если подпись длинная. */
+  .tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); overflow: visible; }
+  .tab { min-width: 0; }
   .crash { grid-template-columns: 1fr; }
   .upg { grid-template-columns: 1fr 1fr; }
   .upg .uslot { align-self: stretch; } /* «Ставка» и «Цель» одной высоты, даже если имя кейса в три строки */
@@ -74,7 +78,6 @@
   .wallet .btn.tgl i { display: inline; font-style: normal; }
   .wallet .btn.tgl b { display: none; }
   .wallet .lvl { grid-column: span 4 !important; }
-  .tabs { grid-template-columns: repeat(3, 1fr) !important; } /* шесть вкладок — две ровные строки по три */
   /* Узкие карточки и плитки: подписи в две строки, а не «Найдено на …». */
   .tile .s {
     white-space: normal;
@@ -132,14 +135,13 @@
     padding: 6px 8px;
     line-height: 1.2;
   }
-  .tabs {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-  }
   .tab {
     font-size: var(--fs-m);
-    padding: 9px 8px;
+    padding: 9px 6px;
   }
+  /* Счётчик — значком в углу вкладки: в трети ширины рядом с «Инвентарём» ему места нет (а предметов бывают тысячи). */
+  .tabs { row-gap: 10px; } /* значок счётчика второй строки не наезжает на вкладку над ним */
+  .tab .cnt { position: absolute; top: -7px; right: -3px; min-width: 16px; padding: 0 4px; font-size: var(--fs-badge); line-height: 14px; }
   .mini { flex-basis: calc((100% - 16px)/3); }
   .multi-grid { grid-template-columns: repeat(4, 1fr); }
   .multi-grid div { min-height: 76px; }
@@ -205,5 +207,10 @@
 @media (max-width:380px) {
   .fslots { gap: 3px; }
   .fslot { width: 53px; }
-  #loan { white-space: nowrap; font-size: var(--fs-s); }
+  #loan { white-space: nowrap; font-size: var(--fs-s); padding-inline: 6px; } /* «+50 ₽» не упирается в рамку */
+  /* Вкладки по три: «Инвентарь» со счётчиком и «Курс огурцов» — без обрезки. */
+  .tab { font-size: var(--fs-s); padding-inline: 3px; gap: 4px; }
+}
+@media (max-width:340px) {
+  #loan { font-size: var(--fs-xs); padding-inline: 4px; }
 }

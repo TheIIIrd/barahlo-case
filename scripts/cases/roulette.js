@@ -178,7 +178,9 @@ async function spinReel(wrap, strip, winIndex, duration, withTicks) {
   win.addEventListener('animationcancel', off);
 }
 
-async function openCases() {
+// Ошибка посреди анимации не оставит игру «занятой» навсегда (guardBusy, scripts/core/utils.js).
+function openCases() { return guardBusy(() => openCasesRun()); }
+async function openCasesRun() {
   if (busy) return;
   const c = currentCase;
   const gifts = giftsToUse();
@@ -198,6 +200,9 @@ async function openCases() {
       setBal(-cost);
       state.spent = r2(state.spent + cost);
     }
+    // Для награды боёв (с 1.19.0): цена кейса — одна запись на нажатие «Открыть», хоть ×1, хоть ×100.
+    state.opensRecent.push(c.price);
+    if (state.opensRecent.length > OPENS_RECENT) state.opensRecent.splice(0, state.opensRecent.length - OPENS_RECENT);
   }
   state.opened += openCount;
   renderCases();

@@ -66,3 +66,38 @@ function goSub(section) {
   goTab('inventory');
   setSub(section);
 }
+
+/* Вкладки с клавиатуры, как принято у role="tab": стрелки влево и вправо — соседняя вкладка (по кругу),
+   Home и End — первая и последняя. Вкладка сразу открывается, фокус переходит на неё. */
+document.addEventListener('keydown', (e) => {
+  const t = e.target.closest && e.target.closest('[role="tab"]');
+  if (!t || e.altKey || e.ctrlKey || e.metaKey || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
+  const all = $$('[role="tab"]', t.closest('[role="tablist"]'));
+  const i = all.indexOf(t);
+  const j = e.key === 'Home' ? 0 : e.key === 'End' ? all.length - 1 : (i + (e.key === 'ArrowRight' ? 1 : -1) + all.length) % all.length;
+  e.preventDefault();
+  if (busy) return; // во время анимации вкладки не переключаются
+  all[j].click();
+  all[j].focus();
+});
+
+/* Карточки предмета и карты на узком экране — шторки поверх страницы. Открыта с клавиатуры — фокус сразу в неё,
+   а Tab ходит по её кнопкам по кругу, как в окне: иначе он уходил бы по скрытому под шторкой. У карты фокус — на ✕:
+   повторный Enter закрывает её и возвращает на карту, как повторное нажатие на саму карту. На широком экране
+   карточка — обычная панель сбоку, там ничего не меняем. */
+const SHEET_MQ = matchMedia('(max-width: 860px)');
+const sheetFocusable = (box) => $$('button:not(:disabled), a[href], input:not(:disabled), select:not(:disabled), [tabindex]:not([tabindex="-1"])', box)
+  .filter((x) => x.getClientRects().length && getComputedStyle(x).visibility !== 'hidden');
+function focusSheet(box, e) {
+  if (!SHEET_MQ.matches || !e || e.detail !== 0 || !box.classList.contains('show')) return;
+  sheetFocusable(box).find((x) => x.classList.contains('close'))?.focus({ preventScroll: true });
+}
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Tab' || !SHEET_MQ.matches) return;
+  const box = e.target.closest && e.target.closest('.detail.show, .cdetail.show');
+  if (!box) return;
+  const f = sheetFocusable(box);
+  if (!f.length) return;
+  if (e.shiftKey && e.target === f[0]) { e.preventDefault(); f[f.length - 1].focus(); }
+  else if (!e.shiftKey && e.target === f[f.length - 1]) { e.preventDefault(); f[0].focus(); }
+});

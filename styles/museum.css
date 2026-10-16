@@ -41,7 +41,6 @@
 }
 .room .rt b {
   overflow-wrap: break-word; -webkit-hyphens: auto; hyphens: auto;
-  hyphens: auto;
   font-size: var(--fs-m);
   line-height: 1.2;
   overflow: hidden;
@@ -208,8 +207,11 @@
   background: var(--bg2);
 }
 .ex.vacant .nm { color: var(--muted); }
+/* Заполненное место — тонкая рамка оттенка редкости и полоса редкости снизу одной линией.
+   (До 1.21.1 оттенок рисовался внутренним кольцом box-shadow: внизу оно шло второй дугой над полосой.) */
 .ex.filled {
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 35%, transparent);
+  border-color: color-mix(in srgb, var(--c) 40%, var(--line));
+  border-bottom-color: var(--c);
 }
 .ex .rib {
   position: static;
@@ -234,3 +236,14 @@
   font-size: var(--fs-xs);
   z-index: 1;
 }
+
+/* Зал славы (с 1.19.0): условие медали — полностью, в несколько строк, а не обрезанным многоточием */
+.exhibits.glory .meta { white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.3; }
+/* У Зала славы нет бонуса за половину — метки половины на полосе нет */
+.room.glory .bar::after { display: none; }
+@media (max-width: 560px) {
+  .room.glory .can .w { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}
+/* Прогресс к медали в Зале славы (с 1.21.0) — как полоса зала */
+.ex .mprog { display: block; width: 80%; height: 5px; margin-top: 4px; border-radius: 3px; background: var(--bg); overflow: hidden; }
+.ex .mprog i { display: block; height: 100%; background: var(--good); }

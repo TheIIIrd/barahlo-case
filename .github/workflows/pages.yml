@@ -5,6 +5,9 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
+    # Правка только документации или снимков не меняет игру: без деплоя, иначе новая версия кэша заставила бы
+    # всех, кто установил приложение, заново скачать все файлы игры.
+    paths-ignore: ['docs/**', '**.md', 'LICENSE', 'tools/**']
   workflow_dispatch:
 
 permissions:

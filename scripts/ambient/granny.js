@@ -16,7 +16,8 @@ function grannyVisit() {
   }
 
   if (state.debt > 0) {
-    const sellable = state.inv.filter((x) => x.price > 0).sort((a, b) => a.price - b.price);
+    // Медали (с 1.19.0) бабушка не берёт: каждая единственная, второй не будет.
+    const sellable = state.inv.filter((x) => x.price > 0 && !x.medal).sort((a, b) => a.price - b.price);
     const take = sellable.find((x) => x.price >= state.debt) || sellable[sellable.length - 1];
     if (take) {
       removeItem(take);
