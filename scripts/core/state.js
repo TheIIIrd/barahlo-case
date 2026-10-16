@@ -30,6 +30,10 @@ const freshState = () => ({
   // Бои (с 1.15.0): колода (id карт, одна карта до 2 раз), ранения { id: сколько копий ранено }, идущий бой,
   // следующий соперник (выбран заранее и не меняется) и счёт побед и поражений.
   deck: [], hurt: {}, battle: null, btNext: null, btWins: 0, btLosses: 0,
+  // С 1.18.0: побед подряд (каждая третья — +1 открытие награды) и открытий награды подряд без карты (гарантия).
+  btStreak: 0, btDry: 0,
+  // С 1.19.0: цены последних открытий платных кейсов (для награды боёв), полученные медали и Зал славы Музея.
+  opensRecent: [], medals: {}, glory: {},
 });
 
 /* Сохранение. Название, иконку, описание и состояние износа у обычных предметов не пишем:
@@ -113,6 +117,9 @@ function hydrate(it) {
     it.lore = row[3];
     if (typeof it.float === 'number') it.wear = wearOf(it.float);
   }
+  // Медаль (с 1.19.0): текст — из таблицы MEDALS, как у предметов из каталога.
+  const medal = it.special && MEDAL_BY_ID.get(it.medal);
+  if (medal) Object.assign(it, { name: medal.name, ic: medal.ic, lore: medal.lore });
   if (it.wear === undefined && typeof it.float === 'number') it.wear = wearOf(it.float);
   for (const k of ['name', 'ic', 'lore', 'wear']) it[k] = plainText(it[k]);
 }
@@ -120,9 +127,34 @@ function hydrate(it) {
 // Загрузка сохранения: восстановление после прерванных действий и миграция старых версий.
 // Что восстановили — пишем в restoreNotes, это покажется после запуска (main.js).
 const restoreNotes = [];
+const UNSAFE_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+const UID_MAX = 2 ** 50; // с запасом до 2^53: столько предметов не выдать никогда
 function loadState(saved) {
   if (Number.isInteger(saved.v) && saved.v > SAVE_READABLE) throw new Error('Сохранение из более новой версии игры: ' + saved.v);
-  const s = Object.assign(freshState(), saved);
+  // Поля копируем по одному, без «__proto__» и т. п.: Object.assign подменил бы прототип состояния.
+  const s = freshState();
+  for (const k of Object.keys(saved)) if (!UNSAFE_KEYS.has(k)) s[k] = saved[k];
+  // Числа из сохранения попадают в разметку и в расчёты: не число или не конечное (правленый файл, NaN из сбоя) —
+  // значение новой игры. Счётчики по ключам и редкостям — только целые ≥ 0.
+  const fresh = freshState();
+  for (const [k, v] of Object.entries(fresh)) {
+    if (typeof v === 'number' && !Number.isFinite(s[k])) s[k] = v;
+  }
+  // Сломано устройство сохранения (инвентарь не список предметов, история «Курса» не список, износ вне 0…1) — это
+  // поломка, а не мусор: бросаем, и recoverBrokenSave отложит сохранение и продолжит с запасной копии. Молча «чинить»
+  // нельзя — пустой инвентарь затёр бы настоящий при первом же save().
+  const isItem = (x) => !!x && typeof x === 'object' && !Array.isArray(x);
+  const broken = (why) => { throw new Error('Сохранение повреждено: ' + why); };
+  if (!Array.isArray(s.inv) || !s.inv.every(isItem)) broken('инвентарь');
+  if (!Array.isArray(s.chist)) broken('история «Курса огурцов»');
+  if (!Array.isArray(s.rc) || s.rc.length !== fresh.rc.length) broken('счётчик редкостей');
+  s.pending = Array.isArray(s.pending) ? s.pending.filter(isItem) : [];
+  s.rc = s.rc.map((n) => (Number.isFinite(n) ? n : 0));
+  s.chist = s.chist.filter(Number.isFinite);
+  for (const k of ['tokens', 'recipes', 'museumDone', 'museumHalf']) {
+    if (!s[k] || typeof s[k] !== 'object' || Array.isArray(s[k])) s[k] = {};
+  }
+  for (const [id, n] of Object.entries(s.tokens)) if (!(Number.isInteger(n) && n >= 0)) delete s.tokens[id];
   s.v = SAVE_VERSION; // 1 — всё, что до 1.9.0 (поля v не было); 3 (1.15.0) читается как 2
   if (Array.isArray(s.pending) && s.pending.length) {
     s.inv.push(...s.pending);
@@ -151,8 +183,9 @@ function loadState(saved) {
     const until = typeof b === 'number' ? b : b && b.until;
     const left = typeof b === 'number' ? until - Date.now() : b && b.left;
     const ok = c && !c.free && Number.isFinite(until) && Number.isFinite(left);
-    const rest = ok ? Math.min(BUFF_MS, left, until - Date.now()) : 0;
-    if (rest > 0) s.buffs[id] = { until, left: rest };
+    const win = !!b && b.max === BUFF_MS_WIN; // бафф за победу в бою (с 1.19.0) — длиннее
+    const rest = ok ? Math.min(win ? BUFF_MS_WIN : BUFF_MS, left, until - Date.now()) : 0;
+    if (rest > 0) s.buffs[id] = win ? { until, left: rest, max: BUFF_MS_WIN } : { until, left: rest };
     else delete s.buffs[id];
   }
   s.museumDone ||= {};
@@ -160,16 +193,46 @@ function loadState(saved) {
   for (const k of ['cards', 'cardsEver', 'forgeFails', 'hurt']) {
     if (!s[k] || typeof s[k] !== 'object' || Array.isArray(s[k])) s[k] = {};
   }
+  for (const k of ['cards', 'forgeFails', 'hurt']) {
+    for (const [id, n] of Object.entries(s[k])) if (!(Number.isInteger(n) && n >= 0)) delete s[k][id]; // 0 бывает (как в старых сохранениях) — не трогаем
+  }
+  for (const [id, v] of Object.entries(s.cardsEver)) if (v !== true) delete s.cardsEver[id];
+  if (!s.museum || typeof s.museum !== 'object' || !Object.values(s.museum).every(isItem)) broken('Музей');
   // Бои (с 1.15.0). Здесь — только типы: id карт и сам бой проверяются в scripts/battle/deck.js, когда каталог
   // карт уже загружен.
   if (!Array.isArray(s.deck)) s.deck = [];
   if (!s.battle || typeof s.battle !== 'object' || Array.isArray(s.battle)) s.battle = null;
   if (!s.btNext || typeof s.btNext !== 'object' || Array.isArray(s.btNext)) s.btNext = null;
-  for (const k of ['btWins', 'btLosses']) s[k] = Number.isInteger(s[k]) && s[k] >= 0 ? s[k] : 0;
+  for (const k of ['btWins', 'btLosses', 'btStreak', 'btDry']) s[k] = Number.isInteger(s[k]) && s[k] >= 0 ? s[k] : 0;
+  // С 1.19.0: последние открытия — только числа, не больше OPENS_RECENT; медали — только известные; в Зале славы —
+  // только медали под своим id.
+  s.opensRecent = Array.isArray(s.opensRecent) ? s.opensRecent.filter((x) => Number.isFinite(x) && x > 0).slice(-OPENS_RECENT) : [];
+  const plainObj = (o) => !!o && typeof o === 'object' && !Array.isArray(o);
+  s.medals = plainObj(s.medals) ? Object.fromEntries(Object.keys(s.medals).filter((id) => MEDAL_BY_ID.has(id)).map((id) => [id, true])) : {};
+  s.glory = plainObj(s.glory) ? s.glory : {};
+  for (const [id, it] of Object.entries(s.glory)) {
+    if (!MEDAL_BY_ID.has(id) || !it || typeof it !== 'object' || it.medal !== id || !it.special) delete s.glory[id];
+  }
+  // Каждая медаль — в одном месте и одна: лишние копии (правленый файл) убираем — сначала держим ту, что в зале,
+  // потом первую в инвентаре; найденная где угодно медаль считается полученной (иначе её выдали бы второй раз).
+  const seenMedal = new Set(Object.keys(s.glory));
+  s.inv = s.inv.filter((x) => {
+    if (!x || !x.medal) return true;
+    if (!MEDAL_BY_ID.has(x.medal) || seenMedal.has(x.medal)) return false;
+    seenMedal.add(x.medal);
+    return true;
+  });
+  seenMedal.forEach((id) => (s.medals[id] = true));
   // Сначала недостающие поля (износ, цена-основа), потом индекс в каталоге и текст из каталога.
   const fix = (x) => {
+    if (!Number.isFinite(x.price)) x.price = 0;
     if (typeof x.float !== 'number') x.float = 0.5;
-    if (typeof x.base !== 'number') x.base = x.price;
+    else if (!(x.float >= 0 && x.float <= 1)) broken('износ');
+    if (!Number.isFinite(x.base)) x.base = x.price;
+    // Попытки реставрации — целое ≥ 0 (выводится в разметку), отметки — да/нет.
+    x.resto = Number.isInteger(x.resto) && x.resto > 0 ? x.resto : 0;
+    if (!x.resto) delete x.resto;
+    for (const k of ['lock', 'stat', 'bought', 'special']) if (x[k] !== undefined) x[k] = !!x[k];
     // Совсем старые предметы записаны по названию — находим индекс и берём текст из каталога
     // (так переименованный «Чек на 0.5 ₽» получит новое название).
     if (!x.special && typeof x.idx !== 'number' && typeof x.name === 'string') {
@@ -189,16 +252,21 @@ function loadState(saved) {
   // Номера предметов: счётчик — выше всех уже выданных; нет номера или он повторяется (испорченный файл) —
   // выдаём новый, иначе выбор и продажа задели бы сразу два предмета. Экспонаты Музея считаем тоже:
   // заменённый экспонат возвращается в инвентарь со своим номером.
-  const numbered = [...s.inv, ...Object.values(s.museum)];
-  s.uid = numbered.reduce((m, x) => (Number.isInteger(x.uid) && x.uid >= m ? x.uid + 1 : m), Math.max(1, Math.floor(s.uid) || 1));
+  const numbered = [...s.inv, ...Object.values(s.museum), ...Object.values(s.glory)];
+  // Номер — «безопасное» целое (выше 2^53 соседние номера совпадают); за пределом — перенумеровываем всё с 1.
+  const uidOk = (n) => Number.isInteger(n) && n >= 1 && n <= UID_MAX;
+  const tooBig = !uidOk(Math.floor(s.uid) || 1) || numbered.some((x) => Number.isInteger(x.uid) && x.uid > UID_MAX);
+  if (tooBig) numbered.forEach((x) => delete x.uid);
+  s.uid = numbered.reduce((m, x) => (uidOk(x.uid) && x.uid >= m ? x.uid + 1 : m), tooBig ? 1 : Math.max(1, Math.floor(s.uid) || 1));
   const seenUid = new Set();
   numbered.forEach((x) => {
     fix(x);
-    if (!Number.isInteger(x.uid) || x.uid < 1 || seenUid.has(x.uid)) x.uid = s.uid++;
+    if (!uidOk(x.uid) || seenUid.has(x.uid)) x.uid = s.uid++;
     seenUid.add(x.uid);
   });
   s.inv.forEach(hydrate);
   Object.values(s.museum).forEach(hydrate);
+  Object.values(s.glory).forEach(hydrate);
   hydrate(s.best);
   return s;
 }
@@ -226,7 +294,7 @@ function recoverBrokenSave(err) {
   const tail = kept ? ' Несработавшее можно скачать файлом в инвентаре, под аналитикой.' : '';
   for (const key of [BACKUP_KEY, BACKUP_OLD_KEY]) {
     const b = readJSON(key);
-    if (!b || !b.save || typeof b.save.bal !== 'number') continue;
+    if (!b || !b.save || !Number.isFinite(b.save.bal)) continue;
     try {
       state = loadState(b.save);
       restoreNotes.push('Сохранение не загрузилось, игра продолжена с запасной копии.' + tail);
@@ -239,9 +307,15 @@ function recoverBrokenSave(err) {
 
 let state = freshState();
 {
-  const saved = readJSON(SAVE_KEY); // нечитаемый JSON — начинаем заново, как и раньше
-  if (saved && typeof saved.bal === 'number') {
+  // Сохранение есть, но нечитаемо или без баланса — тоже «сломанное»: откладываем (recoverBrokenSave), а не затираем
+  // первым же save(). Совсем нет сохранения — новая игра.
+  let raw = null;
+  try { raw = localStorage.getItem(SAVE_KEY); } catch (_) { /* хранилище недоступно */ }
+  const saved = readJSON(SAVE_KEY);
+  if (saved && typeof saved === 'object' && Number.isFinite(saved.bal)) {
     try { state = loadState(saved); } catch (e) { recoverBrokenSave(e); }
+  } else if (raw !== null && raw !== 'null') {
+    recoverBrokenSave(new Error('Сохранение нечитаемо'));
   }
 }
 

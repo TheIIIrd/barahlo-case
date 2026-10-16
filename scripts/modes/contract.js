@@ -406,7 +406,9 @@ new IntersectionObserver(updateCBar).observe($$('.cact')[0]);
 CBAR_MQ.addEventListener('change', updateCBar);
 $('cBarGo').onclick = () => $('cGo').click();
 
-$('cGo').onclick = async () => {
+// Ошибка посреди анимации не оставит игру «занятой» навсегда (guardBusy, scripts/core/utils.js).
+$('cGo').onclick = () => guardBusy(signContract);
+async function signContract() {
   if (busy) return;
   if (contractMega) { signMega(); return; }
   contractItems = contractItems.filter((x) => !x.lock && state.inv.includes(x));
@@ -464,10 +466,12 @@ $('cGo').onclick = async () => {
     renderPicker();
     focusBack($('cAuto'), $$('#inv .inv-item:not(.dim)')); // «Подписать» выключена: слоты пусты
   });
-};
+}
 
 // Подписать мегаконтракт: результат решается и сохраняется до анимации.
-async function signMega() {
+// Ошибка посреди анимации не оставит игру «занятой» навсегда (guardBusy, scripts/core/utils.js).
+function signMega() { return guardBusy(() => signMegaRun()); }
+async function signMegaRun() {
   contractItems = contractItems.filter((x) => !x.lock && state.inv.includes(x));
   const value = megaValue();
   const res = megaOdds(value);

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ru" data-build="1.16.2">
+<html lang="ru" data-build="1.21.3">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -15,7 +15,10 @@
 <title>Кейсы с Барахлом</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Russo+One&family=Manrope:wght@400;600;800&family=JetBrains+Mono:wght@400;600;800&display=swap">
+<!-- Шрифты Google не задерживают показ игры (media="print" → "all" по загрузке): медленная сеть — сначала запасные шрифты.
+     crossorigin — чтобы service worker хранил обычный ответ, а не «непрозрачный» (тот занимает в квоте ~7 МБ). -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Russo+One&family=Manrope:wght@400;600;800&family=JetBrains+Mono:wght@400;600;800&display=swap" media="print" onload="this.media='all'" crossorigin>
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Russo+One&family=Manrope:wght@400;600;800&family=JetBrains+Mono:wght@400;600;800&display=swap" crossorigin></noscript>
 <link rel="stylesheet" href="styles/base.css">
 <link rel="stylesheet" href="styles/header.css">
 <link rel="stylesheet" href="styles/feed.css">
@@ -66,16 +69,16 @@
   <div class="feed" id="feed" role="group" aria-label="Последние дропы других игроков"></div>
 
   <nav class="tabs" role="tablist" aria-label="Режимы">
-    <button class="tab" role="tab" type="button" data-tab="cases" aria-selected="true">Кейсы</button>
-    <button class="tab" role="tab" type="button" data-tab="inventory" aria-selected="false">Инвентарь<span class="cnt" id="tabInvN">0</span></button>
-    <button class="tab" role="tab" type="button" data-tab="contract" aria-selected="false">Контракт</button>
-    <button class="tab" role="tab" type="button" data-tab="upgrade" aria-selected="false">Апгрейд</button>
-    <button class="tab" role="tab" type="button" data-tab="crash" aria-selected="false">Курс огурцов</button>
-    <button class="tab" role="tab" type="button" data-tab="cards" aria-selected="false">Карты<span class="cnt" id="tabCardsN">0</span></button>
+    <button class="tab" role="tab" type="button" id="tab-cases" aria-controls="v-cases" data-tab="cases" aria-selected="true">Кейсы</button>
+    <button class="tab" role="tab" type="button" id="tab-inventory" aria-controls="v-inventory" data-tab="inventory" aria-selected="false">Инвентарь<span class="cnt" id="tabInvN">0</span></button>
+    <button class="tab" role="tab" type="button" id="tab-contract" aria-controls="v-contract" data-tab="contract" aria-selected="false">Контракт</button>
+    <button class="tab" role="tab" type="button" id="tab-upgrade" aria-controls="v-upgrade" data-tab="upgrade" aria-selected="false">Апгрейд</button>
+    <button class="tab" role="tab" type="button" id="tab-crash" aria-controls="v-crash" data-tab="crash" aria-selected="false">Курс огурцов</button>
+    <button class="tab" role="tab" type="button" id="tab-cards" aria-controls="v-cards" data-tab="cards" aria-selected="false">Карты<span class="cnt" id="tabCardsN">0</span></button>
   </nav>
 
   <!-- CASES -->
-  <section class="view" id="v-cases" role="tabpanel">
+  <section class="view" id="v-cases" role="tabpanel" aria-labelledby="tab-cases">
     <div class="cases" id="cases" role="group" aria-label="Выбор кейса"></div>
     <div class="arena">
       <h2 id="caseTitle">Кейс</h2>
@@ -103,13 +106,13 @@
   </section>
 
   <!-- INVENTORY -->
-  <section class="view" id="v-inventory" role="tabpanel" hidden>
+  <section class="view" id="v-inventory" role="tabpanel" aria-labelledby="tab-inventory" hidden>
     <nav class="subnav" role="tablist" aria-label="Разделы инвентаря">
-      <button type="button" role="tab" data-sub="items" aria-selected="true"><span class="i">🎒</span> <span>Вещи</span><span class="cnt" id="subItemsN">0</span></button>
-      <button type="button" role="tab" data-sub="museum" aria-selected="false"><span class="i">🏛</span> <span>Музей</span><span class="cnt" id="tabMusN">0</span></button>
-      <button type="button" role="tab" data-sub="craft" aria-selected="false"><span class="i">🔨</span> <span>Мастерская</span><span class="cnt" id="subCraftN">0</span></button>
+      <button type="button" role="tab" id="subtab-items" aria-controls="sub-items" data-sub="items" aria-selected="true"><span class="i">🎒</span> <span>Вещи</span><span class="cnt" id="subItemsN">0</span></button>
+      <button type="button" role="tab" id="subtab-museum" aria-controls="sub-museum" data-sub="museum" aria-selected="false"><span class="i">🏛</span> <span>Музей</span><span class="cnt" id="tabMusN">0</span></button>
+      <button type="button" role="tab" id="subtab-craft" aria-controls="sub-craft" data-sub="craft" aria-selected="false"><span class="i">🔨</span> <span>Мастерская</span><span class="cnt" id="subCraftN">0</span></button>
     </nav>
-    <div class="sub" id="sub-items">
+    <div class="sub" id="sub-items" role="tabpanel" aria-labelledby="subtab-items">
     <div class="tiles">
       <div class="tile"><div class="k">Предметов</div><div class="v" id="tN">0</div><div class="s" id="tNs">—</div></div>
       <div class="tile"><div class="k">Стоимость</div><div class="v" id="tV">0 ₽</div><div class="s" id="tVs">если продать всё сразу</div></div>
@@ -181,7 +184,7 @@
     </div>
 
     <!-- MUSEUM -->
-    <div class="sub" id="sub-museum" hidden>
+    <div class="sub" id="sub-museum" role="tabpanel" aria-labelledby="subtab-museum" hidden>
     <div class="mus-head">
       <div class="tile"><div class="k">Экспонатов</div><div class="v" id="mN">0</div><div class="s" id="mNs">—</div></div>
       <div class="tile"><div class="k">Полных залов</div><div class="v" id="mH">0</div><div class="s" id="mHs">—</div></div>
@@ -196,7 +199,7 @@
     </div>
 
     <!-- CRAFT -->
-    <div class="sub" id="sub-craft" hidden>
+    <div class="sub" id="sub-craft" role="tabpanel" aria-labelledby="subtab-craft" hidden>
       <div class="craft">
         <div class="panel bench" id="bench">
           <h2>Верстак <small>до 10 предметов</small></h2>
@@ -218,7 +221,7 @@
   </section>
 
   <!-- CONTRACT -->
-  <section class="view panel" id="v-contract" role="tabpanel" hidden>
+  <section class="view panel" id="v-contract" role="tabpanel" aria-labelledby="tab-contract" hidden>
     <div class="chead">
       <h2 id="cTitle"><span class="cm-n">Контракт обмена <small>10 предметов → 1 классом выше</small></span><span class="cm-m">⚡ Мегаконтракт <small id="cMegaSub"></small></span></h2>
       <button class="knife" id="cMega" type="button" role="switch" aria-checked="false" aria-label="Мегаконтракт"
@@ -261,7 +264,7 @@
   </section>
 
   <!-- UPGRADE -->
-  <section class="view panel" id="v-upgrade" role="tabpanel" hidden>
+  <section class="view panel" id="v-upgrade" role="tabpanel" aria-labelledby="tab-upgrade" hidden>
     <h2>Апгрейд <small>рискни вещью ради вещи подороже</small></h2>
     <p class="lead">Выбери предмет в инвентаре и множитель. Чем выше множитель, тем меньше шанс. Проиграл — предмет сгорает.</p>
     <div class="upg">
@@ -286,7 +289,7 @@
   </section>
 
   <!-- CRASH -->
-  <section class="view panel" id="v-crash" role="tabpanel" hidden>
+  <section class="view panel" id="v-crash" role="tabpanel" aria-labelledby="tab-crash" hidden>
     <h2>Курс огурцов <small>краш-биржа солений</small></h2>
     <p class="lead">Ставишь деньги, курс огурца растёт. Забери выигрыш до того, как банка взорвётся. Чем дольше ждёшь, тем больше множитель и риск.</p>
     <div class="crash">
@@ -297,19 +300,19 @@
         <button class="open" id="crashBtn" type="button"><span id="crashTxt">ЗАСОЛИТЬ</span><small id="crashSub">поставить и смотреть</small></button>
         <div class="chist" id="chist" role="group" aria-label="Последние раунды"></div>
       </div>
-      <div class="cbox" id="cbox"><canvas id="crashCv" aria-label="График курса огурца"></canvas><div class="cmult" id="cmult">×1,00<small>Сделай ставку</small></div></div>
+      <div class="cbox" id="cbox"><canvas id="crashCv" role="img" aria-label="График курса огурца"></canvas><div class="cmult" id="cmult">×1,00<small>Сделай ставку</small></div></div>
     </div>
   </section>
 
   <!-- CARDS -->
-  <section class="view" id="v-cards" role="tabpanel" hidden>
+  <section class="view" id="v-cards" role="tabpanel" aria-labelledby="tab-cards" hidden>
     <nav class="subnav cards-nav" role="tablist" aria-label="Разделы карт">
-      <button type="button" role="tab" data-csub="forge" aria-selected="true"><span class="i">⚒️</span> <span>Кузня</span></button>
-      <button type="button" role="tab" data-csub="album" aria-selected="false"><span class="i">🗂️</span> <span>Картотека</span><span class="cnt" id="albumN">0/52</span></button>
-      <button type="button" role="tab" data-csub="battle" aria-selected="false"><span class="i">⚔️</span> <span>Бои</span><span class="cnt" id="btN">0</span></button>
+      <button type="button" role="tab" id="csubtab-forge" aria-controls="csub-forge" data-csub="forge" aria-selected="true"><span class="i">⚒️</span> <span>Кузня</span></button>
+      <button type="button" role="tab" id="csubtab-album" aria-controls="csub-album" data-csub="album" aria-selected="false"><span class="i">🗂️</span> <span>Картотека</span><span class="cnt" id="albumN">0/52</span></button>
+      <button type="button" role="tab" id="csubtab-battle" aria-controls="csub-battle" data-csub="battle" aria-selected="false"><span class="i">⚔️</span> <span>Бои</span><span class="cnt" id="btN">0</span></button>
     </nav>
 
-    <div class="sub" id="csub-forge">
+    <div class="sub" id="csub-forge" role="tabpanel" aria-labelledby="csubtab-forge">
       <div class="forge">
         <div class="panel anvil">
           <h2 id="fName">Наковальня</h2>
@@ -339,7 +342,7 @@
       </div>
     </div>
 
-    <div class="sub" id="csub-album" hidden>
+    <div class="sub" id="csub-album" role="tabpanel" aria-labelledby="csubtab-album" hidden>
       <div class="mus-head">
         <div class="tile"><div class="k">Собрано карт</div><div class="v" id="aN">0</div><div class="s" id="aNs">—</div></div>
         <div class="tile"><div class="k">Полных мастей</div><div class="v" id="aS">0</div><div class="s">каждая даёт +3% к Кузне</div></div>
@@ -354,7 +357,7 @@
     </div>
 
     <!-- Бои (с 1.15.0): экран соперника до боя и сам бой -->
-    <div class="sub" id="csub-battle" hidden>
+    <div class="sub" id="csub-battle" role="tabpanel" aria-labelledby="csubtab-battle" hidden>
       <div id="btPre"></div>
       <div class="bt" id="btBoard" tabindex="-1" hidden>
         <div class="bt-head">
@@ -378,7 +381,7 @@
           <button class="bpl" id="btDeck" type="button" aria-label="Взять карту из колоды"><span class="pcard back bmini"><span class="pc-ic" id="btDeckN">0</span></span>колода</button>
           <button class="bpl" id="btPack" type="button" aria-label="Взять пакет"><span class="pcard back bmini"><span class="pc-ic" id="btPackN">0</span></span>пакеты</button>
           <button class="btn primary" id="btEndTurn" type="button">⚔️ Закончить ход</button>
-          <button class="btn sac" id="btSac" type="button" aria-pressed="false" title="Сдать на запчасти: убрать свою карту со стола за +1 мелочь"><span class="long">Сдать на запчасти</span><span class="short" aria-hidden="true">🔧</span></button>
+          <span class="bact"><button class="btn sac" id="btSac" type="button" aria-pressed="false" title="Сдать на запчасти: убрать свою карту со стола за +1 мелочь"><span class="long">Сдать на запчасти</span><span class="short" aria-hidden="true">🔧</span></button><button class="btn sac mull off" id="btMull" type="button" aria-label="Новая рука: заменить карты руки, один раз за бой" title="Новая рука: заменить карты руки, один раз за бой, пока не взята карта"><span class="long" aria-hidden="true">↻ Новая рука</span><span class="short" aria-hidden="true">↻</span></button></span>
         </div>
       </div>
     </div>
@@ -504,6 +507,7 @@
 <script src="scripts/data/recipes.js"></script>
 <script src="scripts/data/nicks.js"></script>
 <script src="scripts/data/cards.js"></script>
+<script src="scripts/data/medals.js"></script>
 <script src="scripts/core/config.js"></script>
 <script src="scripts/core/utils.js"></script>
 <script src="scripts/core/catalog.js"></script>

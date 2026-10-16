@@ -9,8 +9,10 @@ const INV_PAGE = LIST_PAGE;
 const invUi = { q: '', rar: new Set(), cs: '', sort: 'new', multi: false, sel: new Set(), open: null, limit: INV_PAGE };
 const resetInvPage = () => { invUi.limit = INV_PAGE; };
 
+// Медали (с 1.19.0) — не из кейса: в фильтре у них своя строка, в строках кейсов их нет.
+const INV_MEDALS = 'medals';
 $('ivCase').innerHTML = '<option value="">Все кейсы</option>' +
-  ROOMS.map((c) => `<option value="${c.id}">${c.name}</option>`).join('');
+  ROOMS.map((c) => `<option value="${c.id}">${c.name}</option>`).join('') + `<option value="${INV_MEDALS}">Награды за бои</option>`;
 // Поиск — с короткой паузой: не перерисовываем на каждую букву.
 let invQTimer = 0;
 $('ivQ').oninput = (e) => {
@@ -34,7 +36,7 @@ function filteredInventory() {
   let list = state.inv.filter((x) =>
     (!invUi.q || x.name.toLowerCase().includes(invUi.q)) &&
     (!invUi.rar.size || invUi.rar.has(x.r)) &&
-    (!invUi.cs || x.caseId === invUi.cs));
+    (!invUi.cs || (invUi.cs === INV_MEDALS ? !!x.medal : x.caseId === invUi.cs && !x.medal)));
   switch (invUi.sort) {
     case 'new': list = list.slice().reverse(); break;
     case 'pd': list.sort((x, y) => y.price - x.price); break;
@@ -47,6 +49,11 @@ function filteredInventory() {
 
 const selectedItems = () => state.inv.filter((x) => invUi.sel.has(x.uid));
 const caseName = (id) => roomById(id)?.name || '—';
+
+// Медаль в карточке: вместо состояния и износа (у медали их нет) — откуда она и за что.
+const medalSpecsHTML = (it, when) => `<div><div class="k">Получено</div><div class="v">${when}</div></div>
+      <div style="grid-column:1/-1"><div class="k">Награда за бои</div><div class="v">${capFirst(MEDAL_BY_ID.get(it.medal).how)}</div></div>`;
+const capFirst = (t) => t.charAt(0).toUpperCase() + t.slice(1);
 
 // Карточка предмета в сетке. mode: 'grid' — инвентарь, 'recent' — «Последние находки».
 function itemCardHTML(x, mode) {
@@ -62,12 +69,12 @@ function itemCardHTML(x, mode) {
     : x.lock ? '<span class="lk" aria-label="Закреплено">🔒</span>' : '';
   return `
     <button class="${cls}" type="button" data-u="${x.uid}" style="--c:${RARITY[x.r].c}"
-      aria-pressed="${selected}" title="${x.name} · ${x.wear}">
+      aria-pressed="${selected}" title="${x.name} · ${x.medal ? 'медаль' : x.wear}">
       ${x.stat ? '<span class="st">СЧ™</span>' : ''}${corner}
       <span class="ic">${x.ic}</span>
       <span class="nm">${baseName(x)}</span>
       <span class="p${x.price < 0 ? ' neg' : ''}" title="${fmt(x.price)}">${fmtShort(x.price)}</span>
-      <span class="w">${x.wear}</span>
+      <span class="w">${x.medal ? 'медаль' : x.wear}</span>
       ${museumWants(x) ? '<span class="mus" title="Нужен Музею">🏛</span>' : ''}
     </button>`;
 }
@@ -172,7 +179,7 @@ $('inv2').onclick = (e) => {
   invUi.open = it.uid;
   $('detail').classList.add('show');
   renderItemCard();
-  // С клавиатуры — сразу к действиям карточки (на телефоне она внизу, после всей сетки).
+  // С клавиатуры — сразу к действиям карточки (на телефоне она внизу, после всей сетки, или шторкой поверх неё).
   if (e.detail === 0) $('dtSell')?.focus({ preventScroll: true });
   tone(650, 0.03);
 };
@@ -241,15 +248,15 @@ function renderItemCard() {
     <div class="specs">
       ${it.stat ? `<div class="st-note"><div class="k">СчётЧих™</div><div class="v">Редкая версия предмета со счётчиком — стоит в ${NF.format(STAT_TRAK_MULT)} раза дороже. Попадается примерно в одном дропе из десяти.</div></div>` : ''}
       <div><div class="k">Цена</div><div class="v num${it.price < 0 ? ' neg' : ''}">${fmt(it.price)}</div></div>
-      <div><div class="k">Состояние</div><div class="v">${it.wear}</div></div>
+      ${it.medal ? medalSpecsHTML(it, when) : `<div><div class="k">Состояние</div><div class="v">${it.wear}</div></div>
       <div><div class="k">Из кейса</div><div class="v">${caseName(it.caseId)}</div></div>
       <div><div class="k">Получено</div><div class="v">${when}</div></div>
       <div style="grid-column:1/-1">
         <div class="k">Износ · ${fmtFloat(it.float)}</div>
         <div class="floatbar"><i style="left:${it.float * 100}%"></i></div>
-      </div>
+      </div>`}
     </div>
-    <p class="note">${it.lock
+    <p class="note">${it.medal ? 'Медаль единственная: проданную не вернуть, второй такой не будет. ' : ''}${it.lock
       ? 'Закреплённый предмет не попадёт в массовую продажу. Бабушку замок не остановит.'
       : 'Закрепи ценное, чтобы случайно не продать его вместе с хламом.'}</p>
     ${restoreBlockHTML(it)}`;
@@ -318,7 +325,9 @@ function renderRecent() {
 }
 
 // Продажа (или утилизация, если сумма отрицательная).
-async function sellItems(list, sourceEl, fromCard = false) {
+// Ошибка посреди анимации не оставит игру «занятой» навсегда (guardBusy, scripts/core/utils.js).
+function sellItems(list, sourceEl, fromCard) { return guardBusy(() => sellItemsRun(list, sourceEl, fromCard)); }
+async function sellItemsRun(list, sourceEl, fromCard = false) {
   if (busy) return;
   // Массовая продажа закреплённое не берёт никогда; предмет из его карточки — можно, его выбрали явно.
   list = list.filter((x) => state.inv.includes(x) && (fromCard || !x.lock));

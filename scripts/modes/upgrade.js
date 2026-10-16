@@ -117,7 +117,9 @@ let needleAngle = 0;
 // Что видит игрок на экране: крутим только с этой доплатой и этим шансом.
 let upgradeShown = { add: 0, chance: 0 };
 
-$('uGo').onclick = async () => {
+// Ошибка посреди анимации не оставит игру «занятой» навсегда (guardBusy, scripts/core/utils.js).
+$('uGo').onclick = () => guardBusy(goUpgrade);
+async function goUpgrade() {
   if (upgradeStake && upgradeStake.lock) { renderUpgrade(); toast('Ставка закреплена, а закреплённое не сжигается.'); return; }
   const target = upgradeTarget();
   if (!target || busy) return;
@@ -177,4 +179,4 @@ $('uGo').onclick = async () => {
     renderStats();
     focusBack($$('#inv .inv-item:not(.dim)'));
   }
-};
+}

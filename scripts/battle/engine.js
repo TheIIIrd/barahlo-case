@@ -7,10 +7,11 @@
    его и возвращают список событий для анимации. У каждого события — снимок стола после него, поэтому отрисовка
    просто показывает снимки по очереди. Случайность — свой генератор, его состояние лежит в самом бою:
    после перезагрузки бой продолжается так же. Стороны: 0 — бот (ходит первым), 1 — игрок.
-   Весы (scale) — перевес игрока: +8 — победа игрока, −8 — победа бота. */
+   Весы (scale) — перевес игрока: +8 — победа игрока, −8 — победа бота. С 1.17.0 весы начинаются с 0, а бот в свой
+   первый ход только выставляет карты: его атаки нет (btBotTurn), карты бьют со второго хода. */
 const BT = {
   WIN: 8,          // перевес для победы
-  BONUS: 2,        // перевес игрока на старте (бот ходит первым)
+  BONUS: 0,        // перевес игрока на старте (до 1.17.0 было +2; теперь первый ход бота без атаки)
   CAP: 5,          // мелочи в кошельке не больше
   LANES: 4,
   PACKS: 5,        // пакетов у каждого
@@ -48,10 +49,11 @@ const btUnit = (c) => {
 /* Новый бой. mine — карты игрока [{ id, hurt }], foe — id карт бота, seed — число, rew — награда { c: кейс, n: открытий }. */
 function btCreate({ mine, foe, seed, name, tier, rew }) {
   const B = {
-    v: 1, rs: seed | 0, name, tier, rew: rew ? { c: rew.c, n: rew.n } : null,
+    v: 1, rs: seed | 0, name, tier, rew: rew ? Object.assign({ c: rew.c, n: rew.n }, rew.s ? { s: rew.s } : {}) : null,
+    bh: false,                      // с 1.19.0: бот хоть раз бил по весам (для медали «Всухую»)
     mine: mine.map((x) => ({ id: x.id, hurt: !!x.hurt })), foe: foe.slice(),
     dead: [],                       // номера карт игрока, погибших в бою (для ранений)
-    scale: BT.BONUS, turn: 0, active: 0, phase: 'bot', winner: null,
+    scale: BT.BONUS, turn: 0, active: 0, phase: 'bot', winner: null, mull: false,
     pturn: [0, 0], coins: [0, 0], packs: [BT.PACKS, BT.PACKS],
     lanes: [new Array(BT.LANES).fill(null), new Array(BT.LANES).fill(null)],
     hand: [[], []], deck: [foe.map((id) => ({ id, m: -1 })), mine.map((x, m) => ({ id: x.id, m }))],
@@ -78,6 +80,7 @@ const btEv = (B, ev, e) => { if (ev) { e.snap = btSnap(B); ev.push(e); } };
 
 function btHitScale(B, side, lane, d, ev) {
   B.scale += side === 1 ? d : -d;
+  if (side === 0) B.bh = true;
   btEv(B, ev, { t: 'scale', side, lane, n: d });
   if (B.scale >= BT.WIN) btOver(B, 1, ev);
   else if (B.scale <= -BT.WIN) btOver(B, 0, ev);
@@ -159,6 +162,9 @@ function btSacrifice(B, side, lane, ev) {
 }
 
 function btAttack(B, side, ev) {
+  // Первый ход бота — без атаки (с 1.17.0). Проверка и здесь, на самом нижнем уровне: какой бы путь ни вёл к атаке,
+  // в этот ход она не случится. У лёгких копий для перебора pturn нет — там за это отвечает noAtk в btEval.
+  if (side === 0 && B.pturn && B.pturn[0] === 1 && B.active === 0) return;
   const q = 1 - side;
   for (let l = 0; l < BT.LANES && B.phase !== 'over'; l++) {
     const u = B.lanes[side][l];
@@ -192,6 +198,11 @@ function btTake(B, side, src, ev) {
    Жадный бот с перебором первого действия: для каждого варианта доигрывает ход жадно и смотрит на позицию после
    своих атак и ответных атак соперника (новых карт соперника не угадывает — его руку не видит). */
 const BT_SIG_V = { dobavka: 0.5, bronya: 1.5, bronya2: 3, gvozdi: 1, byuro: 0, spletnya: 0, perekl: 0, nevesom: 2, dyhanie: 1.5, premiya: 0, vzryv: 0 };
+const BT_HOLD = 0.5; // ценность карты в руке (подобрано прогоном: −5 пунктов к победам игрока на всех уровнях)
+/* С 1.20.0 бот держит карты не в каждом ходу, а в 65% (решает генератор самого боя — после перезагрузки так же),
+   в остальных играет как до 1.17.0, выкладывая всё. Вес BT_HOLD — переключатель, а не ручка: и 0,03, и 0,5 дают
+   одно и то же, поэтому ослабляем частотой. Прогон: игрок ≈ +2 пункта к победам на каждом уровне. */
+const BT_HOLD_P = 0.65;
 const btVal = (u) => (u.id === BT_PACKET ? 0.4 : u.atk * 1.6 + u.hp * 0.8 + (BT_SIG_V[u.sg] || 0) - (u.sg === 'dyhanie' && u.rev ? 1.5 : 0));
 // Лёгкая копия для перебора: без событий, колод и списка погибших.
 function btClone(B) {
@@ -202,15 +213,18 @@ function btClone(B) {
     deck: [B.deck[0], B.deck[1]], dead: null,
   };
 }
-function btEval(B, p) {
+// noAtk — сейчас первый ход бота: своей атаки в конце хода не будет, считаем только ответ соперника.
+function btEval(B, p, noAtk = false, hold = true) {
   const s = btClone(B);
-  btAttack(s, p, null);
+  if (!noAtk) btAttack(s, p, null);
   if (s.phase !== 'over') btAttack(s, 1 - p, null);
   if (s.phase === 'over') return s.winner === p ? 1e4 : -1e4;
   let v = (p === 1 ? s.scale : -s.scale) * 6;
   for (const u of s.lanes[p]) if (u) v += btVal(u);
   for (const u of s.lanes[1 - p]) if (u) v -= btVal(u);
-  return v + s.coins[p] * 0.6;
+  // С 1.17.0 карта, оставленная в руке, тоже чего-то стоит: бот не выкладывает всё подряд под удар, а держит
+  // запас на следующие ходы. Рука — своя, руку соперника бот по-прежнему не видит.
+  return v + s.coins[p] * 0.6 + (hold ? BT_HOLD * s.hand[p].filter((c) => c.id !== BT_PACKET).length : 0);
 }
 function btCandidates(B, p) {
   const out = [];
@@ -240,31 +254,31 @@ function btApply(B, p, a, ev) {
   for (const l of a.sac) btSacrifice(B, p, l, ev);
   btPut(B, p, a.hi, a.l, ev);
 }
-function btGreedy(B, p, ev) {
+function btGreedy(B, p, ev, noAtk = false, hold = true) {
   for (let step = 0; step < 8 && B.phase !== 'over'; step++) {
-    const base = btEval(B, p);
+    const base = btEval(B, p, noAtk, hold);
     let best = null, bestV = base + 0.01;
     for (const a of btCandidates(B, p)) {
       const s = btClone(B);
       btApply(s, p, a, null);
-      const v = s.phase === 'over' ? (s.winner === p ? 1e4 : -1e4) : btEval(s, p);
+      const v = s.phase === 'over' ? (s.winner === p ? 1e4 : -1e4) : btEval(s, p, noAtk, hold);
       if (v > bestV) { bestV = v; best = a; }
     }
     if (!best) return;
     btApply(B, p, best, ev);
   }
 }
-function btThink(B, p, ev) {
+function btThink(B, p, ev, noAtk = false, hold = true) {
   let best = null, bestV = -Infinity;
   for (const a of [null, ...btCandidates(B, p)]) {
     const s = btClone(B);
     if (a) btApply(s, p, a, null);
-    if (s.phase !== 'over') btGreedy(s, p, null);
-    const v = s.phase === 'over' ? (s.winner === p ? 1e4 : -1e4) : btEval(s, p);
+    if (s.phase !== 'over') btGreedy(s, p, null, noAtk, hold);
+    const v = s.phase === 'over' ? (s.winner === p ? 1e4 : -1e4) : btEval(s, p, noAtk, hold);
     if (v > bestV) { bestV = v; best = a; }
   }
   if (best) btApply(B, p, best, ev);
-  if (B.phase !== 'over') btGreedy(B, p, ev);
+  if (B.phase !== 'over') btGreedy(B, p, ev, noAtk, hold);
 }
 function btWantPack(B, p) {
   if (!B.deck[p].length) return true;
@@ -282,11 +296,16 @@ function btTurnLimit(B, ev) {
   return true;
 }
 // Ход бота и начало хода игрока (до выбора, откуда брать карту).
+// Первый ход бота (B.pturn[0] === 1) — без атаки: он берёт стартовую руку, выставляет карты и передаёт ход.
 function btBotTurn(B, ev) {
   btStartTurn(B, 0, ev);
-  if (B.pturn[0] > 1 && btCanDraw(B, 0)) btTake(B, 0, btWantPack(B, 0) ? 'pk' : 'deck', ev);
-  btThink(B, 0, ev);
-  if (B.phase !== 'over') btAttack(B, 0, ev);
+  const first = B.pturn[0] === 1;
+  if (!first && btCanDraw(B, 0)) btTake(B, 0, btWantPack(B, 0) ? 'pk' : 'deck', ev);
+  btThink(B, 0, ev, first, btRand(B) < BT_HOLD_P);
+  if (B.phase !== 'over') {
+    if (first) btEv(B, ev, { t: 'calm', side: 0 });
+    else btAttack(B, 0, ev);
+  }
   if (B.phase === 'over' || btTurnLimit(B, ev)) return;
   btStartTurn(B, 1, ev);
   B.phase = btCanDraw(B, 1) ? 'draw' : 'main';
@@ -301,6 +320,24 @@ const btHandStats = (B, hi) => btStats(B.hand[1][hi].id);
 const btCanPlay = (B, hi, lane) => B.phase === 'main' && hi >= 0 && hi < B.hand[1].length && lane >= 0 && lane < BT.LANES &&
   !B.lanes[1][lane] && btHandStats(B, hi).cost <= B.coins[1];
 const btCanSac = (B, lane) => B.phase === 'main' && !!B.lanes[1][lane] && B.coins[1] < BT.CAP;
+
+/* Замена руки (с 1.18.0): один раз за бой, в самом начале — в первый ход игрока, пока он не взял карту.
+   Все карты руки, кроме пакета, уходят в колоду, вместо них — столько же новых сверху колоды (колода уже
+   перемешана), потом колода перемешивается. Новые карты — точно другие копии, старые могут прийти позже. */
+const btCanMull = (B) => B.phase === 'draw' && B.pturn[1] === 1 && B.mull !== true &&
+  B.hand[1].some((c) => c.id !== BT_PACKET) && B.deck[1].length >= B.hand[1].filter((c) => c.id !== BT_PACKET).length;
+function btMulligan(B) {
+  if (!btCanMull(B)) return null;
+  const old = B.hand[1].filter((c) => c.id !== BT_PACKET);
+  const packs = B.hand[1].filter((c) => c.id === BT_PACKET);
+  B.hand[1] = B.deck[1].splice(0, old.length).concat(packs);
+  B.deck[1].push(...old);
+  btShuffle(B, B.deck[1]);
+  B.mull = true;
+  const ev = [];
+  btEv(B, ev, { t: 'mull', side: 1, n: old.length });
+  return ev;
+}
 
 // Действия игрока. Возвращают события или null, если действие сейчас невозможно.
 function btDraw(B, src) {
@@ -354,6 +391,8 @@ function btLooksValid(B) {
     if (!B.foe.every((id) => CARD_BY_ID.has(id))) return false;
     if (!Array.isArray(B.dead) || !B.dead.every((m) => isN(m) && m >= 0 && m < M) || new Set(B.dead).size !== B.dead.length) return false;
     if (!['draw', 'main', 'bot', 'over'].includes(B.phase) || !isN(B.scale) || Math.abs(B.scale) > 99) return false;
+    if (B.mull !== undefined && typeof B.mull !== 'boolean') return false; // до 1.18.0 поля нет
+    if (B.bh !== undefined && typeof B.bh !== 'boolean') return false;     // до 1.19.0 поля нет
     if (B.phase === 'over' ? ![0, 1, -1].includes(B.winner) : B.winner !== null) return false;
     for (const k of ['pturn', 'coins', 'packs']) if (!Array.isArray(B[k]) || B[k].length !== 2 || !B[k].every((x) => isN(x) && x >= 0)) return false;
     if (B.coins.some((x) => x > BT.CAP) || B.packs.some((x) => x > BT.PACKS)) return false;
@@ -372,7 +411,9 @@ function btLooksValid(B) {
         ms.add(c.m);
       }
     }
-    const rewOk = B.rew === null || (!!B.rew && CASES.some((c) => c.id === B.rew.c && !c.free) && [1, 2, 3].includes(B.rew.n));
+    // rew.s (с 1.19.0) — масть карты награды: кейс награды теперь из любой масти, карта — масти соперника.
+    const rewOk = B.rew === null || (!!B.rew && CASES.some((c) => c.id === B.rew.c && !c.free) && [1, 2, 3].includes(B.rew.n) &&
+      (B.rew.s === undefined || SUITS.some((s) => s.id === B.rew.s)));
     return rewOk && typeof B.name === 'string' && B.name.length <= 40 && !/[<>&"'`]/.test(B.name) && [0, 1, 2].includes(B.tier);
   } catch (_) { return false; }
 }

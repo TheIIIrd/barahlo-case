@@ -45,7 +45,6 @@ select {
   line-height: 1.2;
   min-width: 0;
   overflow-wrap: break-word; -webkit-hyphens: auto; hyphens: auto; /* длинное слово переносится, а не наезжает на соседнюю плитку */
-  hyphens: auto;
   animation: pop .35s cubic-bezier(.2, 1.6, .4, 1);
 }
 .inv-item:focus-visible { outline: 2px solid var(--accent); }

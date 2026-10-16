@@ -217,7 +217,6 @@
 .card .t {
   position: relative;
   overflow-wrap: break-word; -webkit-hyphens: auto; hyphens: auto;
-  hyphens: auto;
   font-size: var(--fs-xs);
   font-weight: 600;
   text-align: center;
@@ -354,7 +353,6 @@ body:has(.modal:not([hidden])) .card.win { animation-play-state: paused; }
 }
 .mini .nm {
   overflow-wrap: break-word; -webkit-hyphens: auto; hyphens: auto;
-  hyphens: auto;
   height: 3.6em;
   display: -webkit-box;
   -webkit-line-clamp: 3;

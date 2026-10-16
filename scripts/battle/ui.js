@@ -7,9 +7,10 @@ let btSel = null;       // выбранная карта в руке (номер
 let btSacMode = false;  // режим «Сдать на запчасти»: следующая своя карта на столе уйдёт за мелочь
 let btNote = '';        // описание карты, на которую нажали
 let btBotTurnNow = false;
+let btMyStrike = false; // «Закончить ход» нажата: сначала бьют карты игрока, потом ход соперника (событие turn)
 // Сколько длится показ события, мс (при «меньше движения» sleep сам укорачивает до 60).
 const BT_DUR = { turn: 240, draw: 200, play: 300, buff: 220, skip: 240, weak: 240, move: 280, coins: 220, sac: 260,
-  strike: 170, dmg: 360, scale: 380, die: 340, revive: 380, snooze: 280, over: 300 };
+  strike: 170, dmg: 360, scale: 380, die: 340, revive: 380, snooze: 280, over: 300, calm: 700, mull: 420 };
 
 const btLeadText = (v) => (v > 0 ? `+${v} в твою пользу` : v < 0 ? `${minusSign('-' + -v)} в пользу бота` : 'поровну');
 const btSigText = (sg) => (sg && SIGILS[sg] ? `${SIGILS[sg].n}: ${SIGILS[sg].d[0].toLowerCase()}${SIGILS[sg].d.slice(1)}.` : '');
@@ -111,8 +112,10 @@ function btRenderTable(B, snap, fx = null, prev = null) {
 }
 
 function btHint(B) {
-  if (btBotTurnNow) return 'Ход соперника: его карты бьют слева направо.';
-  if (B.phase === 'draw') return 'Возьми карту: из колоды или пакет.';
+  // Первый ход боя: соперник только выставляет карты (B.pturn[0] — уже его первый ход, исход посчитан до показа).
+  if (btMyStrike) return 'Твои карты бьют слева направо.';
+  if (btBotTurnNow) return B.pturn[0] === 1 ? 'Первый ход соперника: только выставляет карты, атаки нет.' : 'Ход соперника: его карты бьют слева направо.';
+  if (B.phase === 'draw') return btCanMull(B) ? 'Возьми карту: из колоды или пакет. Рука не нравится — ↻ заменит её, один раз за бой.' : 'Возьми карту: из колоды или пакет.';
   if (btSacMode) return 'Нажми на свою карту на столе: она уйдёт на запчасти, мелочи станет на 1 больше.';
   if (btNote) return btNote;
   if (btSel !== null && B.hand[1][btSel]) {
@@ -134,8 +137,13 @@ function btControls(B) {
   $('btPack').classList.toggle('want', !$('btPack').disabled);
   const go = $('btEndTurn');
   go.disabled = !main;
-  go.textContent = btBotTurnNow ? '⏳ Ход соперника…' : B.phase === 'draw' ? '⚔️ Сначала возьми карту' : '⚔️ Закончить ход';
+  go.textContent = btMyStrike ? '⏳ Твои карты бьют…' : btBotTurnNow ? '⏳ Ход соперника…' : B.phase === 'draw' ? '⚔️ Сначала возьми карту' : '⚔️ Закончить ход';
+  // «↻ Новая рука» стоит на месте «Сдать на запчасти» (та в это время всё равно выключена): ряд не сдвигается.
+  const mull = btCanMull(B) && !btBotTurnNow && !btMyStrike;
+  $('btMull').classList.toggle('off', !mull);
+  $('btMull').disabled = !mull || busy;
   const sac = $('btSac');
+  sac.classList.toggle('off', mull);
   sac.disabled = !main || B.coins[1] >= BT.CAP || !B.lanes[1].some(Boolean);
   if (sac.disabled) btSacMode = false;
   sac.setAttribute('aria-pressed', String(btSacMode));
@@ -173,16 +181,18 @@ async function btShow(B, ev, prev, bot = false) {
     btControls(B);
     let last = prev;
     for (const e of ev) {
-      if (e.t === 'turn') btBotTurnNow = e.side === 0 && bot;
+      if (e.t === 'turn') { btBotTurnNow = e.side === 0 && bot; btMyStrike = false; }
       btRenderTable(B, e.snap, e, last);
-      if (e.t === 'turn' || e.t === 'draw') btControls(B);
+      if (e.t === 'turn' || e.t === 'draw' || e.t === 'calm') btControls(B);
       if (e.t === 'draw' && e.side === 1) replay($('btHand').lastElementChild, 'fx-draw', 400);
+      if (e.t === 'mull') $$('#btHand .pcard:not(.pk)').forEach((el) => replay(el, 'fx-draw', 400));
       btSound(e);
       last = e.snap;
       await sleep(BT_DUR[e.t] || 200);
     }
   });
   btBotTurnNow = false;
+  btMyStrike = false;
 }
 function btSound(e) {
   switch (e.t) {
@@ -192,6 +202,7 @@ function btSound(e) {
     case 'die': tone(140, 0.12, 'sawtooth', 0.04); break;
     case 'sac': case 'coins': tone(980, 0.05, 'square', 0.03); break;
     case 'draw': if (e.side) tone(660, 0.03, 'square', 0.025); break;
+    case 'mull': tone(520, 0.06, 'triangle', 0.035); break;
   }
 }
 
@@ -206,7 +217,7 @@ async function btAct(fn, bot = false) {
   let res = null;
   if (B.phase === 'over') res = finishBattle(B);
   else save();
-  if (bot) btBotTurnNow = true;
+  if (bot) btMyStrike = true; // ход соперника покажет его событие turn
   await btShow(B, ev, prev, bot);
   if (res) { showBattleEnd(res, B); return; }
   btRenderAll(B);
@@ -237,53 +248,126 @@ function renderBtPre() {
   }
   btFillDeck();
   if (!state.btNext) state.btNext = makeFoe();
+  else btFoeFresh(state.btNext);
   save();
   const n = state.btNext;
   const T = BT_TIERS[n.tier];
   const c = CASES.find((x) => x.id === n.rew.c);
-  const suit = SUITS.find((s) => s.cases.includes(c.id));
+  // Карта награды — масти соперника (rew.s, с 1.19.0); у соперника, выбранного раньше, — масти кейса.
+  const suit = SUITS.find((s) => s.id === n.rew.s) || SUITS.find((s) => s.cases.includes(c.id));
+  const bonus = btStreakNext(); // эта победа — третья подряд: +1 открытие
+  const glory = gloryFull() && n.tier === 2; // полный Зал славы: +1 открытие за сильного соперника
+  const opens = n.rew.n + (bonus ? 1 : 0) + (glory ? 1 : 0);
+  const pity = btPityLeft();
   const bySuit = SUITS.map((s) => [s, n.foe.filter((id) => CARD_BY_ID.get(id).suit === s).length]).filter(([, k]) => k).sort((a, b) => b[1] - a[1]);
   const backs = bySuit.flatMap(([s, k]) => Array(k).fill(s)).map((s) =>
     `<div class="pcard back xs" style="--sc:${s.color}" aria-hidden="true"><span class="pc-corner"><i>${s.sym}</i></span><span class="pc-ic">?</span></div>`).join('');
   const mine = deckForBattle();
   const hurtN = mine.filter((x) => x.hurt).length;
-  const myCards = mine.map((x) => {
-    const h = cardHTML(CARD_BY_ID.get(x.id), { size: 'xs' });
+  if (btPrePick !== null && !(btPrePick < mine.length)) btPrePick = null; // колода стала короче (копию стёрли)
+  const myCards = mine.map((x, i) => {
+    const h = cardHTML(CARD_BY_ID.get(x.id), { size: 'xs', attrs: `data-pk="${i}" tabindex="0" role="button" aria-pressed="${btPrePick === i}"` })
+      .replace('class="pcard', `class="pcard${btPrePick === i ? ' picked' : ''}`);
     return x.hurt ? h.replace('class="pcard', 'class="pcard hurt').replace(/<\/div>\s*$/, '<span class="pc-hurt" title="Ранена">🩹</span></div>') : h;
   }).join('');
   box.innerHTML = `<div class="prebattle">
     <div class="panel pfoe">
       <h2>Соперник <small>случайный · побед ${state.btWins}, поражений ${state.btLosses}</small></h2>
       <div class="foe-row"><div class="foe-ava" aria-hidden="true">🧔</div><div class="foe-t"><b title="${n.name}">${n.name}</b>
-        <span class="chips"><span class="chip" aria-pressed="true" style="--c:${T.c}">${T.n}</span><span class="chip">${bySuit.map(([s, k]) => `${s.sym} ${k}`).join(' · ')}</span></span></div></div>
+        <span class="chips"><span class="chip lit" style="--c:${T.c}">${T.n}</span><span class="chip">${bySuit.map(([s, k]) => `${s.sym} ${k}`).join(' · ')}</span></span></div></div>
       <div class="foe-deck" role="img" aria-label="Колода соперника: ${bySuit.map(([s, k]) => `${s.name} ${k}`).join(', ')}">${backs}</div>
       <div class="pre-tiles">
         <div class="tile"><div class="k">Награда за победу</div>
-          <div class="rew"><span class="rew-ic" style="--cc:${c.color}" aria-hidden="true">${c.ic}</span><span><b>«${c.name}» ×${n.rew.n}</b>
-            <small>${n.rew.n} ${plural(n.rew.n, 'открытие', 'открытия', 'открытий')} · без хлама, редкие чаще · иногда вместо предмета — младшая карта ${suit.sym}</small></span></div></div>
+          <div class="rew"><span class="rew-ic" style="--cc:${c.color}" aria-hidden="true">${c.ic}</span><span><b>«${c.name}» ×${opens}</b>
+            <small>${opens} ${plural(opens, 'открытие', 'открытия', 'открытий')} · без хлама, редкие чаще · иногда вместо предмета — младшая карта ${suit.sym}</small>
+            <small class="rline">Серия побед ${state.btStreak % BT_STREAK} из ${BT_STREAK}${bonus ? ': эта победа третья — +1 открытие' : ''}</small>
+            ${glory ? '<small class="rline">Зал славы собран: +1 открытие за сильного соперника</small>' : ''}
+            <small class="rline">${pity <= opens ? `Карта ${suit.sym} — точно за эту победу` : `Карта — точно не позже ${pity}-го открытия награды`}</small>
+            <small class="rline">Иногда (${Math.round(BT_BUFF_CHANCE * 100)}%) — бафф двух кейсов твоего уровня</small>
+            ${n.tier === 2 ? `<small class="rline">Трофей (${Math.round(BT_TROPHY_CHANCE * 100)}%) — карта из колоды соперника</small>` : ''}</span></div></div>
         <div class="tile lose"><div class="k">Если проиграешь</div><div class="s">Награды нет. Погибшие в бою карты ранены, раненые второй раз — стираются.</div></div>
       </div>
     </div>
-    <div class="panel pme">
+    <div class="pcol"><div class="panel pme">
       <h2>Твоя колода <small>${BT.DECK} из ${BT.DECK}${hurtN ? ` · раненых ${hurtN}` : ''}</small></h2>
-      <div class="me-deck">${myCards}</div>
+      <div class="me-deck" role="group" aria-label="Твоя колода: нажми на карту, чтобы рассмотреть">${myCards}</div>
       <div class="pbtns"><button class="btn" type="button" id="btToAlbum">🗂️ В Картотеку</button></div>
       <button class="btn primary go" type="button" id="btGo">⚔️ В бой</button>
       <details class="howto"><summary>Как играть</summary>
         <p>Выставляй карты на свои 4 линии. В конце хода каждая карта бьёт карту напротив, а если напротив пусто — бьёт по весам. Перевес 8 — победа.</p>
         <p>Карты стоят мелочь: +1 за ход, копится до 5. Свою карту на столе можно сдать на запчасти за +1 мелочь. Пакеты бесплатные — ими закрывают линии.</p>
-        <p>Бот ходит первым, зато у тебя +${BT.BONUS} на весах с начала боя. Погибшая в бою карта ранена, раненая второй раз — стирается.</p></details>
-    </div></div>`;
+        <p>Бот ходит первым, но в первый ход только выставляет карты — атаки нет. Весы начинаются с 0. Не нравится стартовая рука — в свой первый ход, пока не взята карта, её можно один раз заменить: «↻ Новая рука».</p>
+        <p>Награда — кейс по твоему уровню и обычной цене твоих открытий, с щедрыми шансами. Каждая ${BT_STREAK}-я победа подряд даёт +1 открытие. Младшая карта иногда выпадает вместо предмета, а после ${BT_PITY} открытий без карты следующее — точно карта. С шансом ${Math.round(BT_BUFF_CHANCE * 100)}% победа даёт бафф: редкие ×${BUFF_MULT} на ${BUFF_MS_WIN / 60000} минуты в двух кейсах твоего уровня.</p>
+        <p>Победа над соперником «сильнее тебя» с шансом ${Math.round(BT_TROPHY_CHANCE * 100)}% даёт трофей — карту из его колоды, не больше чем на ранг старше твоих карт этой масти. За особые победы — медали: их можно продать или поставить в Зал славы Музея. Погибшая в бою карта ранена, раненая второй раз — стирается.</p></details>
+    </div>
+    <aside class="cdetail btdetail" id="btDetail" aria-label="Карта из колоды"></aside></div></div>`;
   $('btToAlbum').onclick = () => setCardsSub('album');
   $('btGo').onclick = btFight;
+  $$('[data-pk]', box).forEach((el) => {
+    el.onclick = (e) => openBtPreCard(+el.dataset.pk, e);
+    el.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); el.click(); } };
+  });
+  renderBtPreDetail(mine);
+  if (btDetailEl) toEndRO.unobserve(btDetailEl);
+  btDetailEl = $('btDetail');
+  toEndRO.observe(btDetailEl); // кнопка «Наверх» обходит карточку, как в Картотеке
   restoreFocus(key);
+}
+
+/* Карта колоды крупно — как в Картотеке: на компьютере панель под колодой, на телефоне шторка снизу.
+   Здесь только смотреть: менять колоду — в Картотеке (кнопка открывает там эту же карту). */
+let btPrePick = null; // номер карты в колоде (копии различаются: одна может быть ранена)
+let btDetailEl = null;
+function openBtPreCard(i, e) {
+  if (busy) return;
+  btPrePick = btPrePick === i ? null : i; // повторное нажатие на ту же карту закрывает её (aria-pressed — переключатель)
+  tone(650, 0.03);
+  renderBtPre();
+  if (btPrePick !== null) focusSheet($('btDetail'), e); // с клавиатуры на телефоне — в шторку
+}
+function closeBtPreCard() {
+  const i = btPrePick;
+  const inside = $('btDetail') && $('btDetail').contains(document.activeElement);
+  btPrePick = null;
+  if (inside) document.activeElement.blur(); // иначе перерисовка вернёт фокус «на ближайшую кнопку», а не на карту
+  renderBtPre();
+  if (inside) focusBack($('btPre').querySelector(`[data-pk="${i}"]`), $('btGo'));
+}
+function renderBtPreDetail(mine) {
+  const box = $('btDetail');
+  const x = btPrePick === null ? null : mine[btPrePick];
+  box.classList.toggle('show', !!x);
+  if (!x) {
+    box.innerHTML = '<div class="emptyd"><span class="ic">🃏</span>Нажми на карту колоды, чтобы рассмотреть её поближе.</div>';
+    return;
+  }
+  const card = CARD_BY_ID.get(x.id);
+  const big = cardHTML(card);
+  const copies = deckCount(card.id);
+  box.innerHTML = `<button class="btn sm close" type="button" id="btdClose" aria-label="Закрыть" title="Закрыть">✕</button>
+    ${x.hurt ? big.replace('class="pcard', 'class="pcard hurt').replace(/<\/div>\s*$/, '<span class="pc-hurt" title="Ранена">🩹</span></div>') : big}
+    <h3>${cardTitle(card)}</h3>
+    ${cardFactsHTML(card)}
+    <p class="muted">В колоде ×${copies} · в коллекции ×${cardCount(card.id)}</p>
+    ${x.hurt ? '<p class="cwound"><b>🩹 Эта копия ранена.</b> Погибнет в бою ещё раз — сотрётся.</p>' : ''}
+    <button class="btn" type="button" id="btdAlbum">🗂️ Поменять в Картотеке</button>`;
+  $('btdClose').onclick = closeBtPreCard;
+  $('btdAlbum').onclick = () => {
+    if (busy) return;
+    btPrePick = null;
+    albumPick = card.id; // в Картотеке откроется эта же карта: там «Убрать из колоды» и выбор замены
+    setCardsSub('album');
+    focusBack($('album').querySelector(`[data-card="${card.id}"]`), $('aDeckOut'));
+  };
 }
 
 async function btFight() {
   if (busy || state.battle) return;
+  btPrePick = null;
   btFillDeck();
   if (!deckFull()) { renderBattle(); return; }
   const n = state.btNext && btNextLooksValid(state.btNext) ? state.btNext : makeFoe();
+  btFoeFresh(n); // колоду меняли, не заходя на экран соперника
   const B = btCreate({ mine: deckForBattle(), foe: n.foe, seed: n.seed, name: n.name, tier: n.tier, rew: n.rew });
   const prev = btSnap(B);
   const ev = btBegin(B);
@@ -368,6 +452,7 @@ $('btBoard').addEventListener('keydown', (e) => {
 });
 $('btDeck').onclick = () => btAct((B) => btDraw(B, 'deck'));
 $('btPack').onclick = () => btAct((B) => btDraw(B, 'pk'));
+$('btMull').onclick = () => { btSel = null; btSacMode = false; btAct((B) => btMulligan(B)); };
 $('btEndTurn').onclick = () => { btSel = null; btSacMode = false; btAct((B) => btEndTurn(B), true); };
 $('btSac').onclick = () => {
   const B = state.battle;
@@ -409,7 +494,7 @@ async function showBattleEnd(res, B) {
   $('beIc').textContent = draw ? '⚖️' : '🥀';
   const c = res.rew && CASES.find((x) => x.id === res.rew.c);
   $('beTitle').textContent = win && c ? `Награда: «${c.name}» ×${res.rew.n}` : draw ? 'Весы встали ровно' : 'Соперник перевесил';
-  $('beSub').textContent = win ? (c ? 'Кейс открывается сразу, бесплатно.' : '') : 'Награды нет.';
+  $('beSub').textContent = win ? btWinNotes(res, c) : 'Награды нет.';
   $('beGrid').innerHTML = '';
   $('beLoss').innerHTML = btLossRows(res);
   $('beOk').textContent = win ? 'Забрать' : '⚔️ Ещё бой';
@@ -422,7 +507,8 @@ async function showBattleEnd(res, B) {
   void box.offsetWidth;
   box.style.animation = '';
   if (!(win && c)) {
-    sad();
+    $('beGrid').innerHTML = btMedalTiles(res); // бой, начатый до 1.15.1 без награды, — медали всё равно показываем
+    if (win) fanfare(4); else sad();
     $('beOk').disabled = $('beAlt').disabled = false;
     $('beOk').focus({ preventScroll: true });
     return;
@@ -434,7 +520,7 @@ async function showBattleEnd(res, B) {
     const cardWin = res.cards.find((x) => x.k === k);
     if (cardWin) {
       const card = CARD_BY_ID.get(cardWin.id);
-      return { card, r: RANK_RARITY[card.rank], ic: card.ic, name: `Карта ${RANKS[card.rank]}${card.suit.sym} ${card.name}` };
+      return { card, pity: cardWin.pity, r: RANK_RARITY[card.rank], ic: card.ic, name: `Карта ${RANKS[card.rank]}${card.suit.sym} ${card.name}` };
     }
     return res.items.find((x) => x.k === k).it;
   });
@@ -454,14 +540,35 @@ async function showBattleEnd(res, B) {
   });
   releaseXP();
   $('beGrid').innerHTML = wins.map((x) => (x.card
-    ? `<div class="cardres" style="--c:${x.card.suit.color}"><span class="ic">${x.ic}</span><span class="nm">${x.name}</span><span class="p">в Картотеку</span></div>`
+    ? `<div class="cardres" style="--c:${x.card.suit.color}"><span class="ic">${x.ic}</span><span class="nm">${x.name}</span><span class="p">${x.pity ? 'гарантия' : 'в Картотеку'}</span></div>`
     : `<div style="--c:${RARITY[x.r].c}" title="${x.name} · ${fmt(x.price)}"><span class="ic">${x.ic}</span><span class="nm">${nameHTMLPre(x)}</span>
-        <span class="p${x.price < 0 ? ' neg' : ''}"><span class="pl">${fmtShort(x.price)}</span><span class="ps">${slotMoney(x.price)}</span></span></div>`)).join('');
-  fanfare(Math.max(...wins.map((x) => x.r)));
+        <span class="p${x.price < 0 ? ' neg' : ''}"><span class="pl">${fmtShort(x.price)}</span><span class="ps">${slotMoney(x.price)}</span></span></div>`)).join('') + btMedalTiles(res);
+  fanfare(Math.max(...wins.map((x) => x.r), ...res.medals.map((x) => x.r), res.trophy ? RANK_RARITY[CARD_BY_ID.get(res.trophy).rank] : 0));
   renderCards();
   $('beOk').disabled = $('beAlt').disabled = false;
   $('beOk').focus({ preventScroll: true });
+  $('beOk').scrollIntoView({ block: 'nearest' }); // на низком экране с 3–4 лентами кнопка ниже края окна
 }
+// Строка под заголовком окна победы: что добавилось к награде (серия, Зал славы, медали, бафф).
+function btWinNotes(res, c) {
+  const out = [];
+  if (c) out.push('Кейс открывается сразу, бесплатно.');
+  if (res.rew && res.rew.streak) out.push('Третья победа подряд — +1 открытие.');
+  if (res.rew && res.rew.glory) out.push('Зал славы — +1 открытие.');
+  const m = res.medals || [];
+  if (m.length) out.push(m.length > 1 ? `Новые медали (${m.length}) — в инвентаре.` : `Новая медаль: ${m[0].name} — в инвентаре.`);
+  if (res.trophy) out.push(`Трофей соперника: ${cardTitle(CARD_BY_ID.get(res.trophy))} — в Картотеке.`);
+  const b = (res.buff || []).map((id) => CASES.find((x) => x.id === id)).filter(Boolean);
+  if (b.length) out.push(`Бафф на ${BUFF_MS_WIN / 60000} минуты: ${b.map((x) => `«${x.name}»`).join(' и ')} — редкие ×${BUFF_MULT}.`);
+  return out.join(' ');
+}
+// Плитки сверх открытий: трофей соперника (карта) и новые медали.
+const btMedalTiles = (res) => {
+  const t = res.trophy && CARD_BY_ID.get(res.trophy);
+  const trophy = t ? `<div class="cardres trophyres" style="--c:${t.suit.color}" title="Трофей соперника: ${cardTitle(t)}"><span class="ic">${t.ic}</span><span class="nm">Карта ${cardTitle(t)}</span><span class="p">трофей</span></div>` : '';
+  return trophy + (res.medals || []).map((x) =>
+    `<div class="cardres medalres" style="--c:${RARITY[x.r].c}" title="${x.name} · ${fmt(x.price)}"><span class="ic">${x.ic}</span><span class="nm">${x.name}</span><span class="p">медаль</span></div>`).join('');
+};
 function closeBattleEnd(to) {
   if (busy || $('btEnd').hidden) return;
   $('btEnd').hidden = true;

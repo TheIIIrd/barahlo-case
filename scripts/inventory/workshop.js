@@ -135,7 +135,9 @@ function craftResult(recipe, list) {
   return makeItem(CRAFT_ROOM, RECIPES.indexOf(recipe), Math.min(0.9999, Math.max(1e-15, avgFloat * (0.8 + rnd() * 0.3) * wearK)));
 }
 
-async function batchCraft() {
+// Ошибка посреди анимации не оставит игру «занятой» навсегда (guardBusy, scripts/core/utils.js).
+function batchCraft() { return guardBusy(() => batchCraftRun()); }
+async function batchCraftRun() {
   if (busy || craftRarity == null) return;
   const plan = planBatch(craftRarity);
   if (!plan.length) { toast('Не из чего собирать: не хватает незакреплённых ингредиентов.'); return; }
@@ -339,7 +341,9 @@ function autoCraft(r) {
   doCraft(use);
 }
 
-async function doCraft(list) {
+// Ошибка посреди анимации не оставит игру «занятой» навсегда (guardBusy, scripts/core/utils.js).
+function doCraft(list) { return guardBusy(() => doCraftRun(list)); }
+async function doCraftRun(list) {
   list = [...new Set(list)].filter((x) => state.inv.includes(x));
   if (busy || !list.length) return;
   // Закрепили уже на верстаке — не сжигаем.

@@ -102,7 +102,7 @@
   border-radius: 50%;
   background: var(--c);
 }
-.chip[aria-pressed="true"] {
+.chip[aria-pressed="true"], .chip.lit { /* .lit — та же подсветка у метки, которая не кнопка */
   color: var(--fg);
   border-color: var(--c);
   background: color-mix(in srgb, var(--c) 18%, var(--bg2));
@@ -112,7 +112,7 @@
   font-weight: 400;
   color: var(--muted);
 }
-.chip[aria-pressed="true"] b { color: var(--fg); } /* на подсвеченном фоне приглушённый счётчик плохо читался */
+.chip:is([aria-pressed="true"], .lit) b { color: var(--fg); } /* на подсвеченном фоне приглушённый счётчик плохо читался */
 .quick-sel {
   display: flex;
   flex-wrap: wrap;
@@ -212,7 +212,6 @@
 .icard .nm {
   position: relative;
   overflow-wrap: break-word; -webkit-hyphens: auto; hyphens: auto;
-  hyphens: auto;
   font-size: var(--fs-xs);
   font-weight: 600;
   line-height: 1.2;
@@ -474,6 +473,7 @@
   .detail.show {
     transform: none;
     visibility: visible;
+    transition: transform .28s ease, visibility 0s; /* видна сразу — иначе фокус в неё не встанет до конца выезда */
   }
   .detail .close {
     display: block;

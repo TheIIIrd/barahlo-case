@@ -127,8 +127,12 @@ function grantBuffs(opened) {
   const picked = [];
   while (picked.length < BUFF_CASES && pool.length) picked.push(pool.splice(Math.floor(rnd() * pool.length), 1)[0]);
   const until = Date.now() + BUFF_MS;
-  picked.forEach((c) => (state.buffs[c.id] = { until, left: BUFF_MS }));
-  return picked;
+  // Повторный бафф продлевает срок — но не укорачивает: если у кейса идёт бафф за победу в бою (до 2 минут) и осталось
+  // больше минуты, его оставляем как есть (с 1.21.0; раньше он обрезался до минуты).
+  // Возвращаем только те, кому бафф дан или продлён: уведомление «Бафф на 1 минуту: …» называет именно их.
+  const fresh = picked.filter((c) => buffLeft(c) <= BUFF_MS);
+  fresh.forEach((c) => (state.buffs[c.id] = { until, left: BUFF_MS }));
+  return fresh;
 }
 
 // Тик баффов: секундомер (performance.now не зависит от часов системы) уменьшает остаток,

@@ -21,7 +21,9 @@ function restoreBlockHTML(it) {
     </div>`;
 }
 
-async function restore(it) {
+// Ошибка посреди анимации не оставит игру «занятой» навсегда (guardBusy, scripts/core/utils.js).
+function restore(it) { return guardBusy(() => restoreRun(it)); }
+async function restoreRun(it) {
   if (busy || !state.inv.includes(it)) return;
   const cost = restoreCost(it);
   if (state.bal < cost) { sad(); return; }

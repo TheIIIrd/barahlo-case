@@ -10,6 +10,7 @@ let albumPick = null; // карта, открытая в альбоме круп
 function setCardsSub(section) {
   if (busy) return;
   cardsSub = section;
+  if (section !== 'battle') btPrePick = null; // колоду могут поменять — номер карты перед боем устареет
   $$('#v-cards .subnav button').forEach((b) => b.setAttribute('aria-selected', b.dataset.csub === section));
   CARD_SECTIONS.forEach((v) => ($('csub-' + v).hidden = v !== section));
   renderCards();
@@ -41,20 +42,27 @@ function renderDeckPanel() {
   const cards = state.deck.map((id) => CARD_BY_ID.get(id));
   const avg = n ? sum(cards, (c) => c.cost) / n : 0;
   const slots = state.deck.map((id, i) => {
-    const html = cardHTML(CARD_BY_ID.get(id), { attrs: `data-dk="${i}" tabindex="0" role="button"` });
+    // Имя для экранного диктора — явно: в компактной колоде название и цифры скрыты, осталось бы «2♠ и значок».
+    const label = `${cardTitle(CARD_BY_ID.get(id))}${mine[i].hurt ? ', ранена' : ''}`;
+    const html = cardHTML(CARD_BY_ID.get(id), { attrs: `data-dk="${i}" tabindex="0" role="button" aria-label="${label}"` });
     return mine[i].hurt ? html.replace('class="pcard', 'class="pcard hurt').replace(/<\/div>\s*$/, '<span class="pc-hurt" title="Ранена">🩹</span></div>') : html;
   }).join('') + Array.from({ length: BT.DECK - n }, (_, i) => `<button class="dslot" type="button" data-de="${i}" aria-label="Свободное место в колоде">+</button>`).join('');
   const open = battlesOpen();
+  // Пока бои закрыты (карт на колоду не хватает), колода компактная: места мелкие, сверху — сколько уже можно собрать
+  // (с 1.21.0; раньше пустые места во всю ширину занимали треть экрана).
+  box.classList.toggle('closed', !open);
+  const can = Math.min(deckPossible(), BT.DECK);
   box.innerHTML = `<h2>Колода <small>${n} из ${BT.DECK}${hurtN ? ` · раненых ${hurtN}` : ''}</small></h2>
+    ${open ? '' : `<div class="dprog"><span class="dprog-bar" aria-hidden="true"><i style="width:${(can / BT.DECK) * 100}%"></i></span><span class="dprog-t">Для боёв: <b>${can} из ${BT.DECK}</b></span></div>`}
     <div class="dslots" role="group" aria-label="Колода">${slots}</div>
-    ${open ? '' : `<p class="dnote">Для боёв нужна колода из ${BT.DECK} карт, одна карта — не больше ${BT.COPIES} раз. Сейчас можно собрать ${deckPossible()}: остальные куются в Кузне.</p>`}
+    ${open ? '' : `<p class="dnote">Для боёв нужна колода из ${BT.DECK} карт, одна карта — не больше ${BT.COPIES} раз. Недостающие куются в Кузне.</p>`}
     <div class="drow">
       <div class="dsum">${n ? `<span class="chip">🪙 средняя цена <b>${NF.format(Math.round(avg * 10) / 10)}</b></span><span class="chip">⚔️ <b>${sum(cards, (c) => c.atk)}</b></span><span class="chip">❤️ <b>${sum(cards, (c) => c.hp)}</b></span>` : ''}${hurtN ? `<span class="chip">🩹 раненых <b>${hurtN}</b></span>` : ''}</div>
       <div class="dline">${n ? `🪙 средняя цена ${NF.format(Math.round(avg * 10) / 10)} · ⚔️ ${sum(cards, (c) => c.atk)} · ❤️ ${sum(cards, (c) => c.hp)}${hurtN ? ` · раненых ${hurtN}` : ''}` : ''}</div>
       <div class="dacts"><button class="btn" type="button" id="dAuto"${deckPossible() ? '' : ' disabled'}>↺ Автоподбор</button><button class="btn primary" type="button" id="dGo"${open ? '' : ' disabled'}>⚔️ К боям</button></div>
     </div>`;
   $$('[data-dk]', box).forEach((el) => {
-    el.onclick = () => openAlbumCard(state.deck[+el.dataset.dk]);
+    el.onclick = (e) => openAlbumCard(state.deck[+el.dataset.dk], e);
     el.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); el.click(); } };
   });
   $$('[data-de]', box).forEach((el) => (el.onclick = () => toast('Выбери карту в альбоме ниже и нажми «В колоду». Или нажми «Автоподбор».', 3200)));
@@ -97,15 +105,16 @@ function renderAlbum() {
     </section>`;
   }).join('');
   $$('[data-card]', $('album')).forEach((el) => {
-    el.onclick = () => openAlbumCard(el.dataset.card);
+    el.onclick = (e) => openAlbumCard(el.dataset.card, e);
     el.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); el.click(); } };
   });
   renderAlbumDetail();
 }
 
-function openAlbumCard(id) {
+function openAlbumCard(id, e) {
   albumPick = id;
   renderAlbumDetail();
+  focusSheet($('aDetail'), e); // с клавиатуры на телефоне — в шторку
   tone(650, 0.03);
 }
 function closeAlbumCard() {
@@ -115,6 +124,14 @@ function closeAlbumCard() {
   renderAlbumDetail();
   // Кнопки карточки перерисованы — фокус возвращаем на саму карту в альбоме (или в колоде), а не теряем.
   if (inside) focusBack($('album').querySelector(`[data-card="${id}"]`), $$('#deckPanel [data-dk]'), $('dAuto'));
+}
+
+// Описание, цена, атака, здоровье и свойство — одинаково в Картотеке и на экране перед боем.
+function cardFactsHTML(card) {
+  const sig = card.sigil ? SIGILS[card.sigil] : null;
+  return `<p class="lore">${card.lore}</p>
+      <div class="cstats"><span>🪙 Цена ${card.cost}</span><span>⚔️ Атака ${card.atk}</span><span>❤️ Здоровье ${card.hp}</span></div>
+      ${sig ? `<p class="csig"><b>${sig.n}.</b> ${sig.d}.</p>` : ''}`;
 }
 
 /* Карточка выбранной карты: на компьютере — липкая панель справа от альбома, на телефоне — шторка
@@ -132,7 +149,6 @@ function renderAlbumDetail() {
   const el = $('album').querySelector(`[data-card="${card.id}"]`);
   if (el) el.classList.add('picked');
   const known = cardKnown(card.id);
-  const sig = card.sigil ? SIGILS[card.sigil] : null;
   const rec = CARD_RECIPES.get(card.id);
   const recipe = recipeOpen(card)
     ? rec.need.map((q) => `${needLabel(q, card)}${q.n > 1 ? ' ×' + q.n : ''}`).join(' + ')
@@ -140,9 +156,7 @@ function renderAlbumDetail() {
   box.innerHTML = `<button class="btn sm close" type="button" id="aClose" aria-label="Закрыть" title="Закрыть">✕</button>
     ${known ? cardHTML(card, { count: cardCount(card.id) }) : cardBackHTML(card)}
     <h3>${known ? cardTitle(card) : `${RANKS[card.rank]}${card.suit.sym} — ещё не выкована`}</h3>
-    ${known ? `<p class="lore">${card.lore}</p>
-      <div class="cstats"><span>🪙 Цена ${card.cost}</span><span>⚔️ Атака ${card.atk}</span><span>❤️ Здоровье ${card.hp}</span></div>
-      ${sig ? `<p class="csig"><b>${sig.n}.</b> ${sig.d}.</p>` : ''}
+    ${known ? `${cardFactsHTML(card)}
       <p class="muted">В коллекции ×${cardCount(card.id)}${deckCount(card.id) ? ` · в колоде ×${deckCount(card.id)}` : ''}${cardInBattle(card.id) ? ` · в бою ×${cardInBattle(card.id)}` : ''}</p>
       ${cardHurt(card.id) ? `<p class="cwound"><b>🩹 Ранено копий: ${cardHurt(card.id)} из ${cardCount(card.id)}.</b> Раненая копия, погибшая в бою ещё раз, стирается.</p>` : ''}
       ${deckCount(card.id) || (cardCount(card.id) && deckRoom(card.id) > 0) ? `<div class="cbtns">${cardCount(card.id) && deckRoom(card.id) > 0 ? `<button class="btn" type="button" id="aDeckIn"${deckFull() ? ' disabled title="В колоде уже 10 карт: сначала убери одну"' : ''}>В колоду</button>` : ''}${deckCount(card.id) ? '<button class="btn" type="button" id="aDeckOut">Убрать из колоды</button>' : ''}</div>` : ''}` : ''}

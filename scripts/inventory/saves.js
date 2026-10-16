@@ -80,7 +80,11 @@ const optNum = (x) => x === undefined || x === null || isNum(x);
 function itemLooksValid(it) {
   if (!isObj(it) || !isNum(it.price) || !Number.isInteger(it.r) || it.r < 0 || it.r >= RARITY.length) return false;
   if (!optNum(it.uid) || !optNum(it.base) || !optNum(it.noise) || !optNum(it.t)) return false;
+  if (it.uid !== undefined && it.uid !== null && !Number.isSafeInteger(it.uid)) return false;
+  if (it.resto !== undefined && !(Number.isInteger(it.resto) && it.resto >= 0)) return false; // попадает в разметку
+  if (['lock', 'stat', 'bought', 'special'].some((k) => it[k] !== undefined && !['boolean', 'number'].includes(typeof it[k]))) return false;
   if (it.float !== undefined && !(isNum(it.float) && it.float >= 0 && it.float <= 1)) return false;
+  if (it.medal !== undefined && !(it.special && MEDAL_BY_ID.has(it.medal))) return false; // медаль (с 1.19.0) — только известная
   const c = ROOM_BY_ID.get(it.caseId);
   if (!c) return false;
   if (it.special) return isPlainText(it.name) && [it.ic, it.lore, it.wear].every((x) => x === undefined || isPlainText(x));
@@ -89,9 +93,10 @@ function itemLooksValid(it) {
 }
 function saveLooksValid(s) {
   if (!isObj(s) || !isNum(s.bal) || !Array.isArray(s.inv)) return false;
+  if (Object.keys(s).some((k) => UNSAFE_KEYS.has(k)) || (s.uid !== undefined && !Number.isSafeInteger(s.uid))) return false;
   if (s.v !== undefined && !(Number.isInteger(s.v) && s.v >= 1 && s.v <= SAVE_READABLE)) return false; // из новой версии игры — не грузим
   for (const k of ['debt', 'uid', 'opened', 'spent', 'earn', 'xp', 'lvl', 'freeStore', 'freeTick', 'contracts', 'upgrades',
-    'crafts', 'crashNet', 'museumSpent', 'restos', 'restoSpent', 'pendingBet', 'pendingXp', 'forged', 'forgeLost', 'btWins', 'btLosses']) {
+    'crafts', 'crashNet', 'museumSpent', 'restos', 'restoSpent', 'pendingBet', 'pendingXp', 'forged', 'forgeLost', 'btWins', 'btLosses', 'btStreak', 'btDry']) {
     if (!optNum(s[k])) return false;
   }
   if ((s.debt || 0) < 0 || (s.pendingBet || 0) < 0 || (s.pendingXp || 0) < 0 || (s.xp || 0) < 0) return false;
@@ -107,7 +112,7 @@ function saveLooksValid(s) {
   if (s.rc !== undefined && s.rc.length !== RARITY.length) return false;
   const counts = (o) => !o || Object.values(o).every((n) => Number.isInteger(n) && n >= 0);
   if (!counts(s.tokens) || !counts(s.cards) || !counts(s.forgeFails) || !counts(s.hurt)) return false;
-  for (const k of ['forged', 'forgeLost', 'btWins', 'btLosses']) {
+  for (const k of ['forged', 'forgeLost', 'btWins', 'btLosses', 'btStreak', 'btDry']) {
     if (s[k] !== undefined && !(Number.isInteger(s[k]) && s[k] >= 0)) return false;
   }
   if (s.cardsEver && !Object.values(s.cardsEver).every((v) => v === true)) return false;
@@ -125,6 +130,10 @@ function saveLooksValid(s) {
   // Экспонат лежит под ключом «кейс|индекс» своего же предмета.
   const museumOk = Object.entries(s.museum || {}).every(([k, it]) => itemLooksValid(it) && !it.special &&
     k === museumKey(it.caseId, idxOf(it)));
+  // С 1.19.0: последние открытия — числа; медали — известные id; в Зале славы медаль лежит под своим id.
+  if (s.opensRecent !== undefined && !(Array.isArray(s.opensRecent) && s.opensRecent.length <= OPENS_RECENT && s.opensRecent.every((x) => isNum(x) && x > 0))) return false;
+  if (s.medals !== undefined && !(isObj(s.medals) && Object.entries(s.medals).every(([id, v]) => MEDAL_BY_ID.has(id) && v === true))) return false;
+  if (s.glory !== undefined && !(isObj(s.glory) && Object.entries(s.glory).every(([id, it]) => itemLooksValid(it) && it.medal === id))) return false;
   return museumOk && s.inv.every(itemLooksValid);
 }
 
@@ -143,6 +152,7 @@ function cleanImported(save) {
   };
   save.inv.forEach(strip);
   Object.values(save.museum || {}).forEach(strip);
+  Object.values(save.glory || {}).forEach(strip);
   (save.pending || []).forEach(strip);
   return save;
 }

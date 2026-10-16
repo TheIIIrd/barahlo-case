@@ -64,6 +64,7 @@ function flashExhibit(key) {
 
 // Сдать предмет. Если в музее уже есть такой, но потрёпаннее, старый возвращается в инвентарь.
 function donate(it, fromCard) {
+  if (it && it.medal) { placeMedal(it, fromCard); return; }
   if (busy || !state.inv.includes(it)) return;
   if (it.lock) { toast('Закреплённое не сдаётся в Музей — сначала открепи.'); return; }
   const i = idxOf(it);
@@ -100,6 +101,75 @@ function donate(it, fromCard) {
   const tiles = $$('.icard', $('inv2'));
   const hall = $$('[data-don],[data-swap]', $('hall'));
   focusBack(fromCard ? [tiles[at], tiles[at - 1]] : [hall[hallAt], hall[hallAt - 1], $('donAll')], tiles);
+}
+
+/* Зал славы (с 1.19.0): медали за бои (scripts/data/medals.js). Купить их нельзя, получить — только один раз;
+   поставленная медаль остаётся в зале (как экспонат), проданную не вернуть. Закреплённую медаль ставить можно:
+   замок защищает от случайной продажи, а сюда её ставят нарочно. Полный зал — +1 открытие за сильного соперника. */
+const gloryHave = () => MEDALS.filter((m) => state.glory[m.id]).length;
+function placeMedal(it, fromCard) {
+  if (busy || !state.inv.includes(it) || !MEDAL_BY_ID.has(it.medal) || state.glory[it.medal]) return;
+  const from = releaseItem(it, 'museum');
+  const at = $$('.icard', $('inv2')).findIndex((b) => +b.dataset.u === it.uid);
+  removeItem(it);
+  state.glory[it.medal] = it;
+  const full = gloryFull();
+  if (full) {
+    fanfare(6);
+    toast(`Зал славы собран целиком! Теперь за победу над соперником «сильнее тебя» — +1 открытие награды.`, 4800, { important: true });
+  } else {
+    tone(1000, 0.12, 'triangle', 0.07);
+    toast(`${it.name} — в Зале славы.${from ? ` Снято ${from}.` : ''}`);
+  }
+  museumHall = 'glory';
+  if (fromCard) invUi.open = null;
+  if (fromCard && $('detail').contains(document.activeElement)) document.activeElement.blur();
+  save();
+  renderAll();
+  const tiles = $$('.icard', $('inv2'));
+  focusBack(fromCard ? [tiles[at], tiles[at - 1]] : [$$('[data-medal]', $('hall'))[0]], tiles, $$('.room', $('rooms')));
+}
+
+/* Прогресс к медали (с 1.21.0): за серию — текущая серия побед, за число побед — сколько их всего.
+   У медалей за одну особую победу («За отвагу», «Всухую») счёта нет. */
+function medalProgress(m) {
+  const k = /^([sw])(\d+)$/.exec(m.id);
+  if (!k) return null;
+  const need = +k[2];
+  const have = Math.min(k[1] === 's' ? state.btStreak : state.btWins, need);
+  // Условие уже выполнено (сохранение до 1.19.0 — медаль придёт со следующей победой): так и пишем.
+  if (have >= need) return { have, need, label: 'придёт со следующей победой' };
+  return { have, need, label: k[1] === 's' ? `серия ${have} из ${need}` : `побед ${have} из ${need}` };
+}
+
+function renderGlory() {
+  const have = gloryHave();
+  const full = gloryFull();
+  const exhibitsHTML = MEDALS.map((m) => {
+    const ex = state.glory[m.id];
+    const head = `<span class="plate">${RARITY[m.r].n}</span><span class="ic">${m.ic}</span><span class="nm">${m.name}</span>`;
+    if (ex) {
+      return `<div class="ex filled" style="--c:${RARITY[m.r].c}">${head}<span class="meta">${m.how}</span>
+        <span class="meta" style="color:var(--good)">${fmtShort(ex.price)}</span></div>`;
+    }
+    const own = state.inv.find((x) => x.medal === m.id);
+    const pr = !own && !state.medals[m.id] ? medalProgress(m) : null;
+    const action = own ? `<button class="btn primary" type="button" data-medal="${own.uid}">Поставить</button>`
+      : pr ? `<span class="mprog" aria-hidden="true"><i style="width:${(pr.have / pr.need) * 100}%"></i></span><span class="meta">${pr.label}</span>`
+        : `<span class="meta">${state.medals[m.id] ? 'утрачена — второй не будет' : 'ещё не получена'}</span>`;
+    return `<div class="ex vacant" style="--c:${RARITY[m.r].c}">${head}<span class="meta">${m.how}</span>${action}</div>`;
+  }).join('');
+  $('hall').innerHTML = `
+    <div class="hall-top">
+      <div><h3>🏅 Зал славы</h3><div class="bonus">
+        Собрано ${have} из ${MEDALS.length}. Медали дают только бои — каждую один раз, за первое выполнение условия. Купить их нельзя.
+        <span class="perk${full ? ' on' : ''}">${full ? '✓' : '○'} Весь зал (${MEDALS.length}): +1 открытие награды за победу над соперником «сильнее тебя»</span></div></div>
+    </div>
+    <div class="exhibits glory">${exhibitsHTML}</div>`;
+  $$('[data-medal]', $('hall')).forEach((b) => (b.onclick = () => {
+    const it = state.inv.find((x) => x.uid === +b.dataset.medal);
+    if (it) placeMedal(it);
+  }));
 }
 
 function buyExhibit(c, i) {
@@ -161,6 +231,7 @@ function donateAll(cid) {
 }
 
 function museumButtonHTML(it) {
+  if (it.medal) return state.glory[it.medal] ? '' : '<button class="btn wide" type="button" id="dtMus">🏅 В Зал славы</button>';
   const i = idxOf(it);
   if (i < 0 || it.lock) return ''; // закреплённое музей не предлагает
   const ex = state.museum[museumKey(it.caseId, i)];
@@ -201,7 +272,7 @@ function renderMuseumNow() {
   if (!subVisible('museum')) return;
 
   // Список залов.
-  if (!museumHall || !roomById(museumHall)) museumHall = CASES[0].id;
+  if (!museumHall || (museumHall !== 'glory' && !roomById(museumHall))) museumHall = CASES[0].id;
   $('rooms').innerHTML = ROOMS.map((c) => {
     const have = roomHave(c);
     const done = !!state.museumDone[c.id];
@@ -216,14 +287,29 @@ function renderMuseumNow() {
         <span class="bar"><i style="width:${(have / c.items.length) * 100}%"></i></span>
         <span class="cnt"><span>${have}/${c.items.length}</span><span>${status}</span></span>
       </button>`;
-  }).join('');
+  }).join('') + gloryRoomHTML();
   $$('.room', $('rooms')).forEach((b) => (b.onclick = () => {
     museumHall = b.dataset.c;
     renderMuseum();
     tone(600, 0.03);
   }));
 
-  renderHall(roomById(museumHall));
+  if (museumHall === 'glory') renderGlory();
+  else renderHall(roomById(museumHall));
+}
+// Кнопка Зала славы — последней в списке залов (с 1.19.0).
+function gloryRoomHTML() {
+  const have = gloryHave();
+  const full = gloryFull();
+  const can = state.inv.some((x) => x.medal && !state.glory[x.medal]);
+  // На телефоне от «+ поставить» остаётся «+» (слово — в подсказке и для экранного диктора), чтобы полоса не пропадала.
+  const status = full ? '🏅 собран' : can ? '<b class="can" title="В инвентаре есть медаль — можно поставить">+<span class="w"> поставить</span></b>' : '';
+  return `
+      <button class="room glory${full ? ' done' : ''}" type="button" data-c="glory" aria-pressed="${museumHall === 'glory'}">
+        <span class="rt"><span class="ic">🏅</span><b>Зал славы</b></span>
+        <span class="bar"><i style="width:${(have / MEDALS.length) * 100}%"></i></span>
+        <span class="cnt"><span>${have}/${MEDALS.length}</span><span>${status}</span></span>
+      </button>`;
 }
 
 // Выбранный зал с экспонатами.

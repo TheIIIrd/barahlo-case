@@ -13,12 +13,29 @@ function rnd() {
   return a[0] / 4294967296;
 }
 const pick = (arr) => arr[Math.floor(rnd() * arr.length)];
-const r2 = (n) => Math.round(n * 100) / 100 || 0;
+// Не конечное (переполнение, сбой) — 0, иначе Infinity ушла бы в сохранение как null и сломала его.
+const r2 = (n) => (Number.isFinite(n) ? Math.round(n * 100) / 100 || 0 : 0);
 const sleep = (ms) => new Promise((r) => setTimeout(r, reducedMotion ? Math.min(ms, 60) : ms));
 // Анимация с занятостью: пока идёт fn, остальные действия ждут (busy); снимается и при ошибке внутри.
 async function withBusy(fn) {
   busy = true;
   try { return await fn(); } finally { busy = false; }
+}
+/* Страховка для действий, где занятость снимает окно итога: если посреди анимации что-то упало, итог уже
+   сохранён (правило «итог — до анимации»), поэтому возвращаем отложенное в инвентарь, как это сделала бы
+   перезагрузка, и снимаем занятость. Окно итога уже открыто — ничего не трогаем: предметы заберут из него. */
+async function guardBusy(fn) {
+  try { return await fn(); } catch (e) { busyFail(e); }
+}
+function busyFail(err) {
+  console.error(err);
+  if (!busy || !$('drop').hidden || !$('multi').hidden) return;
+  if (Array.isArray(state.pending) && state.pending.length) state.inv.push(...state.pending.splice(0));
+  releaseXP();
+  busy = false;
+  save();
+  try { renderAll(); } catch (e) { console.error(e); }
+  toast('Анимация прервалась из-за ошибки. Игра сохранена, можно продолжать.', 5000, { important: true });
 }
 const sum = (arr, f) => arr.reduce((a, x) => a + f(x), 0);
 
